@@ -6,13 +6,15 @@ const homeBtns = ({ btnName, handlePress, btnactive }) => {
     <View
       className="flex flex-row "
       style={{
+        paddingTop: 2,
+        paddingBottom: 2,
         paddingRight: 5,
       }}
     >
       <TouchableOpacity
         style={{
           backgroundColor: btnactive === btnName ? "#000" : "#D3D3D3",
-          padding: 10,
+          padding: 12,
           paddingLeft: 25,
           paddingRight: 25,
           borderRadius: 50,
@@ -20,8 +22,10 @@ const homeBtns = ({ btnName, handlePress, btnactive }) => {
         onPress={handlePress}
       >
         <Text
+          className="text-md "
           style={{
             color: btnactive === btnName ? "#fff" : "#000",
+            fontWeight: btnactive === btnName ? "bold" : "normal",
           }}
         >
           {btnName}
