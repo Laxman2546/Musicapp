@@ -7,7 +7,6 @@ import {
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
-import "@/global.css";
 import HomeBtns from "@/components/homeBtns";
 import Trending from "@/components/trending";
 import useFetch from "@/services/useFetch";
@@ -16,15 +15,12 @@ import { fetchMusic } from "@/services/api";
 const Home = () => {
   const [active, setActive] = useState("Trending");
   const [greetings, setGreetings] = useState("Good Morning");
+
   const {
     data: music,
     loading: musicLoading,
     error: musicError,
-  } = useFetch(() =>
-    fetchMusic({
-      query: "",
-    })
-  );
+  } = useFetch(() => fetchMusic({ query: "", active }), [active]);
 
   useEffect(() => {
     const date = new Date();
@@ -42,64 +38,42 @@ const Home = () => {
     <SafeAreaView className="bg-slate-50 h-full">
       <View className="w-full">
         <View className="w-full flex pt-10 pl-5 gap-1">
-          <View>
-            <Text
-              style={{
-                fontFamily: "Nunito-Regular",
-              }}
-              className="text-xl"
-            >
-              Hello,
-            </Text>
-          </View>
-          <View>
-            <Text
-              style={{
-                fontFamily: "Nunito-Black",
-              }}
-              className="text-2xl"
-            >
-              {greetings}
-            </Text>
-          </View>
+          <Text style={styles.greetingText}>Hello,</Text>
+          <Text style={styles.greetingName}>{greetings}</Text>
         </View>
+
         <View className="w-full flex flex-row items-center gap-2 pt-5 pl-5">
           <HomeBtns
             btnName="Trending"
-            handlePress={() => {
-              setActive("Trending");
-            }}
+            handlePress={() => setActive("Trending")}
             btnactive={active}
           />
           <HomeBtns
             btnName="Popular"
-            handlePress={() => {
-              setActive("Popular");
-            }}
+            handlePress={() => setActive("Popular")}
             btnactive={active}
           />
           <HomeBtns
             btnName="Recent"
-            handlePress={() => {
-              setActive("Recent");
-            }}
+            handlePress={() => setActive("Recent")}
             btnactive={active}
           />
         </View>
+
+        {/* Active Section Header */}
         <View className="pt-5 pl-5">
-          <Text
-            style={{
-              fontFamily: "Poppins-SemiBold",
-            }}
-            className="text-xl"
-          >
-            {active === "Recent" ? `${active} Hits` : `${active} Songs`}
+          <Text style={styles.activeText}>
+            {active === "Recent" ? `${active} Release` : `${active} Songs`}
           </Text>
         </View>
+
+        {/* Loading/Error Handling */}
         {musicLoading ? (
-          <ActivityIndicator size="large" color="#000ff" />
+          <ActivityIndicator size="large" color="#000" />
         ) : musicError ? (
-          <Text>Something went wrong</Text>
+          <Text style={styles.errorText}>
+            Something went wrong: {musicError.message}
+          </Text>
         ) : (
           <FlatList
             data={music?.songs || []}
@@ -113,6 +87,19 @@ const Home = () => {
                 primary_artists={item.primary_artists}
               />
             )}
+            ListFooterComponent={
+              active === "Trending" ? null : (
+                <View style={styles.footerContainer}>
+                  {music?.songs.length === 0 ? (
+                    <Text style={styles.emptyText}>No songs available</Text>
+                  ) : (
+                    <Text style={styles.footerText}>
+                      You’ve caught them all! 🎶
+                    </Text>
+                  )}
+                </View>
+              )
+            }
             keyExtractor={(item, index) => index.toString()}
           />
         )}
@@ -121,6 +108,39 @@ const Home = () => {
   );
 };
 
-export default Home;
+const styles = StyleSheet.create({
+  greetingText: {
+    fontFamily: "Nunito-Regular",
+    fontSize: 18,
+  },
+  greetingName: {
+    fontFamily: "Nunito-Black",
+    fontSize: 24,
+  },
+  activeText: {
+    fontFamily: "Poppins-SemiBold",
+    fontSize: 18,
+  },
+  errorText: {
+    fontSize: 16,
+    color: "red",
+  },
+  footerContainer: {
+    marginBottom: 250,
+    marginTop: 25,
+    flex: 1,
+    alignItems: "center",
+    width: "100%",
+  },
+  footerText: {
+    fontFamily: "Poppins-SemiBold",
+    fontSize: 18,
+  },
+  emptyText: {
+    fontFamily: "Poppins-SemiBold",
+    fontSize: 18,
+    color: "gray",
+  },
+});
 
-const styles = StyleSheet.create({});
+export default Home;
