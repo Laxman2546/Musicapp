@@ -2,7 +2,7 @@ import { Image, Text, TouchableOpacity, View } from "react-native";
 import React from "react";
 import DownloadSong from "@/assets/images/downloadSong.png";
 import Marquee from "react-native-marquee";
-
+import { memo } from "react";
 const Trending = ({ type, song, image, music, duration, primary_artists }) => {
   const handleDownload = () => {
     console.log(`Downloading song: ${song}`);
@@ -25,6 +25,9 @@ const Trending = ({ type, song, image, music, duration, primary_artists }) => {
       <View>
         <Image
           source={{ uri: image }}
+          defaultSource={{
+            uri: "https://developers.elementor.com/docs/assets/img/elementor-placeholder-image.png",
+          }}
           style={{
             width: 60,
             height: 60,
@@ -65,6 +68,7 @@ const Trending = ({ type, song, image, music, duration, primary_artists }) => {
               style={{
                 width: 25,
                 height: 25,
+                zIndex: 10,
               }}
             />
           </TouchableOpacity>
@@ -83,4 +87,4 @@ const Trending = ({ type, song, image, music, duration, primary_artists }) => {
   );
 };
 
-export default Trending;
+export default memo(Trending);

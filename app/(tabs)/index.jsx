@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -5,23 +6,32 @@ import {
   Text,
   View,
 } from "react-native";
-import React, { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
-import HomeBtns from "@/components/homeBtns";
-import Trending from "@/components/trending";
+import HomeBtns from "../../components/homeBtns";
+import Trending from "../../components/trending";
 import useFetch from "@/services/useFetch";
-import { fetchMusic } from "@/services/api";
+import { fetchMusic, getNextPlaylist } from "../../services/api";
 
 const Home = () => {
   const [active, setActive] = useState("Trending");
   const [greetings, setGreetings] = useState("Good Morning");
 
+  // Use your existing hook
   const {
     data: music,
-    loading: musicLoading,
-    error: musicError,
+    loading,
+    error,
+    refetch,
+    loadMore,
+    allSongs,
+    categoryIndices,
   } = useFetch(() => fetchMusic({ query: "", active }), [active]);
 
+  // Track if we're loading more
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [endReached, setEndReached] = useState(false);
+
+  // Set greeting based on time
   useEffect(() => {
     const date = new Date();
     const hrs = date.getHours();
@@ -34,6 +44,37 @@ const Home = () => {
     }
   }, []);
 
+  const handleEndReached = async () => {
+    if (loading || loadingMore || endReached) return;
+
+    try {
+      setLoadingMore(true);
+      const result = await loadMore(active);
+
+      if (result.success) {
+        // Get the next playlist of songs
+        const nextPlaylistData = await getNextPlaylist(active);
+
+        if (
+          nextPlaylistData &&
+          nextPlaylistData.songs &&
+          nextPlaylistData.songs.length > 0
+        ) {
+          // Just need to refetch with the updated indices
+          await refetch(true); // Pass true to indicate this is "load more"
+        } else {
+          setEndReached(true);
+        }
+      } else {
+        setEndReached(true);
+      }
+    } catch (err) {
+      console.error("Error loading more songs:", err);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
   return (
     <SafeAreaView className="bg-slate-50 h-full">
       <View className="w-full">
@@ -45,34 +86,42 @@ const Home = () => {
         <View className="w-full flex flex-row items-center gap-2 pt-5 pl-5">
           <HomeBtns
             btnName="Trending"
-            handlePress={() => setActive("Trending")}
+            handlePress={() => {
+              <ActivityIndicator size="large" color="#000" />;
+              setActive("Trending");
+              setEndReached(false);
+            }}
             btnactive={active}
           />
           <HomeBtns
             btnName="Popular"
-            handlePress={() => setActive("Popular")}
+            handlePress={() => {
+              setActive("Popular");
+              setEndReached(false);
+            }}
             btnactive={active}
           />
           <HomeBtns
             btnName="Recent"
-            handlePress={() => setActive("Recent")}
+            handlePress={() => {
+              setActive("Recent");
+              setEndReached(false);
+            }}
             btnactive={active}
           />
         </View>
 
-        {/* Active Section Header */}
         <View className="pt-5 pl-5">
           <Text style={styles.activeText}>
             {active === "Recent" ? `${active} Release` : `${active} Songs`}
           </Text>
         </View>
 
-        {/* Loading/Error Handling */}
-        {musicLoading ? (
+        {loading || (!music?.songs?.length && !error) ? (
           <ActivityIndicator size="large" color="#000" />
-        ) : musicError ? (
+        ) : error ? (
           <Text style={styles.errorText}>
-            Something went wrong: {musicError.message}
+            Something went wrong: {error.message}
           </Text>
         ) : (
           <FlatList
@@ -87,20 +136,27 @@ const Home = () => {
                 primary_artists={item.primary_artists}
               />
             )}
+            windowSize={5}
+            maxToRenderPerBatch={5}
+            updateCellsBatchingPeriod={50}
+            removeClippedSubviews={true}
+            onEndReached={handleEndReached}
+            onEndReachedThreshold={0.5}
             ListFooterComponent={
-              active === "Trending" ? null : (
-                <View style={styles.footerContainer}>
-                  {music?.songs.length === 0 ? (
-                    <Text style={styles.emptyText}>No songs available</Text>
-                  ) : (
-                    <Text style={styles.footerText}>
-                      You’ve caught them all! 🎶
-                    </Text>
-                  )}
+              loadingMore ? (
+                <View style={styles.footerLoadingContainer}>
+                  <ActivityIndicator size="small" color="#000" />
+                  <Text style={styles.loadingText}>Finding more songs...😃</Text>
                 </View>
-              )
+              ) : endReached ? (
+                <View style={styles.footerContainer}>
+                  <Text style={styles.footerText}>
+                    You've caught them all! 🎶
+                  </Text>
+                </View>
+              ) : null
             }
-            keyExtractor={(item, index) => index.toString()}
+            keyExtractor={(item, index) => `${item.song}-${index}`}
           />
         )}
       </View>
@@ -108,6 +164,7 @@ const Home = () => {
   );
 };
 
+// Your existing styles...
 const styles = StyleSheet.create({
   greetingText: {
     fontFamily: "Nunito-Regular",
@@ -132,14 +189,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: "100%",
   },
+  footerLoadingContainer: {
+    marginTop: 20,
+    marginBottom: 250,
+    flex: 1,
+    alignItems: "center",
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 10,
+  },
   footerText: {
-    fontFamily: "Poppins-SemiBold",
+    fontFamily: "Nunito-Bold",
     fontSize: 18,
   },
-  emptyText: {
-    fontFamily: "Poppins-SemiBold",
-    fontSize: 18,
-    color: "gray",
+  loadingText: {
+    fontFamily: "Poppins-Regular",
+    fontSize: 16,
   },
 });
 
