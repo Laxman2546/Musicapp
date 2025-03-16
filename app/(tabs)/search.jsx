@@ -20,37 +20,31 @@ const Search = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [cancelDisplay, setCancelDisplay] = useState(false);
   const [debouncedQuery, setDebouncedQuery] = useState("");
-
-  // Track if cancel was pressed
   const [userCancelled, setUserCancelled] = useState(false);
 
-  // Correctly destructure the object from useFetch
   const {
-    data: music, // This matches your hook's return structure
+    data: music,
     loading,
     error,
     refetch,
     reset,
   } = useFetch(() => fetchMusic({ query: debouncedQuery }), [debouncedQuery]);
   console.log(music);
-  // Handle cancel button visibility
   useEffect(() => {
     setCancelDisplay(searchQuery.length > 0);
   }, [searchQuery]);
 
-  // Debounce search query to avoid too many API calls
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (searchQuery.trim() && !userCancelled) {
         setDebouncedQuery(searchQuery);
       }
       setUserCancelled(false);
-    }, 1000); // Wait 500ms after typing stops
+    }, 1000);
 
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
 
-  // Handle clearing the search
   const handleClearSearch = useCallback(() => {
     setSearchQuery("");
     setDebouncedQuery("");
@@ -80,7 +74,9 @@ const Search = () => {
         </View>
 
         <View className="pr-5 mt-3">
-          {loading ? (
+          {searchQuery === "" ? (
+            ""
+          ) : loading ? (
             <View className="items-center mt-10">
               <Text className="text-black" style={styles.textFont}>
                 Searching...
@@ -95,9 +91,13 @@ const Search = () => {
             <>
               {searchQuery.trim() && (
                 <Text className="mb-4" style={styles.SearchtextFont}>
-                  {music?.length
-                    ? `Search results for "${searchQuery}"`
-                    : `No results found for "${searchQuery}"`}
+                  {setInterval(() => {
+                    {
+                      music?.length
+                        ? `Search results for "${searchQuery}"`
+                        : `No results found for "${searchQuery}"`;
+                    }
+                  }, 1000)}
                 </Text>
               )}
 
