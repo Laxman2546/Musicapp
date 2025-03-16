@@ -91,13 +91,9 @@ const Search = () => {
             <>
               {searchQuery.trim() && (
                 <Text className="mb-4" style={styles.SearchtextFont}>
-                  {setInterval(() => {
-                    {
-                      music?.length
-                        ? `Search results for "${searchQuery}"`
-                        : `No results found for "${searchQuery}"`;
-                    }
-                  }, 1000)}
+                  {music?.length
+                    ? `Search results for "${searchQuery}"`
+                    : `No results found for "${searchQuery}"`}
                 </Text>
               )}
 

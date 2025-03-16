@@ -1,4 +1,11 @@
-import { Image, StyleSheet, Text, View, Animated } from "react-native";
+import {
+  Image,
+  StyleSheet,
+  Text,
+  View,
+  Animated,
+  Pressable,
+} from "react-native";
 import musicImage from "@/assets/images/example.jpg";
 import { useEffect, useState } from "react";
 import ProgressBar from "react-native-progress/Bar";
@@ -6,10 +13,15 @@ import prevBtn from "@/assets/images/previousIcon.png";
 import playIcon from "@/assets/images/playIcon.png";
 import nextIcon from "@/assets/images/nextIcon.png";
 import downloadIcon from "@/assets/images/downloadIcon2.png";
+import ShuffleIcon from "@/assets/images/shuffle.png";
+import loopFirst from "@/assets/images/repeatFirst.png";
+import loopSecond from "@/assets/images/repeatSecond.png";
 const musicPlayer = () => {
+  const [shuffleActive, setShuffleActive] = useState(false);
+
   return (
     <>
-      <View className="w-full h-full  mt-10 " style={styles.mainBg}>
+      <View className="w-full h-full  mt-5 " style={styles.mainBg}>
         <View className="flex flex-col gap-12">
           <View className="flex flex-col gap-14">
             <View className="w-full flex  items-center mt-8">
@@ -53,12 +65,32 @@ const musicPlayer = () => {
                 <Text style={styles.textFont}>02:00</Text>
                 <Text style={styles.textFont}>05:00</Text>
               </View>
-              <View className="flex flex-row items-center gap-9 align-middle justify-center">
-                <Image source={prevBtn} style={styles.iconsSize} />
-                <View className="w-16 h-14 p-2  items-center justify-center rounded-xl bg-[#2C2C2C]">
-                  <Image source={playIcon} style={styles.PlaySize} />
+              <View className="flex flex-row items-center justify-between w-full">
+                <Pressable
+                  onPress={() => {
+                    setShuffleActive((prev) => !prev);
+                  }}
+                >
+                  <View
+                    className="w-10 h-10 p-2  items-center justify-center rounded-2xl"
+                    style={{
+                      backgroundColor: shuffleActive === true ? "#2C2C2C" : "",
+                      borderRadius: shuffleActive === true ? 50 : "",
+                    }}
+                  >
+                    <Image source={ShuffleIcon} style={styles.downloadSize} />
+                  </View>
+                </Pressable>
+                <View className="flex flex-row items-center gap-9 align-middle justify-center">
+                  <Image source={prevBtn} style={styles.iconsSize} />
+                  <View className="w-16 h-14 p-2  items-center justify-center rounded-xl bg-[#2C2C2C]">
+                    <Image source={playIcon} style={styles.PlaySize} />
+                  </View>
+                  <Image source={nextIcon} style={styles.iconsSize} />
                 </View>
-                <Image source={nextIcon} style={styles.iconsSize} />
+                <View>
+                  <Image source={loopFirst} style={styles.downloadSize} />
+                </View>
               </View>
             </View>
           </View>
