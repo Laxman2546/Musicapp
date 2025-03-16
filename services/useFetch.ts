@@ -34,7 +34,6 @@ const useFetch = <T>(
   };
 
   useEffect(() => {
-    // Update the ref when fetchFunction changes
     fetchFunctionRef.current = fetchFunction;
   }, [fetchFunction]);
 
@@ -45,8 +44,6 @@ const useFetch = <T>(
       fetchData();
       return;
     }
-
-    // Also fetch when dependencies change after initial loa
     fetchData();
   }, [...dependencies]); // Dependencies array includes all dependencies
 

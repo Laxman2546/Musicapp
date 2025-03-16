@@ -1,4 +1,10 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import React, { useState } from "react";
 
 const homeBtns = ({ btnName, handlePress, btnactive }) => {
@@ -11,7 +17,7 @@ const homeBtns = ({ btnName, handlePress, btnactive }) => {
         paddingRight: 5,
       }}
     >
-      <TouchableOpacity
+      <Pressable
         style={{
           backgroundColor: btnactive === btnName ? "#000" : "#D3D3D3",
           padding: 12,
@@ -30,7 +36,7 @@ const homeBtns = ({ btnName, handlePress, btnactive }) => {
         >
           {btnName}
         </Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 };
