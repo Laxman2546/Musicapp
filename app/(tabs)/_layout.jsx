@@ -1,6 +1,6 @@
 import { Image, Text, View } from "react-native";
 import React, { useEffect, useState } from "react";
-import { SplashScreen, Tabs } from "expo-router";
+import { SplashScreen, Stack, Tabs, usePathname } from "expo-router";
 import { KeyboardAvoidingView, Platform, Keyboard } from "react-native";
 import home from "@/assets/images/home.png";
 import search from "@/assets/images/search.png";
@@ -11,6 +11,9 @@ import "@/global.css";
 
 const RootLayout = () => {
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const pathname = usePathname();
+  const isPlayerScreen = pathname === "/player";
+
   const [fontsLoaded, error] = useFonts({
     "Nunito-Black": require("@/assets/fonts/Nunito-Black.ttf"),
     "Nunito-Regular": require("@/assets/fonts/Nunito-SemiBold.ttf"),
@@ -82,72 +85,70 @@ const RootLayout = () => {
   };
 
   return (
-    <>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1 }}
+    >
+      <Tabs
+        initialRouteName="playlists"
+        screenOptions={{
+          headerShown: false,
+          tabBarShowLabel: false,
+          tabBarActiveTintColor: "#000",
+          tabBarStyle: {
+            backgroundColor: "#fff",
+            borderTopWidth: 1,
+            borderTopLeftRadius: 28,
+            borderTopRightRadius: 28,
+            height: 60,
+            paddingBottom: 5,
+            borderColor: "transparent",
+            shadowColor: "#000",
+            shadowOpacity: 0.1,
+            shadowOffset: { width: 0, height: -2 },
+            shadowRadius: 5,
+            display: keyboardVisible || isPlayerScreen ? "none" : "flex",
+          },
+        }}
       >
-        <Tabs
-          initialRouteName="playlists"
-          screenOptions={{
-            headerShown: false,
-            tabBarShowLabel: false,
-            tabBarActiveTintColor: "#000",
-            tabBarStyle: {
-              backgroundColor: "#fff",
-              borderTopWidth: 1,
-              borderTopLeftRadius: 28,
-              borderTopRightRadius: 28,
-              height: 60,
-              paddingBottom: 5,
-              borderColor: "transparent",
-              shadowColor: "#000",
-              shadowOpacity: 0.1,
-              shadowOffset: { width: 0, height: -2 },
-              shadowRadius: 5,
-              display: keyboardVisible ? "none" : "flex",
-            },
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: "Home",
+            tabBarIcon: ({ color, focused }) => (
+              <TabIcon icon={home} color={color} focused={focused} />
+            ),
           }}
-        >
-          <Tabs.Screen
-            name="index"
-            options={{
-              title: "Home",
-              tabBarIcon: ({ color, focused }) => (
-                <TabIcon icon={home} color={color} focused={focused} />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name="search"
-            options={{
-              title: "Search",
-              tabBarIcon: ({ color, focused }) => (
-                <TabIcon icon={search} color={color} focused={focused} />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name="playlists"
-            options={{
-              title: "Playlists",
-              tabBarIcon: ({ color, focused }) => (
-                <TabIcon icon={playlist} color={color} focused={focused} />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name="downloads"
-            options={{
-              title: "Downloads",
-              tabBarIcon: ({ color, focused }) => (
-                <TabIcon icon={downloads} color={color} focused={focused} />
-              ),
-            }}
-          />
-        </Tabs>
-      </KeyboardAvoidingView>
-    </>
+        />
+        <Tabs.Screen
+          name="search"
+          options={{
+            title: "Search",
+            tabBarIcon: ({ color, focused }) => (
+              <TabIcon icon={search} color={color} focused={focused} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="playlists"
+          options={{
+            title: "Playlists",
+            tabBarIcon: ({ color, focused }) => (
+              <TabIcon icon={playlist} color={color} focused={focused} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="downloads"
+          options={{
+            title: "Downloads",
+            tabBarIcon: ({ color, focused }) => (
+              <TabIcon icon={downloads} color={color} focused={focused} />
+            ),
+          }}
+        />
+      </Tabs>
+    </KeyboardAvoidingView>
   );
 };
 

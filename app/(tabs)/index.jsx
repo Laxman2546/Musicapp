@@ -27,11 +27,9 @@ const Home = () => {
     categoryIndices,
   } = useFetch(() => fetchMusic({ query: "", active }), [active]);
 
-  // Track if we're loading more
   const [loadingMore, setLoadingMore] = useState(false);
   const [endReached, setEndReached] = useState(false);
 
-  // Set greeting based on time
   useEffect(() => {
     const date = new Date();
     const hrs = date.getHours();
@@ -52,7 +50,6 @@ const Home = () => {
       const result = await loadMore(active);
 
       if (result.success) {
-        // Get the next playlist of songs
         const nextPlaylistData = await getNextPlaylist(active);
 
         if (
@@ -60,8 +57,7 @@ const Home = () => {
           nextPlaylistData.songs &&
           nextPlaylistData.songs.length > 0
         ) {
-          // Just need to refetch with the updated indices
-          await refetch(true); // Pass true to indicate this is "load more"
+          await refetch(true);
         } else {
           setEndReached(true);
         }
@@ -126,7 +122,7 @@ const Home = () => {
         ) : (
           <FlatList
             data={music?.songs || []}
-            renderItem={({ item }) => (
+            renderItem={({ item, index }) => (
               <Trending
                 type={active}
                 song={item.song}
@@ -134,6 +130,9 @@ const Home = () => {
                 music={item.music}
                 duration={item.duration}
                 primary_artists={item.primary_artists}
+                song_url={item.media_url}
+                index={index}
+                allSongs={item || []}
               />
             )}
             windowSize={5}
@@ -146,7 +145,9 @@ const Home = () => {
               loadingMore ? (
                 <View style={styles.footerLoadingContainer}>
                   <ActivityIndicator size="small" color="#000" />
-                  <Text style={styles.loadingText}>Finding more songs...😃</Text>
+                  <Text style={styles.loadingText}>
+                    Finding more songs...😃
+                  </Text>
                 </View>
               ) : endReached ? (
                 <View style={styles.footerContainer}>
@@ -164,7 +165,6 @@ const Home = () => {
   );
 };
 
-// Your existing styles...
 const styles = StyleSheet.create({
   greetingText: {
     fontFamily: "Nunito-Regular",

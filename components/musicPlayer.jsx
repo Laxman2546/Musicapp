@@ -50,7 +50,7 @@ const musicPlayer = () => {
                 </View>
               </View>
             </View>
-            <View className="w-full flex items-center flex-col gap-1">
+            <View className="w-full flex items-center flex-col">
               <ProgressBar
                 progress={0.2}
                 height={8}
