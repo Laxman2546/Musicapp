@@ -13,18 +13,35 @@ const Trending = ({
   duration,
   primary_artists,
   song_url,
-  allSongs,
   index,
+  allSongs,
 }) => {
-  const navigation = useNavigation();
   const { playSong } = usePlayer();
 
   const handleSong = () => {
-    playSong(
-      { song, image, music, duration, primary_artists },
-      allSongs,
-      index
-    );
+    // Create a properly structured song object
+    const songObject = {
+      song,
+      image,
+      music,
+      duration,
+      primary_artists,
+      song_url,
+    };
+
+    const formattedAllSongs = Array.isArray(allSongs)
+      ? allSongs.map((song, i) => ({
+          song: song.song,
+          image: song.image,
+          music: song.music,
+          duration: song.duration,
+          primary_artists: song.primary_artists,
+          song_url: song.media_url,
+        }))
+      : [songObject];
+
+    playSong(songObject, formattedAllSongs, index);
+
     router.push("/player");
   };
 

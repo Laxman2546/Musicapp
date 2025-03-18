@@ -123,17 +123,19 @@ const Home = () => {
           <FlatList
             data={music?.songs || []}
             renderItem={({ item, index }) => (
-              <Trending
-                type={active}
-                song={item.song}
-                image={item.image}
-                music={item.music}
-                duration={item.duration}
-                primary_artists={item.primary_artists}
-                song_url={item.media_url}
-                index={index}
-                allSongs={item || []}
-              />
+              <>
+                <Trending
+                  type={active}
+                  song={item.song}
+                  image={item.image}
+                  music={item.music}
+                  duration={item.duration}
+                  primary_artists={item.primary_artists}
+                  song_url={item.media_url}
+                  index={index}
+                  allSongs={music?.songs || []}
+                />
+              </>
             )}
             windowSize={5}
             maxToRenderPerBatch={5}

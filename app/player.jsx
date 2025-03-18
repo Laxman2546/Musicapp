@@ -1,12 +1,5 @@
-import {
-  Image,
-  StyleSheet,
-  Text,
-  View,
-  Animated,
-  Pressable,
-} from "react-native";
-import { useEffect, useState } from "react";
+import { Image, StyleSheet, Text, View, Pressable } from "react-native";
+import { useEffect } from "react";
 import ProgressBar from "react-native-progress/Bar";
 import prevBtn from "@/assets/images/previousIcon.png";
 import playIcon from "@/assets/images/playIcon.png";
@@ -21,9 +14,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
 const MusicPlayer = () => {
-  const [shuffleActive, setShuffleActive] = useState(false);
-  const [loopMode, setLoopMode] = useState(0);
-
   const {
     currentSong,
     playNext,
@@ -32,38 +22,31 @@ const MusicPlayer = () => {
     setIsPlaying,
     currentIndex,
     playlist,
+    progress,
+    position,
+    duration,
+    shuffleActive,
+    loopMode,
+    toggleShuffle,
+    toggleLoopMode,
+    seekTo,
+    formatTime,
   } = usePlayer();
 
-  if (!currentSong) {
-    useEffect(() => {
+  useEffect(() => {
+    if (!currentSong) {
       router.replace("/");
-    }, []);
+    }
+  }, [currentSong]);
 
+  if (!currentSong) {
     return (
       <SafeAreaView style={styles.container}>
         <Text style={styles.noSongText}>No song selected</Text>
       </SafeAreaView>
     );
   }
-
-  const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
-  };
-
-  const handleLoopToggle = () => {
-    setLoopMode((prevMode) => (prevMode + 1) % 3);
-  };
-
-  const formatTime = (seconds) => {
-    if (!seconds) return "00:00";
-
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-
-    return `${String(minutes).padStart(2, "0")}:${String(
-      remainingSeconds
-    ).padStart(2, "0")}`;
-  };
+  console.log("this is a duration", duration);
   return (
     <View className="w-full h-full mt-5" style={styles.mainBg}>
       <View className="flex flex-col gap-12">
@@ -80,7 +63,7 @@ const MusicPlayer = () => {
           </View>
         </View>
         <View
-          className="w-full flex flex-col bg-black h-full p-5  gap-3"
+          className="w-full flex flex-col bg-black h-full p-5 gap-3"
           style={styles.musicBg}
         >
           <View className="flex flex-row items-center justify-between">
@@ -107,22 +90,24 @@ const MusicPlayer = () => {
 
           <View className="w-full flex items-center flex-col gap-25">
             <ProgressBar
-              progress={0.1}
+              progress={progress || 0}
               height={8}
               width={310}
               borderRadius={25}
               color={"#fff"}
-              backgroundColor={"#3O3O3O"}
+              backgroundColor={"#303030"}
               borderColor={"#303030"}
               style={styles.progressBar}
+              onTouchStart={(e) => {
+                const touchX = e.nativeEvent.locationX;
+                const width = 310; // Same as your ProgressBar width
+                const newProgress = Math.max(0, Math.min(touchX / width, 1));
+                seekTo(newProgress);
+              }}
             />
             <View className="flex flex-row justify-between w-full">
-              <Text style={styles.textFont}>
-                {formatTime(currentSong.duration * 0.2)}
-              </Text>
-              <Text style={styles.textFont}>
-                {formatTime(currentSong.duration)}
-              </Text>
+              <Text style={styles.textFont}>{formatTime(position)}</Text>
+              <Text style={styles.textFont}>{formatTime(duration)}</Text>
             </View>
             <View
               className="flex flex-row items-center justify-between w-full"
@@ -131,7 +116,7 @@ const MusicPlayer = () => {
                 alignItems: "center",
               }}
             >
-              <Pressable onPress={() => setShuffleActive((prev) => !prev)}>
+              <Pressable onPress={toggleShuffle}>
                 <View
                   className="w-10 h-10 p-2 items-center justify-center rounded-2xl"
                   style={{
@@ -143,38 +128,46 @@ const MusicPlayer = () => {
                 </View>
               </Pressable>
               <View className="flex flex-row items-center gap-9 align-middle justify-center ">
-                <Pressable onPress={playPrevious} disabled={currentIndex <= 0}>
+                <Pressable
+                  onPress={playPrevious}
+                  disabled={currentIndex <= 0 && !shuffleActive}
+                >
                   <Image
                     source={prevBtn}
                     style={[
                       styles.iconsSize,
-                      currentIndex <= 0 && styles.disabledButton,
+                      currentIndex <= 0 &&
+                        !shuffleActive &&
+                        styles.disabledButton,
                     ]}
                   />
                 </Pressable>
-                <Pressable onPress={handlePlayPause}>
+                <Pressable onPress={() => setIsPlaying(!isPlaying)}>
                   <View className="w-16 h-14 p-2 items-center justify-center rounded-xl bg-[#2C2C2C]">
                     <Image
-                      source={isPlaying ? playIcon : pauseIcon}
+                      source={isPlaying ? pauseIcon : playIcon}
                       style={styles.PlaySize}
                     />
                   </View>
                 </Pressable>
                 <Pressable
                   onPress={playNext}
-                  disabled={currentIndex >= playlist.length - 1}
+                  disabled={
+                    currentIndex >= playlist.length - 1 && !shuffleActive
+                  }
                 >
                   <Image
                     source={nextIcon}
                     style={[
                       styles.iconsSize,
                       currentIndex >= playlist.length - 1 &&
+                        !shuffleActive &&
                         styles.disabledButton,
                     ]}
                   />
                 </Pressable>
               </View>
-              <Pressable onPress={handleLoopToggle}>
+              <Pressable onPress={toggleLoopMode}>
                 <View>
                   <Image
                     source={loopMode === 0 ? loopFirst : loopSecond}
@@ -194,6 +187,8 @@ const MusicPlayer = () => {
 };
 
 export default MusicPlayer;
+
+// Keep your existing styles
 
 const styles = StyleSheet.create({
   container: {
