@@ -19,7 +19,6 @@ const Trending = ({
   const { playSong } = usePlayer();
 
   const handleSong = () => {
-    // Create a properly structured song object
     const songObject = {
       song,
       image,
@@ -39,7 +38,7 @@ const Trending = ({
           song_url: song.media_url,
         }))
       : [songObject];
-
+    console.log("this is duration passed", duration);
     playSong(songObject, formattedAllSongs, index);
 
     router.push("/player");

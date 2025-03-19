@@ -16,6 +16,7 @@ import downloadIcon from "@/assets/images/downloadIcon2.png";
 import ShuffleIcon from "@/assets/images/shuffle.png";
 import loopFirst from "@/assets/images/repeatFirst.png";
 import loopSecond from "@/assets/images/repeatSecond.png";
+import Textticker from "react-native-text-ticker";
 const musicPlayer = () => {
   const [shuffleActive, setShuffleActive] = useState(false);
 
@@ -38,9 +39,22 @@ const musicPlayer = () => {
             <View className="w-full  flex flex-col gap-1">
               <View className="w-full flex flex-row justify-between">
                 <View>
-                  <Text style={styles.musicText} className="text-white">
-                    Pain
-                  </Text>
+                  <Textticker
+                    style={{
+                      fontSize: 18,
+                      color: "white",
+                      backgroundColor: "black",
+                    }}
+                    duration={5000} // Adjust speed
+                    loop
+                    bounce
+                    repeatSpacer={50} // Space between loops
+                    marqueeDelay={1000} // Delay before start
+                  >
+                    <Text style={styles.musicText} className="text-white">
+                      Pain
+                    </Text>
+                  </Textticker>
                   <Text style={styles.musicArtist} className="text-white">
                     Ryan Jones
                   </Text>

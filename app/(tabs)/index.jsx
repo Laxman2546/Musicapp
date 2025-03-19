@@ -16,7 +16,6 @@ const Home = () => {
   const [active, setActive] = useState("Trending");
   const [greetings, setGreetings] = useState("Good Morning");
 
-  // Use your existing hook
   const {
     data: music,
     loading,

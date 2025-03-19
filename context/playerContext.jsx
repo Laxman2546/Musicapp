@@ -1,4 +1,3 @@
-// contexts/PlayerContext.js (updated)
 import React, {
   createContext,
   useState,
@@ -7,7 +6,6 @@ import React, {
   useRef,
 } from "react";
 import { Audio } from "expo-av";
-
 const PlayerContext = createContext();
 
 export const PlayerProvider = ({ children }) => {
@@ -26,7 +24,52 @@ export const PlayerProvider = ({ children }) => {
 
   // Reference to track intervals
   const positionUpdateInterval = useRef(null);
-  console.log("this is duration", duration);
+
+  // Configure audio mode once when component mounts
+  useEffect(() => {
+    const setupAudioMode = async () => {
+      await Audio.setAudioModeAsync({
+        playsInSilentModeIOS: true,
+        shouldDuckAndroid: true,
+        staysActiveInBackground: true,
+        playThroughEarpieceAndroid: false,
+      });
+    };
+
+    setupAudioMode();
+  }, []);
+
+  // Monitor playback status
+  const onPlaybackStatusUpdate = (status) => {
+    if (status.isLoaded) {
+      // Update duration and position without causing renders if values haven't changed
+      if (
+        status.durationMillis &&
+        Math.abs(status.durationMillis / 1000 - duration) > 0.1
+      ) {
+        setDuration(status.durationMillis / 1000);
+      }
+
+      if (status.positionMillis >= 0) {
+        const newPosition = status.positionMillis / 1000;
+        if (Math.abs(newPosition - position) > 0.1) {
+          setPosition(newPosition);
+        }
+
+        if (status.durationMillis > 0) {
+          const newProgress = status.positionMillis / status.durationMillis;
+          if (Math.abs(newProgress - progress) > 0.001) {
+            setProgress(newProgress);
+          }
+        }
+      }
+
+      if (status.didJustFinish) {
+        handleSongEnd();
+      }
+    }
+  };
+
   // Load sound when currentSong changes
   useEffect(() => {
     if (!currentSong) return;
@@ -40,7 +83,6 @@ export const PlayerProvider = ({ children }) => {
       try {
         console.log("Attempting to load sound from:", currentSong.song_url);
         const { sound: newSound } = await Audio.Sound.createAsync(
-        
           { uri: currentSong.song_url },
           { shouldPlay: isPlaying },
           onPlaybackStatusUpdate
@@ -48,8 +90,11 @@ export const PlayerProvider = ({ children }) => {
 
         setSound(newSound);
 
-        // Start position tracking
-        positionUpdateInterval.current = setInterval(updatePosition, 1000);
+        // Get initial status to set duration immediately
+        const initialStatus = await newSound.getStatusAsync();
+        if (initialStatus.isLoaded && initialStatus.durationMillis) {
+          setDuration(initialStatus.durationMillis / 1000);
+        }
       } catch (error) {
         console.error("Error loading sound:", error);
       }
@@ -85,31 +130,6 @@ export const PlayerProvider = ({ children }) => {
 
     controlPlayback();
   }, [isPlaying, sound]);
-
-  // Update position and progress
-  const updatePosition = async () => {
-    if (!sound) return;
-
-    try {
-      const status = await sound.getStatusAsync();
-      if (status.isLoaded) {
-        setPosition(status.positionMillis / 1000);
-        setDuration(status.durationMillis / 1000);
-        setProgress(status.positionMillis / status.durationMillis);
-      }
-    } catch (error) {
-      console.error("Error updating position:", error);
-    }
-  };
-
-  // Monitor playback status
-  const onPlaybackStatusUpdate = (status) => {
-    if (status.isLoaded) {
-      if (status.didJustFinish) {
-        handleSongEnd();
-      }
-    }
-  };
 
   // Handle what happens when a song ends
   const handleSongEnd = () => {
