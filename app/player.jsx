@@ -18,6 +18,7 @@ import loopFirst from "@/assets/images/repeatFirst.png";
 import loopSecond from "@/assets/images/repeatSecond.png";
 import { usePlayer } from "@/context/playerContext";
 import { SafeAreaView } from "react-native-safe-area-context";
+import backIcon from "@/assets/images/backIcon.png";
 import { router } from "expo-router";
 import GestureRecognizer, {
   swipeDirections,
@@ -71,8 +72,13 @@ const MusicPlayer = () => {
       <View className="w-full h-full mt-5" style={styles.mainBg}>
         <View className="flex flex-col gap-12">
           <View className="flex flex-col gap-14">
-            <View className="w-full flex items-center mt-8">
-              <Text style={styles.textFont}>Now Playing</Text>
+            <View className="flex flex-row">
+              <View className="w-full flex items-center mt-8">
+                <Text style={styles.textFont}>Now Playing</Text>
+              </View>
+              <View>
+                <Image source={backIcon} style={styles.downloadSize} />
+              </View>
             </View>
             <Pressable onPress={() => setIsPlaying(!isPlaying)}>
               <View className="w-full flex items-center justify-center">
@@ -213,7 +219,7 @@ export default MusicPlayer;
 
 // Keep your existing styles
 
-const styles = StyleSheet.create({
+export const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
