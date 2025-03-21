@@ -38,7 +38,6 @@ const Trending = ({
           song_url: song.media_url,
         }))
       : [songObject];
-    console.log("this is duration passed", duration);
     playSong(songObject, formattedAllSongs, index);
 
     router.push("/player");
