@@ -18,11 +18,12 @@ import loopFirst from "@/assets/images/repeatFirst.png";
 import loopSecond from "@/assets/images/repeatSecond.png";
 import { usePlayer } from "@/context/playerContext";
 import { SafeAreaView } from "react-native-safe-area-context";
-import backIcon from "@/assets/images/backIcon.png";
+import backIcon from "@/assets/images/backImg.png";
 import { router } from "expo-router";
 import GestureRecognizer, {
   swipeDirections,
 } from "react-native-swipe-gestures";
+import { goBack } from "expo-router/build/global-state/routing";
 const MusicPlayer = () => {
   const {
     currentSong,
@@ -50,6 +51,9 @@ const MusicPlayer = () => {
       </SafeAreaView>
     );
   }
+  const handlePress = () => {
+    router.back();
+  };
   const onSwipeperLeftformed = () => {
     console.log("swiped");
     playNext();
@@ -72,13 +76,15 @@ const MusicPlayer = () => {
       <View className="w-full h-full mt-5" style={styles.mainBg}>
         <View className="flex flex-col gap-12">
           <View className="flex flex-col gap-14">
-            <View className="flex flex-row">
-              <View className="w-full flex items-center mt-8">
+            <View className="w-full relative">
+              <View className="w-full flex  items-center mt-8">
                 <Text style={styles.textFont}>Now Playing</Text>
               </View>
-              <View>
-                <Image source={backIcon} style={styles.downloadSize} />
-              </View>
+              <Pressable onPress={handlePress}>
+                <View>
+                  <Image source={backIcon} style={styles.backBtn} />
+                </View>
+              </Pressable>
             </View>
             <Pressable onPress={() => setIsPlaying(!isPlaying)}>
               <View className="w-full flex items-center justify-center">
@@ -281,7 +287,7 @@ export const styles = StyleSheet.create({
   },
   iconsSize: {
     width: 30,
-    height: 30,
+    height: 40,
   },
   PlaySize: {
     width: 20,
@@ -296,5 +302,12 @@ export const styles = StyleSheet.create({
   },
   activeButton: {
     tintColor: "#fff",
+  },
+  backBtn: {
+    width: 20,
+    height: 20,
+    position: "absolute",
+    top: -25,
+    left: 15,
   },
 });

@@ -76,7 +76,6 @@ const RootLayout = () => {
     };
   }, []);
 
-  // Only render loading screen after all hooks have been called
   if (!fontsLoaded) {
     return (
       <Text

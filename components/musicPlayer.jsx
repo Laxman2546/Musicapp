@@ -16,6 +16,7 @@ import downloadIcon from "@/assets/images/downloadIcon2.png";
 import ShuffleIcon from "@/assets/images/shuffle.png";
 import loopFirst from "@/assets/images/repeatFirst.png";
 import loopSecond from "@/assets/images/repeatSecond.png";
+import backIcon from "@/assets/images/backImg.png";
 import Textticker from "react-native-text-ticker";
 const musicPlayer = () => {
   const [shuffleActive, setShuffleActive] = useState(false);
@@ -25,8 +26,13 @@ const musicPlayer = () => {
       <View className="w-full h-full  mt-5 " style={styles.mainBg}>
         <View className="flex flex-col gap-12">
           <View className="flex flex-col gap-14">
-            <View className="w-full flex  items-center mt-8">
-              <Text style={styles.textFont}>Now Playing</Text>
+            <View className="w-full relative">
+              <View className="w-full flex  items-center mt-8">
+                <Text style={styles.textFont}>Now Playing</Text>
+              </View>
+              <View>
+                <Image source={backIcon} style={styles.backBtn} />
+              </View>
             </View>
             <View className="w-full flex items-center justify-center">
               <Image source={musicImage} style={styles.musicImg} />
@@ -161,5 +167,12 @@ const styles = StyleSheet.create({
   downloadSize: {
     width: 20,
     height: 20,
+  },
+  backBtn: {
+    width: 20,
+    height: 20,
+    position: "absolute",
+    top: -25,
+    left: 15, 
   },
 });

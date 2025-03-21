@@ -13,7 +13,8 @@ export const PlayerProvider = ({ children }) => {
   const [playlist, setPlaylist] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-
+  const [shuffledIndexes, setShuffledIndexes] = useState([]);
+  const [history, setHistory] = useState([]);
   // Add these new states for audio tracking
   const [sound, setSound] = useState(null);
   const [duration, setDuration] = useState(0);
@@ -159,9 +160,23 @@ export const PlayerProvider = ({ children }) => {
   };
 
   // Play next song
+
   const playNext = () => {
     if (shuffleActive) {
-      const randomIndex = Math.floor(Math.random() * playlist.length);
+      let availableIndexes = playlist
+        .map((_, index) => index)
+        .filter((i) => !history.includes(i));
+
+      if (availableIndexes.length === 0) {
+        // Reset history when all songs are played
+        setHistory([]);
+        availableIndexes = playlist.map((_, index) => index);
+      }
+
+      const randomIndex =
+        availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
+      setHistory((prev) => [...prev, randomIndex]);
+
       playSong(playlist[randomIndex], playlist, randomIndex);
     } else if (currentIndex < playlist.length - 1) {
       setCurrentIndex(currentIndex + 1);
