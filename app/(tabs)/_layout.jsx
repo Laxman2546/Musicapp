@@ -75,7 +75,12 @@ const RootLayout = () => {
       keyboardDidHideListener.remove();
     };
   }, []);
-
+  const getImageSource = (image) => {
+    if (typeof image === "string" && image.startsWith("http")) {
+      return { uri: currentSong.image };
+    }
+    return require("@/assets/images/musicImage.png");
+  };
   if (!fontsLoaded) {
     return (
       <Text
@@ -181,7 +186,7 @@ const RootLayout = () => {
             }}
           />
         </Tabs>
-        {!keyboardVisible && !isPlayerScreen && currentSong && (
+        {!isPlayerScreen && currentSong && (
           <View
             style={{
               position: "absolute",
@@ -207,7 +212,7 @@ const RootLayout = () => {
               >
                 <View>
                   <Image
-                    source={{ uri: currentSong.image }}
+                    source={getImageSource(currentSong.image)}
                     defaultSource={require("@/assets/images/example.jpg")}
                     style={{
                       width: 50,

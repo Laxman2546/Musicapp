@@ -66,6 +66,12 @@ const MusicPlayer = () => {
     velocityThreshold: 0.3,
     directionalOffsetThreshold: 80,
   };
+  const getImageSource = (image) => {
+    if (typeof image === "string" && image.startsWith("http")) {
+      return { uri: currentSong.image };
+    }
+    return require("../assets/images/musicImage.png");
+  };
   return (
     <GestureRecognizer
       onSwipeLeft={onSwipeperLeftformed}
@@ -89,8 +95,8 @@ const MusicPlayer = () => {
             <Pressable onPress={() => setIsPlaying(!isPlaying)}>
               <View className="w-full flex items-center justify-center">
                 <Image
-                  source={{ uri: currentSong.image }}
-                  defaultSource={require("@/assets/images/example.jpg")}
+                  source={getImageSource(currentSong.image)}
+                  defaultSource={require("@/assets/images/musicImage.png")}
                   style={styles.musicImg}
                 />
               </View>
@@ -287,7 +293,7 @@ export const styles = StyleSheet.create({
   },
   iconsSize: {
     width: 30,
-    height: 40,
+    height: 30,
   },
   PlaySize: {
     width: 20,

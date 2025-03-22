@@ -14,6 +14,12 @@ export default function RootLayout() {
               headerShown: false,
             }}
           />
+          <Stack.Screen
+            name="localFiles"
+            options={{
+              headerShown: false,
+            }}
+          />
         </Stack>
       </View>
     </PlayerProvider>

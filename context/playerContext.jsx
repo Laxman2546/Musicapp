@@ -6,6 +6,7 @@ import React, {
   useRef,
 } from "react";
 import { Audio } from "expo-av";
+
 const PlayerContext = createContext();
 
 export const PlayerProvider = ({ children }) => {
@@ -15,7 +16,6 @@ export const PlayerProvider = ({ children }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [shuffledIndexes, setShuffledIndexes] = useState([]);
   const [history, setHistory] = useState([]);
-  // Add these new states for audio tracking
   const [sound, setSound] = useState(null);
   const [duration, setDuration] = useState(0);
   const [position, setPosition] = useState(0);
@@ -23,10 +23,8 @@ export const PlayerProvider = ({ children }) => {
   const [shuffleActive, setShuffleActive] = useState(false);
   const [loopMode, setLoopMode] = useState(0); // 0: no loop, 1: loop playlist, 2: loop one
 
-  // Reference to track intervals
   const positionUpdateInterval = useRef(null);
 
-  // Configure audio mode once when component mounts
   useEffect(() => {
     const setupAudioMode = async () => {
       await Audio.setAudioModeAsync({
@@ -40,10 +38,8 @@ export const PlayerProvider = ({ children }) => {
     setupAudioMode();
   }, []);
 
-  // Monitor playback status
   const onPlaybackStatusUpdate = (status) => {
     if (status.isLoaded) {
-      // Update duration and position without causing renders if values haven't changed
       if (
         status.durationMillis &&
         Math.abs(status.durationMillis / 1000 - duration) > 0.1
@@ -71,18 +67,17 @@ export const PlayerProvider = ({ children }) => {
     }
   };
 
-  // Load sound when currentSong changes
   useEffect(() => {
     if (!currentSong) return;
 
     const loadSound = async () => {
       if (sound) {
         await sound.unloadAsync();
+        setSound(null);
         clearInterval(positionUpdateInterval.current);
       }
 
       try {
-        console.log("Attempting to load sound from:", currentSong.song_url);
         const { sound: newSound } = await Audio.Sound.createAsync(
           { uri: currentSong.song_url },
           { shouldPlay: isPlaying },
@@ -91,7 +86,6 @@ export const PlayerProvider = ({ children }) => {
 
         setSound(newSound);
 
-        // Get initial status to set duration immediately
         const initialStatus = await newSound.getStatusAsync();
         if (initialStatus.isLoaded && initialStatus.durationMillis) {
           setDuration(initialStatus.durationMillis / 1000);
@@ -113,10 +107,8 @@ export const PlayerProvider = ({ children }) => {
     };
   }, [currentSong]);
 
-  // Control playback based on isPlaying state
   useEffect(() => {
     if (!sound) return;
-
     const controlPlayback = async () => {
       try {
         if (isPlaying) {
@@ -132,25 +124,26 @@ export const PlayerProvider = ({ children }) => {
     controlPlayback();
   }, [isPlaying, sound]);
 
-  // Handle what happens when a song ends
-  const handleSongEnd = () => {
+  const handleSongEnd = async () => {
     if (loopMode === 2) {
-      sound.replayAsync();
+      await sound.replayAsync();
     } else {
       if (currentIndex < playlist.length - 1) {
         playNext();
       } else if (loopMode === 1) {
         playSong(playlist[0], playlist, 0);
       } else {
-        // End of playlist, stop playing
         setIsPlaying(false);
       }
     }
   };
 
-  // Play a specific song
-  const playSong = (song, allSongs, index) => {
-    console.log(allSongs, "allsongs");
+  const playSong = async (song, allSongs, index) => {
+    if (sound) {
+      await sound.unloadAsync();
+      setSound(null);
+    }
+
     setCurrentSong(song);
     setPlaylist(allSongs);
     setCurrentIndex(index);
@@ -159,16 +152,18 @@ export const PlayerProvider = ({ children }) => {
     setProgress(0);
   };
 
-  // Play next song
+  const playNext = async () => {
+    if (sound) {
+      await sound.unloadAsync();
+      setSound(null);
+    }
 
-  const playNext = () => {
     if (shuffleActive) {
       let availableIndexes = playlist
         .map((_, index) => index)
         .filter((i) => !history.includes(i));
 
       if (availableIndexes.length === 0) {
-        // Reset history when all songs are played
         setHistory([]);
         availableIndexes = playlist.map((_, index) => index);
       }
@@ -179,23 +174,24 @@ export const PlayerProvider = ({ children }) => {
 
       playSong(playlist[randomIndex], playlist, randomIndex);
     } else if (currentIndex < playlist.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-      setCurrentSong(playlist[currentIndex + 1]);
+      playSong(playlist[currentIndex + 1], playlist, currentIndex + 1);
     }
   };
 
-  // Play previous song
-  const playPrevious = () => {
+  const playPrevious = async () => {
+    if (sound) {
+      await sound.unloadAsync();
+      setSound(null);
+    }
+
     if (shuffleActive) {
       const randomIndex = Math.floor(Math.random() * playlist.length);
       playSong(playlist[randomIndex], playlist, randomIndex);
     } else if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-      setCurrentSong(playlist[currentIndex - 1]);
+      playSong(playlist[currentIndex - 1], playlist, currentIndex - 1);
     }
   };
 
-  // Seek to position
   const seekTo = async (value) => {
     if (!sound) return;
 
@@ -209,12 +205,10 @@ export const PlayerProvider = ({ children }) => {
     }
   };
 
-  // Toggle shuffle
   const toggleShuffle = () => {
     setShuffleActive(!shuffleActive);
   };
 
-  // Toggle loop mode
   const toggleLoopMode = () => {
     setLoopMode((prevMode) => (prevMode + 1) % 3);
   };

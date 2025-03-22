@@ -29,7 +29,7 @@ const Search = () => {
     refetch,
     reset,
   } = useFetch(() => fetchMusic({ query: debouncedQuery }), [debouncedQuery]);
-  console.log(music);
+
   useEffect(() => {
     setCancelDisplay(searchQuery.length > 0);
   }, [searchQuery]);
