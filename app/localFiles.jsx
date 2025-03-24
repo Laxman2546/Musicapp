@@ -5,6 +5,7 @@ import {
   Image,
   Pressable,
   FlatList,
+  ScrollView,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import * as MediaLibrary from "expo-media-library";
@@ -71,6 +72,8 @@ const localFiles = () => {
               />
             </>
           )}
+          showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}
         />
       </View>
     </View>

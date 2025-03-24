@@ -108,6 +108,7 @@ const Search = () => {
                         music={item.music}
                         duration={item.duration}
                         primary_artists={item.primary_artists}
+                        song_url={item.media_url}
                       />
                     ) : (
                       ""
