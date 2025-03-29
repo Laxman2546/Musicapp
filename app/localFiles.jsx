@@ -30,15 +30,17 @@ const localFiles = () => {
           const songInfo = await MediaLibrary.getAssetInfoAsync(song.id);
           return {
             id: song.id,
-            song: songInfo.filename,
+            song: songInfo.filename.replace(/\.[^/.]+$/, ""),
             music: song.uri,
             duration: songInfo.duration,
             image: songInfo.album?.uri,
           };
         })
       );
-
-      setSongs(songDetails);
+      const sortedSongs = songDetails.sort((a, b) =>
+        a.song.localeCompare(b.song)
+      );
+      setSongs(sortedSongs);
     }
   };
   useEffect(() => {
@@ -58,6 +60,7 @@ const localFiles = () => {
       <View>
         <FlatList
           data={songs || []}
+          className="mb-20"
           renderItem={({ item, index }) => (
             <>
               <Trending
