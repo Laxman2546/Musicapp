@@ -42,6 +42,7 @@
     "react-dom": "18.3.1",
     "react-fast-marquee": "^1.6.5",
     "react-native": "0.76.7",
+    "react-native-circular-progress-indicator": "^4.4.2",
     "react-native-css-interop": "^0.1.22",
     "react-native-fs": "^2.20.0",
     "react-native-gesture-handler": "~2.20.2",

@@ -1,11 +1,14 @@
 import { Image, Text, TouchableOpacity, View } from "react-native";
-import React, { memo } from "react";
+import React, { memo, useEffect, useState } from "react";
 import DownloadSong from "@/assets/images/downloadSong.png";
 import Marquee from "react-native-marquee";
 import { usePlayer } from "@/context/playerContext";
 import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system";
+import Svg, { Circle } from "react-native-svg";
+import checked from "@/assets/images/checked.png";
+
 const Trending = ({
   type,
   song,
@@ -18,6 +21,13 @@ const Trending = ({
   allSongs,
 }) => {
   const { playSong } = usePlayer();
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadedSongs, setDownloadedSongs] = useState(false);
+  const radius = 12;
+  const strokeWidth = 2;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference * (1 - downloadProgress);
 
   const handleSong = () => {
     const songObject = {
@@ -36,7 +46,7 @@ const Trending = ({
           music: song.music,
           duration: song.duration,
           primary_artists: song.primary_artists,
-          song_url: song.media_url || song.music,
+          song_url: song.media_url || song.music || song.filePath,
         }))
       : [songObject];
 
@@ -46,56 +56,88 @@ const Trending = ({
 
   const handleDownload = async () => {
     try {
-      const downloadDest = `${FileSystem.documentDirectory}${song}.mp3`;
+      setIsDownloading(true);
+      setDownloadProgress(0);
+
+      const existingSongs = await AsyncStorage.getItem("downloadedSongs");
+      let songsArray = existingSongs ? JSON.parse(existingSongs) : [];
+
+      if (
+        songsArray.some(
+          (s) => s.song === song && s.primary_artists === primary_artists
+        )
+      ) {
+        console.log("Song already downloaded");
+        setDownloadedSongs(true);
+        setIsDownloading(false);
+        return;
+      }
+
+      const sanitizeFileName = (name) =>
+        name.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+      const fileExt = song_url.split(".").pop() || "mp3";
+      const fileName = `${sanitizeFileName(song)}.${fileExt}`;
+      const downloadDest = `${FileSystem.documentDirectory}${fileName}`;
 
       const download = FileSystem.createDownloadResumable(
         song_url,
         downloadDest,
         {},
         (progress) => {
-          console.log(
-            `Downloaded: ${
-              (progress.totalBytesWritten /
-                progress.totalBytesExpectedToWrite) *
-              100
-            }%`
-          );
+          const percent =
+            progress.totalBytesWritten / progress.totalBytesExpectedToWrite;
+          setDownloadProgress(percent);
         }
       );
 
       const result = await download.downloadAsync();
 
-      if (result) {
+      if (result && result.status === 200) {
         const songData = {
           song,
           image,
           duration,
           primary_artists,
           filePath: result.uri,
+          downloadDate: new Date().toISOString(),
         };
-        const existingSongs = await AsyncStorage.getItem("downloadedSongs");
-        let songsArray = existingSongs ? JSON.parse(existingSongs) : [];
+
         songsArray.push(songData);
         await AsyncStorage.setItem(
           "downloadedSongs",
           JSON.stringify(songsArray)
         );
-        console.log(`Song ${song} added to downloads`);
+        setDownloadedSongs(true);
+      } else {
+        throw new Error("Download failed - no result or bad status");
       }
     } catch (e) {
-      console.log("Download failed:", e);
+      console.error("Download failed:", e);
+    } finally {
+      setIsDownloading(false);
     }
   };
-  const getItems = async () => {
+
+  const getSongs = async () => {
     try {
       const data = await AsyncStorage.getItem("downloadedSongs");
-      return data != null ? JSON.parse(data) : null;
-    } catch (error) {
-      console.log("Error getting items:", error);
-      return null;
+      let songDets = data ? JSON.parse(data) : [];
+      if (
+        songDets.some(
+          (s) => s.song === song && s.primary_artists === primary_artists
+        )
+      ) {
+        setDownloadedSongs(true);
+        setIsDownloading(false);
+        return;
+      }
+    } catch (e) {
+      console.log(e);
     }
   };
-  console.log(getItems());
+  useEffect(() => {
+    getSongs();
+  }, []);
 
   const convertDuration = (duration) => {
     if (!duration) return "00:00";
@@ -163,15 +205,34 @@ const Trending = ({
                 </View>
               </View>
             </TouchableOpacity>
+
             <View className="flex gap-1 absolute right-2 items-center z-40">
-              <TouchableOpacity onPress={handleDownload}>
-                <Image
-                  source={DownloadSong}
-                  style={{
-                    width: 25,
-                    height: 25,
-                  }}
-                />
+              <TouchableOpacity
+                onPress={handleDownload}
+                disabled={isDownloading}
+              >
+                {isDownloading ? (
+                  <Svg width={radius * 2} height={radius * 2}>
+                    <Circle
+                      stroke="#000"
+                      fill="transparent"
+                      strokeWidth={strokeWidth}
+                      strokeDasharray={circumference}
+                      strokeDashoffset={strokeDashoffset}
+                      cx={radius}
+                      cy={radius}
+                      r={radius - strokeWidth / 2}
+                    />
+                  </Svg>
+                ) : (
+                  <Image
+                    source={downloadedSongs ? checked : DownloadSong}
+                    style={{
+                      width: 25,
+                      height: 25,
+                    }}
+                  />
+                )}
               </TouchableOpacity>
               <View>
                 <Text
@@ -186,7 +247,6 @@ const Trending = ({
           </View>
         </View>
       ) : (
-        // No Songs Found Message
         <View className="w-full h-full flex justify-center items-center pb-10">
           <Text
             style={{

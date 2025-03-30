@@ -6,6 +6,9 @@ const downloads = () => {
   const handleLocal = () => {
     router.push("/localFiles");
   };
+  const handleDownload = () => {
+    router.push("/downloadsFolder");
+  };
   return (
     <View className="w-full flex flex-col p-5">
       <Text style={styles.text}>All Songs</Text>
@@ -20,7 +23,7 @@ const downloads = () => {
             <Text style={styles.textFont}>Local Songs</Text>
           </View>
         </Pressable>
-        <Pressable>
+        <Pressable onPress={handleDownload}>
           <View className="w-full flex flex-row gap-6  p-5 rounded-2xl bg-[#D3D3D3]">
             <Image
               source={fileIcon}

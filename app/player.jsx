@@ -23,7 +23,7 @@ import { router } from "expo-router";
 import GestureRecognizer, {
   swipeDirections,
 } from "react-native-swipe-gestures";
-import { goBack } from "expo-router/build/global-state/routing";
+
 const MusicPlayer = () => {
   const {
     currentSong,
@@ -55,11 +55,9 @@ const MusicPlayer = () => {
     router.back();
   };
   const onSwipeperLeftformed = () => {
-    console.log("swiped");
     playNext();
   };
   const onSwipeperRightformed = () => {
-    console.log("swiped");
     playPrevious();
   };
   const config = {

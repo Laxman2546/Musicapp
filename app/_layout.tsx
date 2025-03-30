@@ -20,6 +20,12 @@ export default function RootLayout() {
               headerShown: false,
             }}
           />
+          <Stack.Screen
+            name="downloadsFolder"
+            options={{
+              headerShown: false,
+            }}
+          />
         </Stack>
       </View>
     </PlayerProvider>
