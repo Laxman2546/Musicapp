@@ -4,7 +4,8 @@ import DownloadSong from "@/assets/images/downloadSong.png";
 import Marquee from "react-native-marquee";
 import { usePlayer } from "@/context/playerContext";
 import { router } from "expo-router";
-
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as FileSystem from "expo-file-system";
 const Trending = ({
   type,
   song,
@@ -43,9 +44,58 @@ const Trending = ({
     router.push("/player");
   };
 
-  const handleDownload = () => {
-    console.log(`Downloading song: ${song}`);
+  const handleDownload = async () => {
+    try {
+      const downloadDest = `${FileSystem.documentDirectory}${song}.mp3`;
+
+      const download = FileSystem.createDownloadResumable(
+        song_url,
+        downloadDest,
+        {},
+        (progress) => {
+          console.log(
+            `Downloaded: ${
+              (progress.totalBytesWritten /
+                progress.totalBytesExpectedToWrite) *
+              100
+            }%`
+          );
+        }
+      );
+
+      const result = await download.downloadAsync();
+
+      if (result) {
+        const songData = {
+          song,
+          image,
+          duration,
+          primary_artists,
+          filePath: result.uri,
+        };
+        const existingSongs = await AsyncStorage.getItem("downloadedSongs");
+        let songsArray = existingSongs ? JSON.parse(existingSongs) : [];
+        songsArray.push(songData);
+        await AsyncStorage.setItem(
+          "downloadedSongs",
+          JSON.stringify(songsArray)
+        );
+        console.log(`Song ${song} added to downloads`);
+      }
+    } catch (e) {
+      console.log("Download failed:", e);
+    }
   };
+  const getItems = async () => {
+    try {
+      const data = await AsyncStorage.getItem("downloadedSongs");
+      return data != null ? JSON.parse(data) : null;
+    } catch (error) {
+      console.log("Error getting items:", error);
+      return null;
+    }
+  };
+  console.log(getItems());
 
   const convertDuration = (duration) => {
     if (!duration) return "00:00";
