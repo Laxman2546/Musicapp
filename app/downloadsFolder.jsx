@@ -12,6 +12,7 @@ import { goBack } from "expo-router/build/global-state/routing";
 import backIcon from "@/assets/images/backImg.png";
 import Trending from "@/components/trending";
 import { router } from "expo-router";
+import DownloadComponent from "@/components/downloadComponent";
 const downloadsFolder = () => {
   const [songs, setSongs] = React.useState([]);
   const loadSongs = async () => {
@@ -46,7 +47,7 @@ const downloadsFolder = () => {
             className="mb-16"
             renderItem={({ item, index }) => (
               <>
-                <Trending
+                <DownloadComponent
                   song={item.song}
                   image={item.image}
                   song_url={item.filePath}
@@ -54,6 +55,7 @@ const downloadsFolder = () => {
                   duration={item.duration}
                   index={index}
                   allSongs={songs || []}
+                  onDelete={loadSongs}
                 />
               </>
             )}

@@ -51,11 +51,11 @@ const musicPlayer = () => {
                       color: "white",
                       backgroundColor: "black",
                     }}
-                    duration={5000} // Adjust speed
+                    duration={5000} 
                     loop
                     bounce
-                    repeatSpacer={50} // Space between loops
-                    marqueeDelay={1000} // Delay before start
+                    repeatSpacer={50} 
+                    marqueeDelay={1000}
                   >
                     <Text style={styles.musicText} className="text-white">
                       Pain
