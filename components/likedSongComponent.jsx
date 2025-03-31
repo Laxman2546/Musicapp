@@ -112,7 +112,7 @@ const likedSongComponent = ({
 
   return (
     <>
-      {allSongs.length === 0 || [] ? (
+      {allSongs.length === 0 || !song ? (
         <View className="w-full h-full flex justify-center items-center pb-10">
           <Text style={{ fontFamily: "Nunito-Bold", fontSize: 18 }}>
             No Favourite songs found 😕
@@ -125,7 +125,7 @@ const likedSongComponent = ({
             gotoPlayer;
           }}
         >
-          <View className="w-full flex flex-row gap-6 bg-gray-100 rounded-2xl p-3 mb-2">
+          <View className="w-full flex flex-row gap-6 bg-gray-200 rounded-2xl mt-7 p-2 mb-2">
             <View>
               <Image
                 source={getImageSource(image)}
@@ -160,7 +160,7 @@ const likedSongComponent = ({
                 </View>
               </TouchableOpacity>
 
-              <View className="flex gap-3 absolute right-1 items-center">
+              <View className="flex gap-3 absolute right-1 top-1 items-center">
                 <Pressable onPress={() => setShowmore(!showMore)}>
                   <Image source={moreIcon} style={{ width: 20, height: 20 }} />
                 </Pressable>

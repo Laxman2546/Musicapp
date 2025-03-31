@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -77,35 +78,48 @@ const Home = () => {
           <Text style={styles.greetingText}>Hello,</Text>
           <Text style={styles.greetingName}>{greetings}</Text>
         </View>
-
-        <View className="w-full flex flex-row items-center gap-2 pt-5 pl-5">
-          <HomeBtns
-            btnName="Trending"
-            handlePress={() => {
-              <ActivityIndicator size="large" color="#000" />;
-              setActive("Trending");
-              setEndReached(false);
-            }}
-            btnactive={active}
-          />
-          <HomeBtns
-            btnName="Popular"
-            handlePress={() => {
-              setActive("Popular");
-              setEndReached(false);
-            }}
-            btnactive={active}
-          />
-          <HomeBtns
-            btnName="Recent"
-            handlePress={() => {
-              setActive("Recent");
-              setEndReached(false);
-            }}
-            btnactive={active}
-          />
-        </View>
-
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingRight: 20 }}
+        >
+          <View className="w-full flex flex-row items-center gap-2 pt-5 pl-5 overflow-auto md:overflow-scroll ">
+            <HomeBtns
+              btnName="All"
+              handlePress={() => {
+                <ActivityIndicator size="large" color="#000" />;
+                setActive("All");
+                setEndReached(false);
+              }}
+              btnactive={active}
+            />
+            <HomeBtns
+              btnName="Trending"
+              handlePress={() => {
+                <ActivityIndicator size="large" color="#000" />;
+                setActive("Trending");
+                setEndReached(false);
+              }}
+              btnactive={active}
+            />
+            <HomeBtns
+              btnName="Popular"
+              handlePress={() => {
+                setActive("Popular");
+                setEndReached(false);
+              }}
+              btnactive={active}
+            />
+            <HomeBtns
+              btnName="Recent"
+              handlePress={() => {
+                setActive("Recent");
+                setEndReached(false);
+              }}
+              btnactive={active}
+            />
+          </View>
+        </ScrollView>
         <View className="pt-5 pl-5">
           <Text style={styles.activeText}>
             {active === "Recent" ? `${active} Release` : `${active} Songs`}

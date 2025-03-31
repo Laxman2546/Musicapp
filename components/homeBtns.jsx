@@ -12,6 +12,8 @@ const homeBtns = ({ btnName, handlePress, btnactive }) => {
     <View
       className="flex flex-row "
       style={{
+        height: 50,
+        marginBottom: 20,
         paddingTop: 2,
         paddingBottom: 2,
         paddingRight: 5,
