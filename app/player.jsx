@@ -19,10 +19,14 @@ import loopSecond from "@/assets/images/repeatSecond.png";
 import { usePlayer } from "@/context/playerContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 import backIcon from "@/assets/images/backImg.png";
+import heart from "@/assets/images/heart.png";
+import heartFill from "@/assets/images/heartfill.png";
+
 import { router } from "expo-router";
 import GestureRecognizer, {
   swipeDirections,
 } from "react-native-swipe-gestures";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const MusicPlayer = () => {
   const {
@@ -43,7 +47,7 @@ const MusicPlayer = () => {
     seekTo,
     formatTime,
   } = usePlayer();
-
+  const [favouriteClick, setfavouriteClick] = useState(false);
   if (!currentSong) {
     return (
       <SafeAreaView style={styles.container}>
@@ -51,6 +55,7 @@ const MusicPlayer = () => {
       </SafeAreaView>
     );
   }
+
   const handlePress = () => {
     router.back();
   };
@@ -63,6 +68,62 @@ const MusicPlayer = () => {
   const config = {
     velocityThreshold: 0.3,
     directionalOffsetThreshold: 80,
+  };
+  useEffect(() => {
+    const checkFavoriteStatus = async () => {
+      try {
+        const favorites = await AsyncStorage.getItem("favouriteSongs");
+        const favoriteList = favorites ? JSON.parse(favorites) : [];
+        const isFav = favoriteList.some(
+          (favSong) =>
+            favSong.song === currentSong?.song &&
+            favSong.primary_artists === currentSong?.primary_artists
+        );
+        console.log(favoriteList);
+        setfavouriteClick(isFav);
+      } catch (error) {
+        console.error("Error checking favorite status:", error);
+      }
+    };
+
+    if (currentSong) {
+      checkFavoriteStatus();
+    }
+  }, [currentSong]);
+  const favouriteSongs = async () => {
+    if (!currentSong) return;
+    try {
+      const favourites = await AsyncStorage.getItem("favouriteSongs");
+      let favouriteList = favourites ? JSON.parse(favourites) : [];
+      if (favouriteClick) {
+        favouriteList = favouriteList.filter(
+          (favSong) =>
+            !(
+              favSong.song === currentSong?.song &&
+              favSong.primary_artists === currentSong?.primary_artists
+            )
+        );
+      } else {
+        favouriteList.push({
+          song: currentSong.song,
+          image: currentSong.image,
+
+          duration: currentSong.duration,
+          primary_artists: currentSong.primary_artists,
+          song_url:
+            currentSong.media_url ||
+            currentSong.filePath ||
+            currentSong.song_url,
+        });
+      }
+      await AsyncStorage.setItem(
+        "favouriteSongs",
+        JSON.stringify(favouriteList)
+      );
+      setfavouriteClick(!favouriteClick);
+    } catch (e) {
+      console.log("this error is from the favourite songs", e);
+    }
   };
   const getImageSource = (image) => {
     if (typeof image === "string" && image.startsWith("http")) {
@@ -121,8 +182,11 @@ const MusicPlayer = () => {
                   {currentSong.primary_artists || currentSong.music}
                 </Text>
               </View>
-              <Pressable style={styles.downloadButton}>
-                <Image source={downloadIcon} style={styles.downloadSize} />
+              <Pressable style={styles.downloadButton} onPress={favouriteSongs}>
+                <Image
+                  source={favouriteClick ? heartFill : heart}
+                  style={styles.downloadSize}
+                />
               </Pressable>
             </View>
 
@@ -227,7 +291,7 @@ const MusicPlayer = () => {
 
 export default MusicPlayer;
 
-// Keep your existing styles
+
 
 export const styles = StyleSheet.create({
   container: {

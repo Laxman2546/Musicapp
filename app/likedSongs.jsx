@@ -6,30 +6,26 @@ import {
   Image,
   FlatList,
 } from "react-native";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { goBack } from "expo-router/build/global-state/routing";
 import backIcon from "@/assets/images/backImg.png";
-import Trending from "@/components/trending";
 import { router } from "expo-router";
-import DownloadComponent from "@/components/downloadComponent";
-const downloadsFolder = () => {
-  const [songs, setSongs] = React.useState([]);
-  const loadSongs = async () => {
-    try {
-      const data = await AsyncStorage.getItem("downloadedSongs");
-      setSongs(data ? JSON.parse(data) : []);
-    } catch (e) {
-      console.log(e);
-    }
+import LikedSongComponent from "@/components/likedSongComponent";
+const likedSongs = () => {
+  const [song, setSong] = useState([]);
+  const getLikedSongs = async () => {
+    const favoSongs = await AsyncStorage.getItem("favouriteSongs");
+    const songsList = favoSongs ? JSON.parse(favoSongs) : [];
+    setSong(songsList);
   };
   useEffect(() => {
-    loadSongs();
+    getLikedSongs();
   }, []);
-
   const handleBack = () => {
     router.push(goBack);
   };
+
   return (
     <>
       <View className="p-5">
@@ -39,23 +35,23 @@ const downloadsFolder = () => {
               <Image source={backIcon} style={styles.backImg} />
             </View>
           </Pressable>
-          <Text style={styles.textStyle}>Downloads</Text>
+          <Text style={styles.textStyle}>Liked songs</Text>
         </View>
         <View>
           <FlatList
-            data={songs || []}
-            className="mb-16"
+            data={song || []}
             renderItem={({ item, index }) => (
               <>
-                <DownloadComponent
+                {console.log(item)}
+                <LikedSongComponent
                   song={item.song}
                   image={item.image}
-                  song_url={item.filePath}
+                  song_url={item.song_url}
                   primary_artists={item.primary_artists}
                   duration={item.duration}
                   index={index}
-                  allSongs={songs || []}
-                  onDelete={loadSongs}
+                  allSongs={song || []}
+                  onDelete={getLikedSongs}
                 />
               </>
             )}
@@ -67,12 +63,12 @@ const downloadsFolder = () => {
   );
 };
 
-export default downloadsFolder;
+export default likedSongs;
 
 const styles = StyleSheet.create({
   backImg: {
-    width: 15,
-    height: 15,
+    width: 12,
+    height: 12,
     borderRadius: 25,
   },
   textStyle: {

@@ -6,6 +6,7 @@ import { router } from "expo-router";
 import moreIcon from "@/assets/images/more.png";
 import trash from "@/assets/images/trash.png";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { navigate } from "expo-router/build/global-state/routing";
 
 const DownloadComponent = ({
   type,
@@ -19,7 +20,7 @@ const DownloadComponent = ({
   onDelete,
   allSongs = [],
 }) => {
-  const { playSong } = usePlayer();
+  const { playSong, currentSong, isPlaying } = usePlayer();
   const [showMore, setShowmore] = useState(false);
   const [isEmpty, setIsEmpty] = useState(false);
 
@@ -36,7 +37,9 @@ const DownloadComponent = ({
     };
     checkIfEmpty();
   }, []);
-
+  const gotoPlayer = () => {
+    if (currentSong == isPlaying) router.push("/player");
+  };
   const handleSong = () => {
     const songObject = {
       song,
@@ -106,7 +109,12 @@ const DownloadComponent = ({
   }
 
   return (
-    <Pressable onPress={() => setShowmore(false)}>
+    <Pressable
+      onPress={() => {
+        setShowmore(false);
+        gotoPlayer;
+      }}
+    >
       <View className="w-full flex flex-row gap-6 bg-gray-100 rounded-2xl p-3 mb-2">
         <View>
           <Image

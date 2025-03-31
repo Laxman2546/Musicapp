@@ -1,10 +1,10 @@
 import { StyleSheet, Text, View } from "react-native";
 import React from "react";
-import Downloads from "../downloadsFolder.jsx";
+import LikedSongs from "../likedSongs";
 const playlists = () => {
   return (
     <>
-      <Downloads />
+      <LikedSongs />
     </>
   );
 };

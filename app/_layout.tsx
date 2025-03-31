@@ -26,6 +26,12 @@ export default function RootLayout() {
               headerShown: false,
             }}
           />
+          <Stack.Screen
+            name="likedSongs"
+            options={{
+              headerShown: false,
+            }}
+          />
         </Stack>
       </View>
     </PlayerProvider>

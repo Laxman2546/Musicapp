@@ -9,6 +9,10 @@ const downloads = () => {
   const handleDownload = () => {
     router.push("/downloadsFolder");
   };
+  const handleLiked = () => {
+    router.push("/likedSongs");
+  };
+
   return (
     <View className="w-full flex flex-col p-5">
       <Text style={styles.text}>All Songs</Text>
@@ -33,14 +37,14 @@ const downloads = () => {
             <Text style={styles.textFont}>Downloaded songs</Text>
           </View>
         </Pressable>
-        <Pressable>
+        <Pressable onPress={handleLiked}>
           <View className="w-full flex flex-row gap-6  p-5 rounded-2xl bg-[#D3D3D3]">
             <Image
               source={fileIcon}
               style={styles.fileSize}
               resizeMode="contain"
             />
-            <Text style={styles.textFont}>All songs</Text>
+            <Text style={styles.textFont}>Liked songs</Text>
           </View>
         </Pressable>
       </View>
