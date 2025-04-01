@@ -1,13 +1,7 @@
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import React, { useState } from "react";
+import { StyleSheet, Text, View, Pressable } from "react-native";
+import React from "react";
 
-const homeBtns = ({ btnName, handlePress, btnactive }) => {
+const bhakthiBtns = ({ btnName, handlePress, btnactive }) => {
   return (
     <View
       className="flex flex-row"
@@ -25,7 +19,7 @@ const homeBtns = ({ btnName, handlePress, btnactive }) => {
           padding: 12,
           paddingLeft: 25,
           paddingRight: 25,
-          borderRadius: 50,
+          borderRadius: 10,
         }}
         onPress={handlePress}
       >
@@ -43,6 +37,6 @@ const homeBtns = ({ btnName, handlePress, btnactive }) => {
   );
 };
 
-export default homeBtns;
+export default bhakthiBtns;
 
 const styles = StyleSheet.create({});

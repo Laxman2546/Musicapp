@@ -9,12 +9,14 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import HomeBtns from "../../components/homeBtns";
+import BhakthiBtns from "@/components/bhakthiBtns";
 import Trending from "../../components/trending";
 import useFetch from "@/services/useFetch";
 import { fetchMusic, getNextPlaylist } from "../../services/api";
 import ChartsComponent from "@/components/chartsComponent";
 const Home = () => {
-  const [active, setActive] = useState("Trending");
+  const [active, setActive] = useState("All");
+  const [bhakthiActive, setbhakthiActive] = useState("VenkateshwaraSwamy");
   const [greetings, setGreetings] = useState("Good Morning");
 
   const {
@@ -25,7 +27,10 @@ const Home = () => {
     loadMore,
     allSongs,
     categoryIndices,
-  } = useFetch(() => fetchMusic({ query: "", active }), [active]);
+  } = useFetch(
+    () => fetchMusic({ query: "", active, bhakthiActive }),
+    [active, bhakthiActive]
+  );
 
   const [loadingMore, setLoadingMore] = useState(false);
   const [endReached, setEndReached] = useState(false);
@@ -47,16 +52,14 @@ const Home = () => {
 
     try {
       setLoadingMore(true);
-      const result = await loadMore(active);
+      const result = await loadMore(
+        active === "Bhakthi" ? bhakthiActive : active
+      );
 
       if (result.success) {
-        const nextPlaylistData = await getNextPlaylist(active);
+        const nextPlaylistData = await getNextPlaylist(active, bhakthiActive);
 
-        if (
-          nextPlaylistData &&
-          nextPlaylistData.songs &&
-          nextPlaylistData.songs.length > 0
-        ) {
+        if (nextPlaylistData?.songs?.length > 0) {
           await refetch(true);
         } else {
           setEndReached(true);
@@ -70,7 +73,14 @@ const Home = () => {
       setLoadingMore(false);
     }
   };
-
+  const bhakthiOptions = [
+    { name: "VenkateshwaraSwamy" },
+    { name: "Shiva" },
+    { name: "Durga Devi" },
+    { name: "Ganesha" },
+    { name: "Sai Baba" },
+    { name: "Hanuman" },
+  ];
   return (
     <SafeAreaView className="bg-slate-50 h-full">
       <View className="w-full">
@@ -116,6 +126,14 @@ const Home = () => {
               }}
               btnactive={active}
             />
+            <HomeBtns
+              btnName="Bhakthi"
+              handlePress={() => {
+                setActive("Bhakthi");
+                setEndReached(false);
+              }}
+              btnactive={active}
+            />
           </View>
         </ScrollView>
 
@@ -153,8 +171,8 @@ const Home = () => {
                           <>
                             <ChartsComponent
                               listname={item.listname}
-                              premaUrl={item.prema_url}
-                              image={item.songs[0]?.image}
+                              premaUrl={item.perma_url}
+                              image={item.image}
                               index={index}
                             />
                           </>
@@ -182,7 +200,7 @@ const Home = () => {
                             <>
                               <ChartsComponent
                                 listname={item.listname}
-                                premaUrl={item.prema_url}
+                                premaUrl={item.perma_url}
                                 image={item.image}
                                 index={index}
                                 type={"featured"}
@@ -211,7 +229,7 @@ const Home = () => {
                             <>
                               <ChartsComponent
                                 listname={item.title}
-                                premaUrl={item.prema_url}
+                                premaUrl={item.perma_url}
                                 image={item.image}
                                 index={index}
                                 type={"featured"}
@@ -221,7 +239,6 @@ const Home = () => {
                         />
                       </View>
                     </View>
-                    {console.log(music?.general)}
                     <View style={styles.section2}>
                       <View>
                         <Text style={styles.activeText}>
@@ -243,7 +260,7 @@ const Home = () => {
                             <>
                               <ChartsComponent
                                 listname={item.listname}
-                                premaUrl={item.prema_url}
+                                premaUrl={item.perma_url}
                                 image={item.image}
                                 index={index}
                                 type={"featured"}
@@ -265,54 +282,148 @@ const Home = () => {
                 {active === "Recent" ? `${active} Release` : `${active} Songs`}
               </Text>
             </View>
-            {loading || (!music?.songs?.length && !error) ? (
-              <ActivityIndicator size="large" color="#000" />
-            ) : error ? (
-              <Text style={styles.errorText}>
-                Something went wrong: {error.message}
-              </Text>
-            ) : (
-              <FlatList
-                data={music?.songs || []}
-                windowSize={5}
-                maxToRenderPerBatch={5}
-                updateCellsBatchingPeriod={50}
-                removeClippedSubviews={true}
-                renderItem={({ item, index }) => (
+            {active === "Bhakthi" ? (
+              <>
+                <View className="w-full">
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ paddingRight: 20 }}
+                  >
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        marginLeft: 15,
+                        gap: 10,
+                      }}
+                    >
+                      {bhakthiOptions.map((option, index) => (
+                        <BhakthiBtns
+                          key={index}
+                          btnName={option.name}
+                          handlePress={() => {
+                            setbhakthiActive(option.name);
+                            setEndReached(false);
+                          }}
+                          btnactive={bhakthiActive}
+                        />
+                      ))}
+                    </View>
+                  </ScrollView>
                   <>
-                    <Trending
-                      type={active}
-                      song={item.song}
-                      image={item.image}
-                      music={item.music}
-                      duration={item.duration}
-                      primary_artists={item.primary_artists}
-                      song_url={item.media_url}
-                      index={index}
-                      allSongs={music?.songs || []}
-                    />
+                    {loading || (!music?.songs?.length && !error) ? (
+                      <ActivityIndicator size="large" color="#000" />
+                    ) : error ? (
+                      <Text style={styles.errorText}>
+                        Something went wrong: {error.message}
+                      </Text>
+                    ) : (
+                      <View className="mb-[600px]">
+                        <Text className="text-center">
+                          Bhakthi songs are still in Development...😐
+                        </Text>
+                        {/* <FlatList
+                          data={music?.songs || []}
+                          windowSize={5}
+                          showsVerticalScrollIndicator={false}
+                          maxToRenderPerBatch={5}
+                          updateCellsBatchingPeriod={50}
+                          removeClippedSubviews={true}
+                          renderItem={({ item, index }) => (
+                            <>
+                              <Trending
+                                type={active}
+                                song={item.song}
+                                image={item.image}
+                                music={item.music}
+                                duration={item.duration}
+                                primary_artists={item.primary_artists}
+                                song_url={item.media_url}
+                                index={index}
+                                allSongs={music?.songs || []}
+                              />
+                            </>
+                          )}
+                          onEndReached={handleEndReached}
+                          onEndReachedThreshold={0.5}
+                          ListFooterComponent={
+                            loadingMore ? (
+                              <View style={styles.footerLoadingContainer}>
+                                <ActivityIndicator size="small" color="#000" />
+                                <Text style={styles.loadingText}>
+                                  Finding more songs...😃
+                                </Text>
+                              </View>
+                            ) : endReached ? (
+                              <View style={styles.footerContainer}>
+                                <Text style={styles.footerText}>
+                                  You've caught them all! 🎶
+                                </Text>
+                              </View>
+                            ) : null
+                          }
+                          keyExtractor={(item, index) =>
+                            `${item.song}-${index}`
+                          }
+                        /> */}
+                      </View>
+                    )}
                   </>
+                </View>
+              </>
+            ) : (
+              <>
+                {loading || (!music?.songs?.length && !error) ? (
+                  <ActivityIndicator size="large" color="#000" />
+                ) : error ? (
+                  <Text style={styles.errorText}>
+                    Something went wrong: {error.message}
+                  </Text>
+                ) : (
+                  <FlatList
+                    data={music?.songs || []}
+                    windowSize={5}
+                    showsVerticalScrollIndicator={false}
+                    maxToRenderPerBatch={5}
+                    updateCellsBatchingPeriod={50}
+                    removeClippedSubviews={true}
+                    renderItem={({ item, index }) => (
+                      <>
+                        <Trending
+                          type={active}
+                          song={item.song}
+                          image={item.image}
+                          music={item.music}
+                          duration={item.duration}
+                          primary_artists={item.primary_artists}
+                          song_url={item.media_url}
+                          index={index}
+                          allSongs={music?.songs || []}
+                        />
+                      </>
+                    )}
+                    onEndReached={handleEndReached}
+                    onEndReachedThreshold={0.5}
+                    ListFooterComponent={
+                      loadingMore ? (
+                        <View style={styles.footerLoadingContainer}>
+                          <ActivityIndicator size="small" color="#000" />
+                          <Text style={styles.loadingText}>
+                            Finding more songs...😃
+                          </Text>
+                        </View>
+                      ) : endReached ? (
+                        <View style={styles.footerContainer}>
+                          <Text style={styles.footerText}>
+                            You've caught them all! 🎶
+                          </Text>
+                        </View>
+                      ) : null
+                    }
+                    keyExtractor={(item, index) => `${item.song}-${index}`}
+                  />
                 )}
-                onEndReached={handleEndReached}
-                onEndReachedThreshold={0.5}
-                ListFooterComponent={
-                  loadingMore ? (
-                    <View style={styles.footerLoadingContainer}>
-                      <ActivityIndicator size="small" color="#000" />
-                      <Text style={styles.loadingText}>
-                        Finding more songs...😃
-                      </Text>
-                    </View>
-                  ) : endReached ? (
-                    <View style={styles.footerContainer}>
-                      <Text style={styles.footerText}>
-                        You've caught them all! 🎶
-                      </Text>
-                    </View>
-                  ) : null
-                }
-                keyExtractor={(item, index) => `${item.song}-${index}`}
-              />
+              </>
             )}
           </>
         )}
@@ -321,7 +432,7 @@ const Home = () => {
   );
 };
 
-const styles = StyleSheet.create({
+export const styles = StyleSheet.create({
   greetingText: {
     fontFamily: "Nunito-Regular",
     fontSize: 18,

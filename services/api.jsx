@@ -13,6 +13,10 @@ export const MUSIC_CONFIG = {
       "https://www.jiosaavn.com/featured/kotha-tunes/bDjUXq26B5Y_",
       "https://www.jiosaavn.com/featured/telugu-india-superhits-top-50/4O6DwO-qteN613W6L-cCSw__",
     ],
+    VenkateshwaraSwamy: [
+      "https://www.jiosaavn.com/featured/shravana-banthu/a28A1wWlfeY_",
+      "https://www.jiosaavn.com/featured/vaikunta-ekadashi-/whg5s6pgA1Awkg5tVhI3fw__",
+    ],
   },
 };
 
@@ -21,15 +25,23 @@ const playlistIndices = {
   Trending: 0,
   Popular: 0,
   Recent: 0,
+  VenkateshwaraSwamy: 0,
+  Shiva: 0,
+  DurgaDevi: 0,
+  Ganesha: 0,
+  SaiBaba: 0,
+  Hanuman: 0,
 };
 
 export const fetchMusic = async ({
   query = "",
   active = "Trending",
+  premaUrl = "",
+  bhakthiActive = "",
   nextPlaylist = false,
 }) => {
   let endpoint;
-
+  console.log(bhakthiActive);
   if (nextPlaylist && active) {
     const currentIndex = playlistIndices[active];
     const playlists = MUSIC_CONFIG.PLAYLISTS[active];
@@ -44,6 +56,24 @@ export const fetchMusic = async ({
     }
   } else if (query) {
     endpoint = `${MUSIC_CONFIG.BASE_URL}/result/?query=${query}`;
+  } else if (premaUrl) {
+    endpoint = `${MUSIC_CONFIG.BASE_URL}/playlist/?query=${encodeURIComponent(
+      premaUrl
+    )}`;
+  } else if (active === "Bhakthi" && bhakthiActive === "VenkateshwaraSwamy") {
+    const playlistUrl =
+      MUSIC_CONFIG.PLAYLISTS.VenkateshwaraSwamy[
+        playlistIndices.VenkateshwaraSwamy
+      ];
+    endpoint = `${MUSIC_CONFIG.BASE_URL}/playlist/?query=${encodeURIComponent(
+      playlistUrl
+    )}`;
+  } else if (active === "Bhakthi" && bhakthiActive === "Shiva") {
+    const playlistUrl =
+      MUSIC_CONFIG.PLAYLISTS.Trending[playlistIndices.Trending];
+    endpoint = `${MUSIC_CONFIG.BASE_URL}/playlist/?query=${encodeURIComponent(
+      playlistUrl
+    )}`;
   } else if (active === "All") {
     endpoint = `${MUSIC_CONFIG.BASE_URL}/combined`;
   } else if (active === "Trending") {
@@ -77,7 +107,10 @@ export const fetchMusic = async ({
   }
 };
 
-// Helper function to get the next playlist
-export const getNextPlaylist = async (active) => {
-  return await fetchMusic({ active, nextPlaylist: true });
+export const getNextPlaylist = async (active, bhakthiActive) => {
+  return await fetchMusic({
+    active,
+    bhakthiActive,
+    nextPlaylist: true,
+  });
 };

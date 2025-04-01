@@ -1,10 +1,10 @@
 import { StyleSheet, Text, View } from "react-native";
 import React from "react";
-import LikedSongs from "../likedSongs";
+import Premlist from "../premlist";
 const playlists = () => {
   return (
     <>
-      <LikedSongs />
+      <Premlist />
     </>
   );
 };
