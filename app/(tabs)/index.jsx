@@ -12,7 +12,7 @@ import HomeBtns from "../../components/homeBtns";
 import Trending from "../../components/trending";
 import useFetch from "@/services/useFetch";
 import { fetchMusic, getNextPlaylist } from "../../services/api";
-
+import ChartsComponent from "@/components/chartsComponent";
 const Home = () => {
   const [active, setActive] = useState("Trending");
   const [greetings, setGreetings] = useState("Good Morning");
@@ -87,7 +87,6 @@ const Home = () => {
             <HomeBtns
               btnName="All"
               handlePress={() => {
-                <ActivityIndicator size="large" color="#000" />;
                 setActive("All");
                 setEndReached(false);
               }}
@@ -96,7 +95,6 @@ const Home = () => {
             <HomeBtns
               btnName="Trending"
               handlePress={() => {
-                <ActivityIndicator size="large" color="#000" />;
                 setActive("Trending");
                 setEndReached(false);
               }}
@@ -120,60 +118,203 @@ const Home = () => {
             />
           </View>
         </ScrollView>
-        <View className="pt-5 pl-5">
-          <Text style={styles.activeText}>
-            {active === "Recent" ? `${active} Release` : `${active} Songs`}
-          </Text>
-        </View>
 
-        {loading || (!music?.songs?.length && !error) ? (
-          <ActivityIndicator size="large" color="#000" />
-        ) : error ? (
-          <Text style={styles.errorText}>
-            Something went wrong: {error.message}
-          </Text>
+        {active === "All" ? (
+          <ScrollView
+            contentContainerStyle={styles.scrollContainer}
+            showsVerticalScrollIndicator={false}
+          >
+            <>
+              <View className="pt-5 pl-5">
+                {loading || (!music?.telugu?.charts?.length && !error) ? (
+                  <ActivityIndicator
+                    size="large"
+                    color="#000"
+                    style={styles.loader}
+                  />
+                ) : error ? (
+                  <Text style={styles.errorText}>
+                    Something went wrong: {error.message}
+                  </Text>
+                ) : (
+                  <>
+                    <View style={styles.section}>
+                      <View>
+                        <Text style={styles.activeText}>
+                          Top charts -Telugu
+                        </Text>
+                      </View>
+                      <FlatList
+                        data={music?.telugu?.charts || []}
+                        contentContainerStyle={styles.flatListContent}
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        renderItem={({ item, index }) => (
+                          <>
+                            <ChartsComponent
+                              listname={item.listname}
+                              premaUrl={item.prema_url}
+                              image={item.songs[0]?.image}
+                              index={index}
+                            />
+                          </>
+                        )}
+                      />
+                    </View>
+                    <View style={styles.section}>
+                      <View>
+                        <Text style={styles.activeText}>
+                          Featured Playlists
+                        </Text>
+                      </View>
+                      <View>
+                        <FlatList
+                          data={music.telugu.featured_playlists || []}
+                          contentContainerStyle={styles.flatListContent}
+                          horizontal
+                          showsHorizontalScrollIndicator={false}
+                          keyExtractor={(item, index) => index.toString()}
+                          windowSize={5}
+                          maxToRenderPerBatch={5}
+                          updateCellsBatchingPeriod={50}
+                          removeClippedSubviews={true}
+                          renderItem={({ item, index }) => (
+                            <>
+                              <ChartsComponent
+                                listname={item.listname}
+                                premaUrl={item.prema_url}
+                                image={item.image}
+                                index={index}
+                                type={"featured"}
+                              />
+                            </>
+                          )}
+                        />
+                      </View>
+                    </View>
+                    <View style={styles.section}>
+                      <View>
+                        <Text style={styles.activeText}>Top charts -Hindi</Text>
+                      </View>
+                      <View>
+                        <FlatList
+                          data={music?.general?.charts || []}
+                          contentContainerStyle={styles.flatListContent}
+                          horizontal
+                          showsHorizontalScrollIndicator={false}
+                          keyExtractor={(item, index) => index.toString()}
+                          windowSize={5}
+                          maxToRenderPerBatch={5}
+                          updateCellsBatchingPeriod={50}
+                          removeClippedSubviews={true}
+                          renderItem={({ item, index }) => (
+                            <>
+                              <ChartsComponent
+                                listname={item.title}
+                                premaUrl={item.prema_url}
+                                image={item.image}
+                                index={index}
+                                type={"featured"}
+                              />
+                            </>
+                          )}
+                        />
+                      </View>
+                    </View>
+                    {console.log(music?.general)}
+                    <View style={styles.section2}>
+                      <View>
+                        <Text style={styles.activeText}>
+                          Top playlists -Hindi
+                        </Text>
+                      </View>
+                      <View>
+                        <FlatList
+                          data={music?.general?.top_playlists || []}
+                          contentContainerStyle={styles.flatListContent}
+                          horizontal
+                          showsHorizontalScrollIndicator={false}
+                          keyExtractor={(item, index) => index.toString()}
+                          windowSize={5}
+                          maxToRenderPerBatch={5}
+                          updateCellsBatchingPeriod={50}
+                          removeClippedSubviews={true}
+                          renderItem={({ item, index }) => (
+                            <>
+                              <ChartsComponent
+                                listname={item.listname}
+                                premaUrl={item.prema_url}
+                                image={item.image}
+                                index={index}
+                                type={"featured"}
+                              />
+                            </>
+                          )}
+                        />
+                      </View>
+                    </View>
+                  </>
+                )}
+              </View>
+            </>
+          </ScrollView>
         ) : (
-          <FlatList
-            data={music?.songs || []}
-            renderItem={({ item, index }) => (
-              <>
-                <Trending
-                  type={active}
-                  song={item.song}
-                  image={item.image}
-                  music={item.music}
-                  duration={item.duration}
-                  primary_artists={item.primary_artists}
-                  song_url={item.media_url}
-                  index={index}
-                  allSongs={music?.songs || []}
-                />
-              </>
+          <>
+            <View className="pt-5 pl-5">
+              <Text style={styles.activeText}>
+                {active === "Recent" ? `${active} Release` : `${active} Songs`}
+              </Text>
+            </View>
+            {loading || (!music?.songs?.length && !error) ? (
+              <ActivityIndicator size="large" color="#000" />
+            ) : error ? (
+              <Text style={styles.errorText}>
+                Something went wrong: {error.message}
+              </Text>
+            ) : (
+              <FlatList
+                data={music?.songs || []}
+                windowSize={5}
+                maxToRenderPerBatch={5}
+                updateCellsBatchingPeriod={50}
+                removeClippedSubviews={true}
+                renderItem={({ item, index }) => (
+                  <>
+                    <Trending
+                      type={active}
+                      song={item.song}
+                      image={item.image}
+                      music={item.music}
+                      duration={item.duration}
+                      primary_artists={item.primary_artists}
+                      song_url={item.media_url}
+                      index={index}
+                      allSongs={music?.songs || []}
+                    />
+                  </>
+                )}
+                onEndReached={handleEndReached}
+                onEndReachedThreshold={0.5}
+                ListFooterComponent={
+                  loadingMore ? (
+                    <View style={styles.footerLoadingContainer}>
+                      <ActivityIndicator size="small" color="#000" />
+                      <Text style={styles.loadingText}>
+                        Finding more songs...😃
+                      </Text>
+                    </View>
+                  ) : endReached ? (
+                    <View style={styles.footerContainer}>
+                      <Text style={styles.footerText}>
+                        You've caught them all! 🎶
+                      </Text>
+                    </View>
+                  ) : null
+                }
+                keyExtractor={(item, index) => `${item.song}-${index}`}
+              />
             )}
-            windowSize={5}
-            maxToRenderPerBatch={5}
-            updateCellsBatchingPeriod={50}
-            removeClippedSubviews={true}
-            onEndReached={handleEndReached}
-            onEndReachedThreshold={0.5}
-            ListFooterComponent={
-              loadingMore ? (
-                <View style={styles.footerLoadingContainer}>
-                  <ActivityIndicator size="small" color="#000" />
-                  <Text style={styles.loadingText}>
-                    Finding more songs...😃
-                  </Text>
-                </View>
-              ) : endReached ? (
-                <View style={styles.footerContainer}>
-                  <Text style={styles.footerText}>
-                    You've caught them all! 🎶
-                  </Text>
-                </View>
-              ) : null
-            }
-            keyExtractor={(item, index) => `${item.song}-${index}`}
-          />
+          </>
         )}
       </View>
     </SafeAreaView>
@@ -221,6 +362,30 @@ const styles = StyleSheet.create({
   loadingText: {
     fontFamily: "Poppins-Regular",
     fontSize: 16,
+  },
+
+  section: {
+    marginBottom: 10,
+  },
+  section2: {
+    marginBottom: 200,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 15,
+  },
+  flatList: {
+    height: 180,
+  },
+  flatListContent: {
+    paddingRight: 15,
+  },
+  loader: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    height: 200,
   },
 });
 

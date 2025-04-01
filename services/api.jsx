@@ -16,8 +16,8 @@ export const MUSIC_CONFIG = {
   },
 };
 
-// Tracking playlist indices
 const playlistIndices = {
+  All: 0,
   Trending: 0,
   Popular: 0,
   Recent: 0,
@@ -30,13 +30,11 @@ export const fetchMusic = async ({
 }) => {
   let endpoint;
 
-  // If nextPlaylist is true, rotate to the next playlist for this category
   if (nextPlaylist && active) {
     const currentIndex = playlistIndices[active];
     const playlists = MUSIC_CONFIG.PLAYLISTS[active];
 
     if (playlists && playlists.length > 0) {
-      // Move to next playlist index (circular)
       playlistIndices[active] = (currentIndex + 1) % playlists.length;
       const nextPlaylistUrl = playlists[playlistIndices[active]];
 
@@ -46,6 +44,8 @@ export const fetchMusic = async ({
     }
   } else if (query) {
     endpoint = `${MUSIC_CONFIG.BASE_URL}/result/?query=${query}`;
+  } else if (active === "All") {
+    endpoint = `${MUSIC_CONFIG.BASE_URL}/combined`;
   } else if (active === "Trending") {
     const playlistUrl =
       MUSIC_CONFIG.PLAYLISTS.Trending[playlistIndices.Trending];

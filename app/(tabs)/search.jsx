@@ -99,6 +99,7 @@ const Search = () => {
 
               <FlatList
                 data={music || []}
+                className="mb-[550px]"
                 renderItem={({ item }) => (
                   <>
                     {searchQuery != "" ? (
