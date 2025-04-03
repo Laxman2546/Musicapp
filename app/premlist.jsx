@@ -17,7 +17,7 @@ import Trending from "@/components/trending";
 const premlist = () => {
   const { premaUrl, listname, designImage } = useLocalSearchParams();
   const { data, loading, error } = useFetch(
-    () => fetchMusic({ query: premaUrl }),
+    () => fetchMusic({ premaUrl }),
     [premaUrl]
   );
   const imageSource = (image) => {

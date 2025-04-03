@@ -1,20 +1,8 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { MUSIC_CONFIG } from "@/services/api";
 
-type CategoryIndices = {
-  All: number;
-  Trending: number;
-  Popular: number;
-  Recent: number;
-  VenkateshwaraSwamy: number;
-  Shiva: number;
-  DurgaDevi: number;
-  Ganesha: number;
-  SaiBaba: number;
-  Hanuman: number;
-};
-
-const useFetch = <T extends { songs?: any[] }>(
+// Enhanced version of useFetch that supports playlist rotation
+const useFetch = <T>(
   fetchFunction: () => Promise<T>,
   dependencies: any[] = []
 ) => {
@@ -23,114 +11,106 @@ const useFetch = <T extends { songs?: any[] }>(
   const [error, setError] = useState<Error | null>(null);
 
   const fetchFunctionRef = useRef(fetchFunction);
-  const initialLoadRef = useRef(true);
+  const initialLoadRef = useRef<boolean>(true);
 
-
+  // Store merged songs from multiple playlist fetches
   const allSongsRef = useRef<any[]>([]);
 
-
-  const categoryIndices = useRef<CategoryIndices>({
-    All: 0,
+  // Keep track of playlist indices per category - sync with api.js
+  const categoryIndices = useRef({
     Trending: 0,
     Popular: 0,
     Recent: 0,
-    VenkateshwaraSwamy: 0,
-    Shiva: 0,
-    DurgaDevi: 0,
-    Ganesha: 0,
-    SaiBaba: 0,
-    Hanuman: 0,
   });
 
+  // Keep reference to playlist URLs
   const playlistUrls = useRef(MUSIC_CONFIG.PLAYLISTS);
-  const activeBhakthiRef = useRef("VenkateshwaraSwamy");
 
-  // Reset data when dependencies change
+  // Reset data when dependencies change (like when category changes)
   useEffect(() => {
     if (!initialLoadRef.current) {
       allSongsRef.current = [];
-
-      // Update active Bhakthi category if provided in dependencies
-      if (dependencies.length >= 2) {
-        const [activeCategory, bhakthiCategory] = dependencies;
-        if (activeCategory === "Bhakthi" && bhakthiCategory) {
-          activeBhakthiRef.current = bhakthiCategory;
-          // Reset index when Bhakthi subcategory changes
-          categoryIndices.current[bhakthiCategory as keyof CategoryIndices] = 0;
-        }
-      }
     }
   }, [...dependencies]);
 
   const fetchData = useCallback(async (loadMore = false) => {
     try {
-      if (!loadMore) setLoading(true);
+      if (!loadMore) {
+        setLoading(true);
+      }
       setError(null);
 
       const result = await fetchFunctionRef.current();
 
-      if (result?.songs) {
-        if (loadMore) {
-          // Merge new songs avoiding duplicates
+      if (loadMore) {
+        // Merge new songs with existing songs, avoiding duplicates
+        if (result && typeof result === "object" && "songs" in result) {
           const existingSongs = new Set(
             allSongsRef.current.map((song) => song.song)
           );
-          const uniqueNewSongs = result.songs.filter(
-            (song) => !existingSongs.has(song.song)
-          );
-          allSongsRef.current = [...allSongsRef.current, ...uniqueNewSongs];
+          const uniqueNewSongs = Array.isArray(result.songs)
+            ? result.songs.filter((song) => !existingSongs.has(song.song))
+            : [];
 
-          setData(
-            (prev) =>
-              ({
-                ...(prev || {}),
-                songs: allSongsRef.current,
-              } as T)
-          );
+          const mergedSongs = [...allSongsRef.current, ...uniqueNewSongs];
+          allSongsRef.current = mergedSongs;
+
+          // Update the data with merged songs
+          setData((prev) => {
+            if (prev && typeof prev === "object" && "songs" in prev) {
+              return {
+                ...prev,
+                songs: mergedSongs,
+              } as T;
+            }
+            return result;
+          });
         } else {
-          allSongsRef.current = result.songs;
           setData(result);
         }
       } else {
+        // First load or category change
+        if (result && typeof result === "object" && "songs" in result) {
+          allSongsRef.current = Array.isArray(result.songs) ? result.songs : [];
+        }
         setData(result);
       }
     } catch (err) {
       setError(err instanceof Error ? err : new Error("An error occurred"));
-      console.error("Fetch error:", err);
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // Function to load next playlist
   const loadNextPlaylist = useCallback(async (category: string) => {
-    const actualCategory =
-      category === "Bhakthi" ? activeBhakthiRef.current : category;
-
-    if (
-      !playlistUrls.current[actualCategory as keyof typeof playlistUrls.current]
-    ) {
-      console.error(`No playlists configured for ${actualCategory}`);
-      return { success: false };
-    }
-
+    // Increment playlist index for this category
     const currentIndex =
-      categoryIndices.current[actualCategory as keyof CategoryIndices] || 0;
-    const playlists =
-      playlistUrls.current[actualCategory as keyof typeof playlistUrls.current];
-    const nextIndex = (currentIndex + 1) % playlists.length;
+      categoryIndices.current[
+        category as keyof typeof categoryIndices.current
+      ] || 0;
+    const nextIndex =
+      (currentIndex + 1) %
+      (playlistUrls.current[category as keyof typeof playlistUrls.current]
+        ?.length || 1);
 
-    categoryIndices.current[actualCategory as keyof CategoryIndices] =
+    // Update the index for this category
+    categoryIndices.current[category as keyof typeof categoryIndices.current] =
       nextIndex;
+
+    // Set loading state for footer indicator
     setLoading(true);
 
     try {
+      // Return the current category and index for the parent to use
       return {
         success: true,
-        category: actualCategory,
+        category,
         index: nextIndex,
-        playlistUrl: playlists[nextIndex],
-        bhakthiCategory:
-          category === "Bhakthi" ? activeBhakthiRef.current : undefined,
+        playlistUrl:
+          playlistUrls.current[category as keyof typeof playlistUrls.current]?.[
+            nextIndex
+          ],
       };
     } catch (err) {
       setError(
@@ -142,35 +122,28 @@ const useFetch = <T extends { songs?: any[] }>(
     }
   }, []);
 
-  const reset = useCallback(() => {
+  const reset = () => {
     setData(null);
     setError(null);
     setLoading(false);
     allSongsRef.current = [];
+    // Reset all category indices
     Object.keys(categoryIndices.current).forEach((key) => {
-      categoryIndices.current[key as keyof CategoryIndices] = 0;
+      categoryIndices.current[key as keyof typeof categoryIndices.current] = 0;
     });
-  }, []);
+  };
 
   useEffect(() => {
     fetchFunctionRef.current = fetchFunction;
   }, [fetchFunction]);
 
   useEffect(() => {
+    // Always fetch on initial mount
     if (initialLoadRef.current) {
       initialLoadRef.current = false;
       fetchData();
       return;
     }
-
-    // Update active Bhakthi if in dependencies
-    if (dependencies.length >= 2) {
-      const [activeCategory, bhakthiCategory] = dependencies;
-      if (activeCategory === "Bhakthi" && bhakthiCategory) {
-        activeBhakthiRef.current = bhakthiCategory;
-      }
-    }
-
     fetchData();
   }, [...dependencies]);
 
@@ -183,7 +156,6 @@ const useFetch = <T extends { songs?: any[] }>(
     reset,
     allSongs: allSongsRef.current,
     categoryIndices: categoryIndices.current,
-    activeBhakthi: activeBhakthiRef.current,
   };
 };
 

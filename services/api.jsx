@@ -13,35 +13,22 @@ export const MUSIC_CONFIG = {
       "https://www.jiosaavn.com/featured/kotha-tunes/bDjUXq26B5Y_",
       "https://www.jiosaavn.com/featured/telugu-india-superhits-top-50/4O6DwO-qteN613W6L-cCSw__",
     ],
-    VenkateshwaraSwamy: [
-      "https://www.jiosaavn.com/featured/shravana-banthu/a28A1wWlfeY_",
-      "https://www.jiosaavn.com/featured/vaikunta-ekadashi-/whg5s6pgA1Awkg5tVhI3fw__",
-    ],
   },
 };
 
 const playlistIndices = {
-  All: 0,
   Trending: 0,
   Popular: 0,
   Recent: 0,
-  VenkateshwaraSwamy: 0,
-  Shiva: 0,
-  DurgaDevi: 0,
-  Ganesha: 0,
-  SaiBaba: 0,
-  Hanuman: 0,
 };
 
 export const fetchMusic = async ({
   query = "",
   active = "Trending",
   premaUrl = "",
-  bhakthiActive = "",
   nextPlaylist = false,
 }) => {
   let endpoint;
-  console.log(bhakthiActive);
   if (nextPlaylist && active) {
     const currentIndex = playlistIndices[active];
     const playlists = MUSIC_CONFIG.PLAYLISTS[active];
