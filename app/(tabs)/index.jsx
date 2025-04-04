@@ -4,8 +4,11 @@ import {
   FlatList,
   ScrollView,
   StyleSheet,
+  Image,
   Text,
   View,
+  Pressable,
+  TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import HomeBtns from "../../components/homeBtns";
@@ -14,10 +17,13 @@ import Trending from "../../components/trending";
 import useFetch from "@/services/useFetch";
 import { fetchMusic, getNextPlaylist } from "../../services/api";
 import ChartsComponent from "@/components/chartsComponent";
+import searchImg from "@/assets/images/search.png";
+import closeImg from "@/assets/images/close.png";
 const Home = () => {
-  const [active, setActive] = useState("All");
+  const [active, setActive] = useState("Trending");
   const [bhakthiActive, setbhakthiActive] = useState("VenkateshwaraSwamy");
   const [greetings, setGreetings] = useState("Good Morning");
+  const [filteredSongs, setFilteredSongs] = useState([]);
 
   const {
     data: music,
@@ -34,7 +40,8 @@ const Home = () => {
 
   const [loadingMore, setLoadingMore] = useState(false);
   const [endReached, setEndReached] = useState(false);
-
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   useEffect(() => {
     const date = new Date();
     const hrs = date.getHours();
@@ -81,6 +88,29 @@ const Home = () => {
     { name: "Sai Baba" },
     { name: "Hanuman" },
   ];
+  const handleSearch = () => {
+    setShowSearch(!showSearch);
+    handleClearSearch();
+  };
+  const handleSearchQuery = (searchQuery) => {
+    setSearchQuery(searchQuery);
+    if (!searchQuery) {
+      return;
+    }
+    searchResults(searchQuery);
+  };
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setFilteredSongs([]);
+  };
+  const searchResults = (searchQuery) => {
+    const songsData = music.songs;
+    const filteredResults = songsData.filter((item) =>
+      item.song.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    setFilteredSongs(filteredResults);
+  };
+
   return (
     <SafeAreaView className="bg-slate-50 h-full">
       <View className="w-full">
@@ -122,14 +152,6 @@ const Home = () => {
               btnName="Recent"
               handlePress={() => {
                 setActive("Recent");
-                setEndReached(false);
-              }}
-              btnactive={active}
-            />
-            <HomeBtns
-              btnName="Bhakthi"
-              handlePress={() => {
-                setActive("Bhakthi");
                 setEndReached(false);
               }}
               btnactive={active}
@@ -293,10 +315,22 @@ const Home = () => {
           </ScrollView>
         ) : (
           <>
-            <View className="pt-5 pl-5">
-              <Text style={styles.activeText}>
-                {active === "Recent" ? `${active} Release` : `${active} Songs`}
-              </Text>
+            <View className="w-full flex flex-row pt-5 pl-5 items-center justify-between pr-8">
+              <View>
+                <Text style={styles.activeText}>
+                  {active === "Recent"
+                    ? `${active} Release`
+                    : `${active} Songs`}
+                </Text>
+              </View>
+              <View>
+                <Pressable onPress={handleSearch}>
+                  <Image
+                    source={showSearch ? closeImg : searchImg}
+                    style={styles.searchIcon}
+                  />
+                </Pressable>
+              </View>
             </View>
             {active === "Bhakthi" ? (
               <>
@@ -396,48 +430,98 @@ const Home = () => {
                     Something went wrong: {error.message}
                   </Text>
                 ) : (
-                  <FlatList
-                    data={music?.songs || []}
-                    windowSize={5}
-                    showsVerticalScrollIndicator={false}
-                    maxToRenderPerBatch={5}
-                    updateCellsBatchingPeriod={50}
-                    removeClippedSubviews={true}
-                    renderItem={({ item, index }) => (
-                      <>
-                        <Trending
-                          type={active}
-                          song={item.song}
-                          image={item.image}
-                          music={item.music}
-                          duration={item.duration}
-                          primary_artists={item.primary_artists}
-                          song_url={item.media_url}
-                          index={index}
-                          allSongs={music?.songs || []}
-                        />
-                      </>
+                  <>
+                    {showSearch && (
+                      <View className="w-full p-4">
+                        <View className="relative">
+                          <Pressable
+                            style={styles.searchImg}
+                            onPress={() => handleSearchQuery(searchQuery)}
+                          >
+                            <Image source={searchImg} style={styles.img} />
+                          </Pressable>
+                          {searchQuery && (
+                            <Pressable
+                              onPress={handleClearSearch}
+                              style={styles.cancel}
+                            >
+                              <Image
+                                source={closeImg}
+                                style={styles.cancelImg}
+                              />
+                            </Pressable>
+                          )}
+                          <TextInput
+                            style={styles.SearchtextFont}
+                            className="bg-gray-200 w-full p-4 pl-10 rounded-md"
+                            placeholder={`Search in ${active} songs`}
+                            onChangeText={handleSearchQuery}
+                            value={searchQuery}
+                            enterKeyHint="search"
+                            onSubmitEditing={() =>
+                              handleSearchQuery(searchQuery)
+                            }
+                            returnKeyType="search"
+                          />
+                        </View>
+                      </View>
                     )}
-                    onEndReached={handleEndReached}
-                    onEndReachedThreshold={0.5}
-                    ListFooterComponent={
-                      loadingMore ? (
-                        <View style={styles.footerLoadingContainer}>
-                          <ActivityIndicator size="small" color="#000" />
-                          <Text style={styles.loadingText}>
-                            Finding more songs...😃
-                          </Text>
-                        </View>
-                      ) : endReached ? (
-                        <View style={styles.footerContainer}>
-                          <Text style={styles.footerText}>
-                            You've caught them all! 🎶
-                          </Text>
-                        </View>
-                      ) : null
-                    }
-                    keyExtractor={(item, index) => `${item.song}-${index}`}
-                  />
+
+                    <FlatList
+                      data={
+                        searchQuery && filteredSongs.length > 0
+                          ? filteredSongs
+                          : music?.songs || []
+                      }
+                      windowSize={5}
+                      showsVerticalScrollIndicator={false}
+                      maxToRenderPerBatch={5}
+                      updateCellsBatchingPeriod={50}
+                      removeClippedSubviews={true}
+                      renderItem={({ item, index }) => (
+                        <>
+                          <Trending
+                            type={active}
+                            song={item.song}
+                            image={item.image}
+                            music={item.music}
+                            duration={item.duration}
+                            primary_artists={item.primary_artists}
+                            song_url={item.media_url}
+                            index={index}
+                            allSongs={music?.songs || []}
+                          />
+                        </>
+                      )}
+                      onEndReached={handleEndReached}
+                      onEndReachedThreshold={0.5}
+                      ListFooterComponent={
+                        searchQuery ? (
+                          <>
+                            <View className="w-full  flex items-center">
+                              <Text style={styles.footerText}>
+                                end of search results for {searchQuery} 🧐
+                              </Text>
+                            </View>
+                          </>
+                        ) : loadingMore ? (
+                          <View style={styles.footerLoadingContainer}>
+                            <ActivityIndicator size="small" color="#000" />
+                            <Text style={styles.loadingText}>
+                              Finding more songs...😃
+                            </Text>
+                          </View>
+                        ) : endReached ? (
+                          <View style={styles.footerContainer}>
+                            <Text style={styles.footerText}>
+                              You've caught them all! 🎶
+                            </Text>
+                          </View>
+                        ) : null
+                      }
+                      keyExtractor={(item, index) => `${item.song}-${index}`}
+                    />
+                  </>
                 )}
               </>
             )}
@@ -513,6 +597,49 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     height: 200,
+  },
+  textFont: {
+    fontFamily: "Nunito-Bold",
+    fontSize: 25,
+  },
+  SearchtextFont: {
+    fontFamily: "Poppins-SemiBold",
+    fontSize: 15,
+    height: 60,
+    paddingRight: 100,
+  },
+  img: {
+    width: 18,
+    height: 18,
+    top: 25,
+    zIndex: 50,
+  },
+  cancel: {
+    position: "absolute",
+    top: 25,
+    right: 0,
+    zIndex: 15,
+  },
+  cancelImg: {
+    width: 20,
+    height: 20,
+    position: "absolute",
+    top: -4,
+    right: 80,
+    zIndex: 15,
+  },
+  searchImg: {
+    width: 20,
+    height: 20,
+    zIndex: 50,
+    position: "absolute",
+    right: 35,
+    top: -4,
+  },
+  searchIcon: {
+    width: 20,
+    height: 20,
+    zIndex: 50,
   },
 });
 

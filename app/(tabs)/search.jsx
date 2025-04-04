@@ -40,6 +40,7 @@ const Search = () => {
     }
     setDebouncedQuery(searchQuery);
   };
+
   return (
     <SafeAreaView>
       <View className="pt-10 pl-5">

@@ -23,7 +23,6 @@ const useFetch = <T>(
     Recent: 0,
     English: 0,
     Hindi: 0,
-    VenkateshwaraSwamy: 0,
   });
 
   // Keep reference to playlist URLs

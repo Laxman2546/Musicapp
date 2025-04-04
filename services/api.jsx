@@ -20,10 +20,6 @@ export const MUSIC_CONFIG = {
       "https://www.jiosaavn.com/featured/hindi-hit-songs/ZodsPn39CSjwxP8tCU-flw__",
       "https://www.jiosaavn.com/featured/monthly-top-100-hindi/PZaVnbecD1rfemJ68FuXsA__",
     ],
-    VenkateshwaraSwamy: [
-      "https://www.jiosaavn.com/featured/hindi-hit-songs/ZodsPn39CSjwxP8tCU-flw__",
-      "https://www.jiosaavn.com/featured/monthly-top-100-hindi/PZaVnbecD1rfemJ68FuXsA__",
-    ],
   },
 };
 
@@ -33,7 +29,6 @@ const playlistIndices = {
   Recent: 0,
   English: 0,
   Hindi: 0,
-  VenkateshwaraSwamy: 0,
 };
 
 export const fetchMusic = async ({
@@ -42,7 +37,6 @@ export const fetchMusic = async ({
   premaUrl = "",
   nextPlaylist = false,
 }) => {
-  console.log(active);
   let endpoint;
   if (nextPlaylist && active) {
     const currentIndex = playlistIndices[active];
@@ -61,14 +55,6 @@ export const fetchMusic = async ({
   } else if (premaUrl) {
     endpoint = `${MUSIC_CONFIG.BASE_URL}/playlist/?query=${encodeURIComponent(
       premaUrl
-    )}`;
-  } else if (active === "VenkateshwaraSwamy") {
-    const playlistUrl =
-      MUSIC_CONFIG.PLAYLISTS.VenkateshwaraSwamy[
-        playlistIndices.VenkateshwaraSwamy
-      ];
-    endpoint = `${MUSIC_CONFIG.BASE_URL}/playlist/?query=${encodeURIComponent(
-      playlistUrl
     )}`;
   } else if (active === "All") {
     endpoint = `${MUSIC_CONFIG.BASE_URL}/combined`;

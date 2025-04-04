@@ -17,7 +17,7 @@ import Trending from "@/components/trending";
 const premlist = () => {
   const { premaUrl, listname, designImage } = useLocalSearchParams();
   const { data, loading, error } = useFetch(
-    () => fetchMusic({ premaUrl }),
+    () => fetchMusic(),
     [premaUrl]
   );
   const imageSource = (image) => {
@@ -30,71 +30,86 @@ const premlist = () => {
     router.push(goBack);
   };
   return (
-    <View>
-      <View className="relative">
-        <Pressable onPress={handleBack} className="z-50">
-          <Image
-            className="absolute left-4 top-6"
-            source={backIcon}
-            style={{
-              width: 35,
-              height: 35,
-            }}
-          />
-        </Pressable>
-        <Image
-          source={imageSource(designImage)}
-          resizeMode="contain"
-          style={styles.designImage}
-        />
-      </View>
-      <View className="p-3 ml-4">
-        <View>
-          <Text style={styles.fontStyle}>{listname || "Nanimusic"}</Text>
-        </View>
-        <View>
-          {loading || (!data && !error) ? (
-            <ActivityIndicator size="large" color="#000" />
-          ) : error ? (
-            <View>
-              <Text>Something went wrong {error}</Text>
+    <>
+      {!data ||
+        (!premaUrl && (
+          <>
+            <View className="w-full h-screen flex items-center justify-center">
+              <Text className="text-2xl">Something went wrong </Text>
+              <Pressable>
+                <Text className="text-lg color-blue-600">
+                  Click here to go back
+                </Text>
+              </Pressable>
             </View>
-          ) : (
-            <>
-              <View
-                style={{
-                  marginBottom: 2050,
-                }}
-              >
-                <FlatList
-                  data={data?.songs || []}
-                  windowSize={5}
-                  maxToRenderPerBatch={5}
-                  updateCellsBatchingPeriod={50}
-                  removeClippedSubviews={true}
-                  showsVerticalScrollIndicator={false}
-                  renderItem={({ item, index }) => (
-                    <>
-                      <Trending
-                        song={item.song}
-                        image={item.image}
-                        music={item.music}
-                        duration={item.duration}
-                        primary_artists={item.primary_artists}
-                        song_url={item.media_url}
-                        index={index}
-                        allSongs={data?.songs || []}
-                      />
-                    </>
-                  )}
-                  keyExtractor={(item, index) => `${item.song}-${index}`}
-                />
+          </>
+        ))}
+      <View>
+        <View className="relative">
+          <Pressable onPress={handleBack} className="z-50">
+            <Image
+              className="absolute left-4 top-6"
+              source={backIcon}
+              style={{
+                width: 35,
+                height: 35,
+              }}
+            />
+          </Pressable>
+          <Image
+            source={imageSource(designImage)}
+            resizeMode="contain"
+            style={styles.designImage}
+          />
+        </View>
+        <View className="p-3 ml-4">
+          <View>
+            <Text style={styles.fontStyle}>{listname || "Nanimusic"}</Text>
+          </View>
+          <View>
+            {loading || (!data && !error) ? (
+              <ActivityIndicator size="large" color="#000" />
+            ) : error ? (
+              <View>
+                <Text>Something went wrong {error}</Text>
               </View>
-            </>
-          )}
+            ) : (
+              <>
+                <View
+                  style={{
+                    marginBottom: 2050,
+                  }}
+                >
+                  <FlatList
+                    data={data?.songs || []}
+                    windowSize={5}
+                    maxToRenderPerBatch={5}
+                    updateCellsBatchingPeriod={50}
+                    removeClippedSubviews={true}
+                    showsVerticalScrollIndicator={false}
+                    renderItem={({ item, index }) => (
+                      <>
+                        <Trending
+                          song={item.song}
+                          image={item.image}
+                          music={item.music}
+                          duration={item.duration}
+                          primary_artists={item.primary_artists}
+                          song_url={item.media_url}
+                          index={index}
+                          allSongs={data?.songs || []}
+                        />
+                      </>
+                    )}
+                    keyExtractor={(item, index) => `${item.song}-${index}`}
+                  />
+                </View>
+              </>
+            )}
+          </View>
         </View>
       </View>
-    </View>
+    </>
   );
 };
 
