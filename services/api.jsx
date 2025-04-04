@@ -13,6 +13,9 @@ export const MUSIC_CONFIG = {
       "https://www.jiosaavn.com/featured/kotha-tunes/bDjUXq26B5Y_",
       "https://www.jiosaavn.com/featured/telugu-india-superhits-top-50/4O6DwO-qteN613W6L-cCSw__",
     ],
+    English: [
+      "https://www.jiosaavn.com/s/playlist/350353696f7fb3dcc8fd64169489fe55/englishplaylist/RoybTvNFqtXgEhiRleA1SQ__",
+    ],
   },
 };
 
@@ -20,6 +23,7 @@ const playlistIndices = {
   Trending: 0,
   Popular: 0,
   Recent: 0,
+  English: 0,
 };
 
 export const fetchMusic = async ({
@@ -71,6 +75,11 @@ export const fetchMusic = async ({
     )}`;
   } else if (active === "Popular") {
     const playlistUrl = MUSIC_CONFIG.PLAYLISTS.Popular[playlistIndices.Popular];
+    endpoint = `${MUSIC_CONFIG.BASE_URL}/playlist/?query=${encodeURIComponent(
+      playlistUrl
+    )}`;
+  } else if (active === "English") {
+    const playlistUrl = MUSIC_CONFIG.PLAYLISTS.English[playlistIndices.English];
     endpoint = `${MUSIC_CONFIG.BASE_URL}/playlist/?query=${encodeURIComponent(
       playlistUrl
     )}`;

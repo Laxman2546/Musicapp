@@ -41,27 +41,38 @@ const downloadsFolder = () => {
           </Pressable>
           <Text style={styles.textStyle}>Downloads</Text>
         </View>
-        <View>
-          <FlatList
-            data={songs || []}
-            className="mb-16"
-            renderItem={({ item, index }) => (
-              <>
-                <DownloadComponent
-                  song={item.song}
-                  image={item.image}
-                  song_url={item.filePath}
-                  primary_artists={item.primary_artists}
-                  duration={item.duration}
-                  index={index}
-                  allSongs={songs || []}
-                  onDelete={loadSongs}
-                />
-              </>
-            )}
-            showsVerticalScrollIndicator={false}
-          />
-        </View>
+        {songs.length < 1 ? (
+          <>
+            <View className="w-full h-screen flex items-center justify-center">
+              <Text style={styles.textFont}>No Downloads found 😐</Text>
+              <Text style={styles.textFont}>Try downloading the songs....</Text>
+            </View>
+          </>
+        ) : (
+          <>
+            <View>
+              <FlatList
+                data={songs || []}
+                className="mb-16"
+                renderItem={({ item, index }) => (
+                  <>
+                    <DownloadComponent
+                      song={item.song}
+                      image={item.image}
+                      song_url={item.filePath}
+                      primary_artists={item.primary_artists}
+                      duration={item.duration}
+                      index={index}
+                      allSongs={songs || []}
+                      onDelete={loadSongs}
+                    />
+                  </>
+                )}
+                showsVerticalScrollIndicator={false}
+              />
+            </View>
+          </>
+        )}
       </View>
     </>
   );
@@ -78,5 +89,10 @@ const styles = StyleSheet.create({
   textStyle: {
     fontFamily: "Poppins-SemiBold",
     fontSize: 17,
+  },
+  textFont: {
+    fontFamily: "Poppins-SemiBold",
+    fontSize: 15,
+    color: "#333",
   },
 });

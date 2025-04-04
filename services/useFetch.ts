@@ -21,6 +21,7 @@ const useFetch = <T>(
     Trending: 0,
     Popular: 0,
     Recent: 0,
+    English: 0,
   });
 
   // Keep reference to playlist URLs

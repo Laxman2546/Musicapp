@@ -48,38 +48,51 @@ const localFiles = () => {
   }, []);
 
   return (
-    <View className="p-5">
-      <View className="flex flex-row gap-3 items-center">
-        <Pressable onPress={handleBack}>
-          <View className="p-3 rounded-full bg-[#222]">
-            <Image source={backIcon} style={styles.backImg} />
-          </View>
-        </Pressable>
-        <Text style={styles.textStyle}>LocalSongs</Text>
-      </View>
-      <View>
-        <FlatList
-          data={songs || []}
-          className="mb-20"
-          renderItem={({ item, index }) => (
-            <>
-              <Trending
-                song={item.song}
-                image={item.image}
-                music={item.music}
-                duration={item.duration}
-                primary_artists={item.primary_artists || "..."}
-                song_url={item.music}
-                index={index}
-                allSongs={songs || []}
+    <>
+      <View className="p-5">
+        <View className="flex flex-row gap-3 items-center">
+          <Pressable onPress={handleBack}>
+            <View className="p-3 rounded-full bg-[#222]">
+              <Image source={backIcon} style={styles.backImg} />
+            </View>
+          </Pressable>
+          <Text style={styles.textStyle}>LocalSongs</Text>
+        </View>
+        {songs.length < 1 ? (
+          <>
+            <View className="w-full h-screen flex items-center justify-center">
+              <Text style={styles.textFont}>No Local songs found 😐</Text>
+              <Text style={styles.textFont}>Check the premissions</Text>
+            </View>
+          </>
+        ) : (
+          <>
+            <View>
+              <FlatList
+                data={songs || []}
+                className="mb-20"
+                renderItem={({ item, index }) => (
+                  <>
+                    <Trending
+                      song={item.song}
+                      image={item.image}
+                      music={"Nanimusic..."}
+                      duration={item.duration}
+                      primary_artists={"Nanimusic..."}
+                      song_url={item.music}
+                      index={index}
+                      allSongs={songs || []}
+                    />
+                  </>
+                )}
+                showsVerticalScrollIndicator={false}
+                showsHorizontalScrollIndicator={false}
               />
-            </>
-          )}
-          showsVerticalScrollIndicator={false}
-          showsHorizontalScrollIndicator={false}
-        />
+            </View>
+          </>
+        )}
       </View>
-    </View>
+    </>
   );
 };
 
@@ -94,5 +107,10 @@ const styles = StyleSheet.create({
   textStyle: {
     fontFamily: "Poppins-SemiBold",
     fontSize: 17,
+  },
+  textFont: {
+    fontFamily: "Poppins-SemiBold",
+    fontSize: 15,
+    color: "#333",
   },
 });

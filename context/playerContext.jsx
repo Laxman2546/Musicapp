@@ -4,244 +4,443 @@ import React, {
   useContext,
   useEffect,
   useRef,
+  useCallback,
+  useMemo,
 } from "react";
 import { Audio } from "expo-av";
 
 const PlayerContext = createContext();
 
+// Helper function to calculate next index (moved outside component)
+const calculateNextIndex = (
+  currentIndex,
+  playlistLength,
+  shuffleActive,
+  loopMode,
+  history,
+  shuffledIndexes
+) => {
+  if (playlistLength === 0) return null;
+
+  if (shuffleActive) {
+    const historySet = new Set(history);
+
+    // If all songs played and loop is enabled
+    if (historySet.size >= playlistLength && loopMode === 1) {
+      return shuffledIndexes[1]; // Start new shuffle cycle
+    }
+
+    // Find first unplayed song in shuffled order
+    const nextIndex = shuffledIndexes.find((idx) => !historySet.has(idx));
+    return nextIndex !== undefined ? nextIndex : null;
+  } else {
+    // Sequential playback
+    if (currentIndex < playlistLength - 1) {
+      return currentIndex + 1;
+    } else if (loopMode === 1) {
+      return 0; // Loop to start
+    }
+    return null; // End of playlist
+  }
+};
+
+// Helper function for previous index calculation
+const calculatePreviousIndex = (
+  currentIndex,
+  playlistLength,
+  shuffleActive,
+  loopMode,
+  history
+) => {
+  if (shuffleActive) {
+    return history.length > 1 ? history[history.length - 2] : null;
+  } else {
+    if (currentIndex > 0) return currentIndex - 1;
+    if (loopMode === 1) return playlistLength - 1;
+    return null;
+  }
+};
+
 export const PlayerProvider = ({ children }) => {
+  // State declarations
   const [currentSong, setCurrentSong] = useState(null);
   const [playlist, setPlaylist] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [shuffledIndexes, setShuffledIndexes] = useState([]);
   const [history, setHistory] = useState([]);
-  const [sound, setSound] = useState(null);
   const [duration, setDuration] = useState(0);
   const [position, setPosition] = useState(0);
   const [progress, setProgress] = useState(0);
   const [shuffleActive, setShuffleActive] = useState(false);
   const [loopMode, setLoopMode] = useState(0); // 0: no loop, 1: loop playlist, 2: loop one
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSongEnded, setIsSongEnded] = useState(false);
 
-  const positionUpdateInterval = useRef(null);
+  // Refs
+  const soundRef = useRef(null);
+  const lastPlayedUri = useRef(null);
+  const isMounted = useRef(true);
 
+  // Setup audio mode
   useEffect(() => {
     const setupAudioMode = async () => {
-      await Audio.setAudioModeAsync({
-        playsInSilentModeIOS: true,
-        shouldDuckAndroid: true,
-        staysActiveInBackground: true,
-        playThroughEarpieceAndroid: false,
-      });
+      try {
+        await Audio.setAudioModeAsync({
+          playsInSilentModeIOS: true,
+          shouldDuckAndroid: true,
+          staysActiveInBackground: true,
+          playThroughEarpieceAndroid: false,
+        });
+      } catch (error) {
+        console.error("Error setting audio mode:", error);
+      }
     };
 
     setupAudioMode();
+
+    return () => {
+      isMounted.current = false;
+      unloadSound();
+    };
   }, []);
 
-  const onPlaybackStatusUpdate = (status) => {
-    if (status.isLoaded) {
-      if (
-        status.durationMillis &&
-        Math.abs(status.durationMillis / 1000 - duration) > 0.1
-      ) {
-        setDuration(status.durationMillis / 1000);
-      }
+  // Generate shuffled indexes
+  const generateShuffledIndexes = useCallback((playlistLength, currentIdx) => {
+    const indexes = Array.from({ length: playlistLength }, (_, i) => i)
+      .filter((i) => i !== currentIdx)
+      .sort(() => Math.random() - 0.5);
 
-      if (status.positionMillis >= 0) {
-        const newPosition = status.positionMillis / 1000;
-        if (Math.abs(newPosition - position) > 0.1) {
-          setPosition(newPosition);
+    if (currentIdx !== null && currentIdx >= 0 && currentIdx < playlistLength) {
+      indexes.unshift(currentIdx);
+    }
+
+    return indexes;
+  }, []);
+
+  // Initialize shuffled indexes when shuffle is activated
+  useEffect(() => {
+    if (shuffleActive && playlist.length > 0) {
+      setShuffledIndexes(
+        generateShuffledIndexes(playlist.length, currentIndex)
+      );
+      setHistory([currentIndex]);
+    }
+  }, [shuffleActive, playlist.length, currentIndex, generateShuffledIndexes]);
+
+  // Safe unload function
+  const unloadSound = useCallback(async () => {
+    if (soundRef.current) {
+      try {
+        const status = await soundRef.current.getStatusAsync();
+        if (status.isLoaded) {
+          await soundRef.current.stopAsync();
+          await soundRef.current.unloadAsync();
         }
-
-        if (status.durationMillis > 0) {
-          const newProgress = status.positionMillis / status.durationMillis;
-          if (Math.abs(newProgress - progress) > 0.001) {
-            setProgress(newProgress);
-          }
-        }
+      } catch (error) {
+        console.error("Error unloading sound:", error);
       }
+      soundRef.current = null;
+    }
+  }, []);
 
-      if (status.didJustFinish) {
-        handleSongEnd();
+  // Playback status update handler
+  const onPlaybackStatusUpdate = useCallback((status) => {
+    if (!status.isLoaded) return;
+
+    if (status.durationMillis) {
+      setDuration((prev) => {
+        const newDuration = status.durationMillis / 1000;
+        return Math.abs(newDuration - prev) > 0.1 ? newDuration : prev;
+      });
+    }
+
+    if (status.positionMillis >= 0) {
+      const newPosition = status.positionMillis / 1000;
+      setPosition((prev) =>
+        Math.abs(newPosition - prev) > 0.1 ? newPosition : prev
+      );
+
+      if (status.durationMillis > 0) {
+        const newProgress = status.positionMillis / status.durationMillis;
+        setProgress((prev) =>
+          Math.abs(newProgress - prev) > 0.001 ? newProgress : prev
+        );
       }
     }
-  };
 
+    if (status.didJustFinish && isMounted.current) {
+      setIsSongEnded(true);
+    }
+  }, []);
+
+  // Load sound when currentSong changes
   useEffect(() => {
-    if (!currentSong) return;
+    if (!currentSong?.song_url) return;
 
     const loadSound = async () => {
-      if (sound) {
-        await sound.unloadAsync();
-        setSound(null);
-        clearInterval(positionUpdateInterval.current);
-      }
+      if (isLoading || lastPlayedUri.current === currentSong.song_url) return;
+      setIsLoading(true);
 
       try {
+        await unloadSound();
+
         const { sound: newSound } = await Audio.Sound.createAsync(
           { uri: currentSong.song_url },
           { shouldPlay: isPlaying },
           onPlaybackStatusUpdate
         );
 
-        setSound(newSound);
+        soundRef.current = newSound;
+        lastPlayedUri.current = currentSong.song_url;
 
-        const initialStatus = await newSound.getStatusAsync();
-        if (initialStatus.isLoaded && initialStatus.durationMillis) {
-          setDuration(initialStatus.durationMillis / 1000);
+        const status = await newSound.getStatusAsync();
+        if (status.isLoaded && status.durationMillis) {
+          setDuration(status.durationMillis / 1000);
         }
       } catch (error) {
         console.error("Error loading sound:", error);
+      } finally {
+        if (isMounted.current) {
+          setIsLoading(false);
+        }
       }
     };
 
     loadSound();
+  }, [currentSong, isPlaying, onPlaybackStatusUpdate, unloadSound, isLoading]);
 
-    return () => {
-      if (sound) {
-        sound.unloadAsync();
-      }
-      if (positionUpdateInterval.current) {
-        clearInterval(positionUpdateInterval.current);
-      }
-    };
-  }, [currentSong]);
-
+  // Control playback when isPlaying changes
   useEffect(() => {
-    if (!sound) return;
-    const controlPlayback = async () => {
+    if (!soundRef.current || isLoading) return;
+
+    const updatePlayback = async () => {
       try {
-        if (isPlaying) {
-          await sound.playAsync();
-        } else {
-          await sound.pauseAsync();
+        const status = await soundRef.current.getStatusAsync();
+        if (!status.isLoaded) return;
+
+        if (isPlaying && !status.isPlaying) {
+          await soundRef.current.playAsync();
+        } else if (!isPlaying && status.isPlaying) {
+          await soundRef.current.pauseAsync();
         }
       } catch (error) {
         console.error("Playback control error:", error);
       }
     };
 
-    controlPlayback();
-  }, [isPlaying, sound]);
+    updatePlayback();
+  }, [isPlaying, isLoading]);
 
-  const handleSongEnd = async () => {
-    if (loopMode === 2) {
-      await sound.replayAsync();
-    } else {
-      if (currentIndex < playlist.length - 1) {
-        playNext();
-      } else if (loopMode === 1) {
-        playSong(playlist[0], playlist, 0);
+  // Handle song ending
+  useEffect(() => {
+    if (!isSongEnded) return;
+
+    const handleSongEnd = async () => {
+      setIsSongEnded(false);
+
+      if (loopMode === 2) {
+        // Loop current song
+        try {
+          if (soundRef.current) {
+            await soundRef.current.replayAsync();
+          }
+        } catch (error) {
+          console.error("Error replaying song:", error);
+        }
       } else {
-        setIsPlaying(false);
+        // Play next song
+        const nextIndex = calculateNextIndex(
+          currentIndex,
+          playlist.length,
+          shuffleActive,
+          loopMode,
+          history,
+          shuffledIndexes
+        );
+
+        if (nextIndex !== null) {
+          setCurrentSong(playlist[nextIndex]);
+          setCurrentIndex(nextIndex);
+          if (shuffleActive) {
+            setHistory((prev) => [...prev, nextIndex]);
+          }
+        } else {
+          setIsPlaying(false);
+        }
       }
-    }
-  };
+    };
 
-  const playSong = async (song, allSongs, index) => {
-    if (sound) {
-      await sound.unloadAsync();
-      setSound(null);
-    }
+    handleSongEnd();
+  }, [
+    isSongEnded,
+    loopMode,
+    currentIndex,
+    playlist,
+    shuffleActive,
+    history,
+    shuffledIndexes,
+  ]);
 
-    setCurrentSong(song);
-    setPlaylist(allSongs);
-    setCurrentIndex(index);
-    setIsPlaying(true);
-    setPosition(0);
-    setProgress(0);
-  };
+  // Play song function
+  const playSong = useCallback(
+    (song, allSongs, index) => {
+      if (isLoading) return;
 
-  const playNext = async () => {
-    if (sound) {
-      await sound.unloadAsync();
-      setSound(null);
-    }
-
-    if (shuffleActive) {
-      let availableIndexes = playlist
-        .map((_, index) => index)
-        .filter((i) => !history.includes(i));
-
-      if (availableIndexes.length === 0) {
-        setHistory([]);
-        availableIndexes = playlist.map((_, index) => index);
+      // If same song is selected, just toggle play/pause
+      if (currentSong?.song_url === song.song_url) {
+        setIsPlaying((prev) => !prev);
+        return;
       }
 
-      const randomIndex =
-        availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
-      setHistory((prev) => [...prev, randomIndex]);
+      // Update player state
+      setCurrentSong(song);
+      setPlaylist(allSongs);
+      setCurrentIndex(index);
+      setIsPlaying(true);
+      setPosition(0);
+      setProgress(0);
 
-      playSong(playlist[randomIndex], playlist, randomIndex);
-    } else if (currentIndex < playlist.length - 1) {
-      playSong(playlist[currentIndex + 1], playlist, currentIndex + 1);
+      // Update history if shuffle is active
+      if (shuffleActive) {
+        setHistory((prev) => [...prev, index]);
+      }
+    },
+    [currentSong, isLoading, shuffleActive]
+  );
+
+  // Play next song
+  const playNext = useCallback(() => {
+    const nextIndex = calculateNextIndex(
+      currentIndex,
+      playlist.length,
+      shuffleActive,
+      loopMode,
+      history,
+      shuffledIndexes
+    );
+
+    if (nextIndex !== null) {
+      playSong(playlist[nextIndex], playlist, nextIndex);
+    } else {
+      setIsPlaying(false);
     }
-  };
+  }, [
+    currentIndex,
+    playlist,
+    shuffleActive,
+    loopMode,
+    history,
+    shuffledIndexes,
+    playSong,
+  ]);
 
-  const playPrevious = async () => {
-    if (sound) {
-      await sound.unloadAsync();
-      setSound(null);
+  // Play previous song
+  const playPrevious = useCallback(() => {
+    const prevIndex = calculatePreviousIndex(
+      currentIndex,
+      playlist.length,
+      shuffleActive,
+      loopMode,
+      history
+    );
+
+    if (prevIndex !== null) {
+      playSong(playlist[prevIndex], playlist, prevIndex);
     }
+  }, [currentIndex, playlist, shuffleActive, loopMode, history, playSong]);
 
-    if (shuffleActive) {
-      const randomIndex = Math.floor(Math.random() * playlist.length);
-      playSong(playlist[randomIndex], playlist, randomIndex);
-    } else if (currentIndex > 0) {
-      playSong(playlist[currentIndex - 1], playlist, currentIndex - 1);
-    }
-  };
+  // Seek function
+  const seekTo = useCallback(
+    async (value) => {
+      if (!soundRef.current || isLoading) return;
 
-  const seekTo = async (value) => {
-    if (!sound) return;
+      try {
+        const newPosition = value * duration * 1000;
+        await soundRef.current.setPositionAsync(newPosition);
+        setPosition(newPosition / 1000);
+        setProgress(value);
+      } catch (error) {
+        console.error("Seek error:", error);
+      }
+    },
+    [duration, isLoading]
+  );
 
-    try {
-      const newPosition = value * duration * 1000;
-      await sound.setPositionAsync(newPosition);
-      setPosition(newPosition / 1000);
-      setProgress(value);
-    } catch (error) {
-      console.error("Seek error:", error);
-    }
-  };
+  // Toggle shuffle
+  const toggleShuffle = useCallback(() => {
+    setShuffleActive((prev) => {
+      const newState = !prev;
+      if (newState && playlist.length > 0) {
+        setShuffledIndexes(
+          generateShuffledIndexes(playlist.length, currentIndex)
+        );
+        setHistory([currentIndex]);
+      }
+      return newState;
+    });
+  }, [playlist.length, currentIndex, generateShuffledIndexes]);
 
-  const toggleShuffle = () => {
-    setShuffleActive(!shuffleActive);
-  };
+  // Toggle loop mode
+  const toggleLoopMode = useCallback(() => {
+    setLoopMode((prev) => (prev + 1) % 3);
+  }, []);
 
-  const toggleLoopMode = () => {
-    setLoopMode((prevMode) => (prevMode + 1) % 3);
-  };
+  // Format time helper
+  const formatTime = useCallback((seconds) => {
+    if (isNaN(seconds)) return "00:00";
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${String(minutes).padStart(2, "0")}:${String(
+      remainingSeconds
+    ).padStart(2, "0")}`;
+  }, []);
+
+  // Context value
+  const contextValue = useMemo(
+    () => ({
+      currentSong,
+      playlist,
+      currentIndex,
+      isPlaying,
+      position,
+      duration,
+      progress,
+      shuffleActive,
+      loopMode,
+      isLoading,
+      playSong,
+      playNext,
+      playPrevious,
+      setIsPlaying,
+      seekTo,
+      toggleShuffle,
+      toggleLoopMode,
+      formatTime,
+    }),
+    [
+      currentSong,
+      playlist,
+      currentIndex,
+      isPlaying,
+      position,
+      duration,
+      progress,
+      shuffleActive,
+      loopMode,
+      isLoading,
+      playSong,
+      playNext,
+      playPrevious,
+      seekTo,
+      toggleShuffle,
+      toggleLoopMode,
+      formatTime,
+    ]
+  );
 
   return (
-    <PlayerContext.Provider
-      value={{
-        currentSong,
-        playlist,
-        currentIndex,
-        isPlaying,
-        position,
-        duration,
-        progress,
-        shuffleActive,
-        loopMode,
-        playSong,
-        playNext,
-        playPrevious,
-        setIsPlaying,
-        seekTo,
-        toggleShuffle,
-        toggleLoopMode,
-        formatTime: (seconds) => {
-          if (!seconds) return "00:00";
-          const minutes = Math.floor(seconds / 60);
-          const remainingSeconds = Math.floor(seconds % 60);
-          return `${String(minutes).padStart(2, "0")}:${String(
-            remainingSeconds
-          ).padStart(2, "0")}`;
-        },
-      }}
-    >
+    <PlayerContext.Provider value={contextValue}>
       {children}
     </PlayerContext.Provider>
   );

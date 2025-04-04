@@ -37,27 +37,39 @@ const likedSongs = () => {
           </Pressable>
           <Text style={styles.textStyle}>Liked songs</Text>
         </View>
-        <View>
-          <FlatList
-            data={song || []}
-            renderItem={({ item, index }) => (
-              <>
-                {console.log(item)}
-                <LikedSongComponent
-                  song={item.song}
-                  image={item.image}
-                  song_url={item.song_url}
-                  primary_artists={item.primary_artists}
-                  duration={item.duration}
-                  index={index}
-                  allSongs={song || []}
-                  onDelete={getLikedSongs}
-                />
-              </>
-            )}
-            showsVerticalScrollIndicator={false}
-          />
-        </View>
+        {song.length < 1 ? (
+          <>
+            <View className="w-full h-screen flex items-center justify-center">
+              <Text style={styles.textFont}>No Liked songs found 😐</Text>
+              <Text style={styles.textFont}>
+                Go and like your first Song...
+              </Text>
+            </View>
+          </>
+        ) : (
+          <>
+            <View>
+              <FlatList
+                data={song || []}
+                renderItem={({ item, index }) => (
+                  <>
+                    <LikedSongComponent
+                      song={item.song}
+                      image={item.image}
+                      song_url={item.song_url}
+                      primary_artists={item.primary_artists}
+                      duration={item.duration}
+                      index={index}
+                      allSongs={song || []}
+                      onDelete={getLikedSongs}
+                    />
+                  </>
+                )}
+                showsVerticalScrollIndicator={false}
+              />
+            </View>
+          </>
+        )}
       </View>
     </>
   );
@@ -74,5 +86,10 @@ const styles = StyleSheet.create({
   textStyle: {
     fontFamily: "Poppins-SemiBold",
     fontSize: 17,
+  },
+  textFont: {
+    fontFamily: "Poppins-SemiBold",
+    fontSize: 15,
+    color: "#333",
   },
 });

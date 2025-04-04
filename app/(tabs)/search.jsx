@@ -30,36 +30,28 @@ const Search = () => {
     reset,
   } = useFetch(() => fetchMusic({ query: debouncedQuery }), [debouncedQuery]);
 
-  useEffect(() => {
-    setCancelDisplay(searchQuery.length > 0);
-  }, [searchQuery]);
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (searchQuery.trim() && !userCancelled) {
-        setDebouncedQuery(searchQuery);
-      }
-      setUserCancelled(false);
-    }, 1000);
-
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
-
-  const handleClearSearch = useCallback(() => {
+  const handleClearSearch = () => {
     setSearchQuery("");
-    setDebouncedQuery("");
-    setUserCancelled(true);
     reset();
-  }, [reset]);
-
+  };
+  const handleSearchQuery = (searchQuery) => {
+    if (!searchQuery) {
+      return;
+    }
+    setDebouncedQuery(searchQuery);
+  };
   return (
     <SafeAreaView>
       <View className="pt-10 pl-5">
         <Text style={styles.textFont}>Search</Text>
         <View className="pr-5 relative">
-          <Image source={searchImg} style={styles.img} />
-
-          {cancelDisplay && (
+          <Pressable
+            style={styles.searchImg}
+            onPress={() => handleSearchQuery(searchQuery)}
+          >
+            <Image source={searchImg} style={styles.img} />
+          </Pressable>
+          {searchQuery && (
             <Pressable onPress={handleClearSearch} style={styles.cancel}>
               <Image source={closeImg} style={styles.cancelImg} />
             </Pressable>
@@ -70,6 +62,9 @@ const Search = () => {
             placeholder="Search for a song"
             onChangeText={setSearchQuery}
             value={searchQuery}
+            enterKeyHint="search"
+            onSubmitEditing={() => handleSearchQuery(searchQuery)}
+            returnKeyType="search"
           />
         </View>
 
@@ -89,17 +84,16 @@ const Search = () => {
             </Text>
           ) : (
             <>
-              {searchQuery.trim() && (
-                <Text className="mb-4" style={styles.SearchtextFont}>
-                  {music?.length
+              {music?.results && (
+                <Text style={styles.SearchtextFont}>
+                  {music?.results.length > 0
                     ? `Search results for "${searchQuery}"`
                     : `No results found for "${searchQuery}"`}
                 </Text>
               )}
-
               <FlatList
-                data={music || []}
-                className="mb-[550px]"
+                data={music?.results || []}
+                className="mb-[500px]"
                 renderItem={({ item }) => (
                   <>
                     {searchQuery != "" ? (
@@ -141,14 +135,14 @@ const styles = StyleSheet.create({
   SearchtextFont: {
     fontFamily: "Poppins-SemiBold",
     fontSize: 15,
+    height: 60,
+    paddingRight: 100,
   },
   img: {
-    width: 15,
-    height: 15,
-    position: "absolute",
-    top: 32,
-    left: 15,
-    zIndex: 15,
+    width: 18,
+    height: 18,
+    top: 25,
+    zIndex: 50,
   },
   cancel: {
     position: "absolute",
@@ -161,7 +155,15 @@ const styles = StyleSheet.create({
     height: 20,
     position: "absolute",
     top: 5,
-    right: 30,
+    right: 80,
     zIndex: 15,
+  },
+  searchImg: {
+    width: 20,
+    height: 20,
+    zIndex: 50,
+    position: "absolute",
+    right: 35,
+    top: 5,
   },
 });
