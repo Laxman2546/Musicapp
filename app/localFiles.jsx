@@ -14,6 +14,7 @@ import { router } from "expo-router";
 import Trending from "@/components/trending";
 const localFiles = () => {
   const [songs, setSongs] = useState([]);
+  const [loading, setLoading] = useState(false);
   const handleBack = () => {
     router.back();
   };
@@ -40,10 +41,12 @@ const localFiles = () => {
       const sortedSongs = songDetails.sort((a, b) =>
         a.song.localeCompare(b.song)
       );
+      setLoading(false);
       setSongs(sortedSongs);
     }
   };
   useEffect(() => {
+    setLoading(true);
     getSongs();
   }, []);
 
@@ -58,37 +61,49 @@ const localFiles = () => {
           </Pressable>
           <Text style={styles.textStyle}>LocalSongs</Text>
         </View>
-        {songs.length < 1 ? (
+        {loading ? (
           <>
             <View className="w-full h-screen flex items-center justify-center">
-              <Text style={styles.textFont}>No Local songs found 😐</Text>
-              <Text style={styles.textFont}>Check the premissions</Text>
+              <Text style={styles.textFont}>
+                Loading your local songs... 😚
+              </Text>
             </View>
           </>
         ) : (
           <>
-            <View>
-              <FlatList
-                data={songs || []}
-                className="mb-20"
-                renderItem={({ item, index }) => (
-                  <>
-                    <Trending
-                      song={item.song}
-                      image={item.image}
-                      music={"Nanimusic..."}
-                      duration={item.duration}
-                      primary_artists={"Nanimusic..."}
-                      song_url={item.music}
-                      index={index}
-                      allSongs={songs || []}
-                    />
-                  </>
-                )}
-                showsVerticalScrollIndicator={false}
-                showsHorizontalScrollIndicator={false}
-              />
-            </View>
+            {songs.length < 1 ? (
+              <>
+                <View className="w-full h-screen flex items-center justify-center">
+                  <Text style={styles.textFont}>No Local songs found 😐</Text>
+                  <Text style={styles.textFont}>Check the premissions</Text>
+                </View>
+              </>
+            ) : (
+              <>
+                <View>
+                  <FlatList
+                    data={songs || []}
+                    className="mb-20"
+                    renderItem={({ item, index }) => (
+                      <>
+                        <Trending
+                          song={item.song}
+                          image={item.image}
+                          music={"Nanimusic..."}
+                          duration={item.duration}
+                          primary_artists={"Nanimusic..."}
+                          song_url={item.music}
+                          index={index}
+                          allSongs={songs || []}
+                        />
+                      </>
+                    )}
+                    showsVerticalScrollIndicator={false}
+                    showsHorizontalScrollIndicator={false}
+                  />
+                </View>
+              </>
+            )}
           </>
         )}
       </View>

@@ -19,10 +19,12 @@ import { fetchMusic, getNextPlaylist } from "../../services/api";
 import ChartsComponent from "@/components/chartsComponent";
 import searchImg from "@/assets/images/search.png";
 import closeImg from "@/assets/images/close.png";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 const Home = () => {
-  const [active, setActive] = useState("Trending");
+  const [active, setActive] = useState("All");
   const [bhakthiActive, setbhakthiActive] = useState("VenkateshwaraSwamy");
   const [greetings, setGreetings] = useState("Good Morning");
+  const [userName, setuserName] = useState("user");
   const [filteredSongs, setFilteredSongs] = useState([]);
 
   const {
@@ -110,13 +112,25 @@ const Home = () => {
     );
     setFilteredSongs(filteredResults);
   };
-
+  const getUser = async () => {
+    const getuserName = await AsyncStorage.getItem("profileName");
+    if (!getuserName) {
+      setuserName("user");
+    }
+    setuserName(getuserName);
+  };
+  useEffect(() => {
+    getUser();
+  }, []);
   return (
     <SafeAreaView className="bg-slate-50 h-full">
       <View className="w-full">
         <View className="w-full flex pt-10 pl-5 gap-1">
-          <Text style={styles.greetingText}>Hello,</Text>
-          <Text style={styles.greetingName}>{greetings}</Text>
+          <Text style={styles.greetingText}>
+            Hello,
+            <Text style={styles.greetingName}>{userName}</Text>
+          </Text>
+          <Text style={styles.greetingName2}>{greetings}</Text>
         </View>
         <ScrollView
           horizontal
@@ -539,7 +553,11 @@ export const styles = StyleSheet.create({
   },
   greetingName: {
     fontFamily: "Nunito-Black",
-    fontSize: 24,
+    fontSize: 22,
+  },
+  greetingName2: {
+    fontFamily: "Poppins-SemiBold",
+    fontSize: 20,
   },
   activeText: {
     fontFamily: "Poppins-SemiBold",
