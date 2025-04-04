@@ -228,6 +228,7 @@ const RootLayout = () => {
                     style={{
                       paddingRight: 200,
                       fontSize: 15,
+                      fontFamily: "Nunito-Bold",
                     }}
                   >
                     {currentSong.song}
@@ -238,6 +239,7 @@ const RootLayout = () => {
                     style={{
                       fontSize: 12,
                       paddingRight: 200,
+                      fontFamily: "Nunito-Regular",
                     }}
                   >
                     {currentSong.primary_artists || currentSong.music}

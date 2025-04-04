@@ -16,6 +16,14 @@ export const MUSIC_CONFIG = {
     English: [
       "https://www.jiosaavn.com/s/playlist/350353696f7fb3dcc8fd64169489fe55/englishplaylist/RoybTvNFqtXgEhiRleA1SQ__",
     ],
+    Hindi: [
+      "https://www.jiosaavn.com/featured/hindi-hit-songs/ZodsPn39CSjwxP8tCU-flw__",
+      "https://www.jiosaavn.com/featured/monthly-top-100-hindi/PZaVnbecD1rfemJ68FuXsA__",
+    ],
+    VenkateshwaraSwamy: [
+      "https://www.jiosaavn.com/featured/hindi-hit-songs/ZodsPn39CSjwxP8tCU-flw__",
+      "https://www.jiosaavn.com/featured/monthly-top-100-hindi/PZaVnbecD1rfemJ68FuXsA__",
+    ],
   },
 };
 
@@ -24,6 +32,8 @@ const playlistIndices = {
   Popular: 0,
   Recent: 0,
   English: 0,
+  Hindi: 0,
+  VenkateshwaraSwamy: 0,
 };
 
 export const fetchMusic = async ({
@@ -32,6 +42,7 @@ export const fetchMusic = async ({
   premaUrl = "",
   nextPlaylist = false,
 }) => {
+  console.log(active);
   let endpoint;
   if (nextPlaylist && active) {
     const currentIndex = playlistIndices[active];
@@ -51,17 +62,11 @@ export const fetchMusic = async ({
     endpoint = `${MUSIC_CONFIG.BASE_URL}/playlist/?query=${encodeURIComponent(
       premaUrl
     )}`;
-  } else if (active === "Bhakthi" && bhakthiActive === "VenkateshwaraSwamy") {
+  } else if (active === "VenkateshwaraSwamy") {
     const playlistUrl =
       MUSIC_CONFIG.PLAYLISTS.VenkateshwaraSwamy[
         playlistIndices.VenkateshwaraSwamy
       ];
-    endpoint = `${MUSIC_CONFIG.BASE_URL}/playlist/?query=${encodeURIComponent(
-      playlistUrl
-    )}`;
-  } else if (active === "Bhakthi" && bhakthiActive === "Shiva") {
-    const playlistUrl =
-      MUSIC_CONFIG.PLAYLISTS.Trending[playlistIndices.Trending];
     endpoint = `${MUSIC_CONFIG.BASE_URL}/playlist/?query=${encodeURIComponent(
       playlistUrl
     )}`;
@@ -80,6 +85,11 @@ export const fetchMusic = async ({
     )}`;
   } else if (active === "English") {
     const playlistUrl = MUSIC_CONFIG.PLAYLISTS.English[playlistIndices.English];
+    endpoint = `${MUSIC_CONFIG.BASE_URL}/playlist/?query=${encodeURIComponent(
+      playlistUrl
+    )}`;
+  } else if (active === "Hindi") {
+    const playlistUrl = MUSIC_CONFIG.PLAYLISTS.Hindi[playlistIndices.Hindi];
     endpoint = `${MUSIC_CONFIG.BASE_URL}/playlist/?query=${encodeURIComponent(
       playlistUrl
     )}`;

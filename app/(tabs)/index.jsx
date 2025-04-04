@@ -142,6 +142,14 @@ const Home = () => {
               }}
               btnactive={active}
             />
+            <HomeBtns
+              btnName="Hindi"
+              handlePress={() => {
+                setActive("Hindi");
+                setEndReached(false);
+              }}
+              btnactive={active}
+            />
           </View>
         </ScrollView>
 
