@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -20,6 +20,7 @@ import ChartsComponent from "@/components/chartsComponent";
 import searchImg from "@/assets/images/search.png";
 import closeImg from "@/assets/images/close.png";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
 const Home = () => {
   const [active, setActive] = useState("All");
   const [bhakthiActive, setbhakthiActive] = useState("VenkateshwaraSwamy");
@@ -114,14 +115,14 @@ const Home = () => {
   };
   const getUser = async () => {
     const getuserName = await AsyncStorage.getItem("profileName");
-    if (!getuserName) {
-      setuserName("user");
-    }
     setuserName(getuserName);
   };
-  useEffect(() => {
-    getUser();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      getUser();
+    }, [])
+  );
+
   return (
     <SafeAreaView className="bg-slate-50 h-full">
       <View className="w-full">
