@@ -12,108 +12,86 @@ import { router, useLocalSearchParams } from "expo-router";
 import useFetch from "@/services/useFetch";
 import { fetchMusic } from "@/services/api";
 import backIcon from "@/assets/images/previous.png";
-import { goBack } from "expo-router/build/global-state/routing";
 import Trending from "@/components/trending";
-const premlist = () => {
+
+const Premlist = () => {
   const { premaUrl, listname, designImage } = useLocalSearchParams();
   const { data, loading, error } = useFetch(
     () => fetchMusic({ premaUrl }),
     [premaUrl]
   );
+
   const imageSource = (image) => {
-    if (typeof image == "string" && image.startsWith("http")) {
-      return { uri: designImage };
+    if (typeof image === "string" && image.startsWith("http")) {
+      return { uri: image };
     }
     return require("../assets/images/musicImage.png");
   };
+
   const handleBack = () => {
-    router.push(goBack);
+    router.back();
   };
+
   return (
-    <>
-      {!data ||
-        (!premaUrl && (
-          <>
-            <View className="w-full h-screen flex items-center justify-center">
-              <Text className="text-2xl">Something went wrong </Text>
-              <Pressable>
-                <Text className="text-lg color-blue-600">
-                  Click here to go back
-                </Text>
-              </Pressable>
-            </View>
-          </>
-        ))}
-      <View>
-        <View className="relative">
-          <Pressable onPress={handleBack} className="z-50">
-            <Image
-              className="absolute left-4 top-6"
-              source={backIcon}
-              style={{
-                width: 35,
-                height: 35,
-              }}
-            />
-          </Pressable>
+    <View>
+      <View className="relative">
+        <Pressable onPress={handleBack} className="z-50">
           <Image
-            source={imageSource(designImage)}
-            resizeMode="contain"
-            style={styles.designImage}
+            className="absolute left-4 top-6"
+            source={backIcon}
+            style={{ width: 35, height: 35 }}
           />
-        </View>
-        <View className="p-3 ml-4">
-          <View>
-            <Text style={styles.fontStyle}>{listname || "Nanimusic"}</Text>
-          </View>
-          <View>
-            {loading || (!data && !error) ? (
-              <ActivityIndicator size="large" color="#000" />
-            ) : error ? (
-              <View>
-                <Text>Something went wrong {error}</Text>
-              </View>
-            ) : (
-              <>
-                <View
-                  style={{
-                    marginBottom: 2050,
-                  }}
-                >
-                  <FlatList
-                    data={data?.songs || []}
-                    windowSize={5}
-                    maxToRenderPerBatch={5}
-                    updateCellsBatchingPeriod={50}
-                    removeClippedSubviews={true}
-                    showsVerticalScrollIndicator={false}
-                    renderItem={({ item, index }) => (
-                      <>
-                        <Trending
-                          song={item.song}
-                          image={item.image}
-                          music={item.music}
-                          duration={item.duration}
-                          primary_artists={item.primary_artists}
-                          song_url={item.media_url}
-                          index={index}
-                          allSongs={data?.songs || []}
-                        />
-                      </>
-                    )}
-                    keyExtractor={(item, index) => `${item.song}-${index}`}
-                  />
-                </View>
-              </>
-            )}
-          </View>
-        </View>
+        </Pressable>
+        <Image
+          source={imageSource(designImage)}
+          resizeMode="contain"
+          style={styles.designImage}
+        />
       </View>
-    </>
+
+      <View className="p-3 ml-4">
+        <Text style={styles.fontStyle}>{listname || "Nanimusic"}</Text>
+
+        {loading || (!data && !error) ? (
+          <ActivityIndicator size="large" color="#000" />
+        ) : error ? (
+          <View className="w-full mt-10 justify-center items-center">
+            <Text className="text-red-500 " style={styles.fontStyle}>
+              Something went wrong.😥
+            </Text>
+            <Text className="text-red-500 " style={styles.fontStyle}>
+              we are sorry for the issue
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={Array.isArray(data?.songs) ? data.songs : []}
+            windowSize={5}
+            maxToRenderPerBatch={5}
+            updateCellsBatchingPeriod={50}
+            removeClippedSubviews={true}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item, index }) => (
+              <Trending
+                song={item.song}
+                image={item.image}
+                music={item.music}
+                duration={item.duration}
+                primary_artists={item.primary_artists}
+                song_url={item.media_url}
+                index={index}
+                allSongs={data?.songs || []}
+              />
+            )}
+            keyExtractor={(item, index) => `${item.song}-${index}`}
+          />
+        )}
+      </View>
+    </View>
   );
 };
 
-export default premlist;
+export default Premlist;
 
 const styles = StyleSheet.create({
   designImage: {

@@ -129,9 +129,9 @@ const Home = () => {
         <View className="w-full flex pt-10 pl-5 gap-1">
           <Text style={styles.greetingText}>
             Hello,
-            <Text style={styles.greetingName}>{userName || "user"}</Text>
+            <Text style={styles.activeText}>{userName || "user"}</Text>
           </Text>
-          <Text style={styles.greetingName2}>{greetings}</Text>
+          <Text style={styles.greetingName}>{greetings}</Text>
         </View>
         <ScrollView
           horizontal

@@ -79,7 +79,7 @@ const MusicPlayer = () => {
             favSong.song === currentSong?.song &&
             favSong.primary_artists === currentSong?.primary_artists
         );
-        console.log(favoriteList);
+
         setfavouriteClick(isFav);
       } catch (error) {
         console.error("Error checking favorite status:", error);
@@ -290,8 +290,6 @@ const MusicPlayer = () => {
 };
 
 export default MusicPlayer;
-
-
 
 export const styles = StyleSheet.create({
   container: {
