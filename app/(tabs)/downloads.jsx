@@ -41,8 +41,9 @@ const downloads = () => {
   };
   const getName = async () => {
     const userprofileName = await AsyncStorage.getItem("profileName");
-    if (!userprofileName) {
+    if (userprofileName.length <= 0) {
       setUsername("user");
+      handleSave();
     }
     setUsername(userprofileName);
   };
@@ -138,6 +139,7 @@ const styles = StyleSheet.create({
   editImg: {
     width: 15,
     height: 15,
+    position: "absolute",
   },
   saveImg: {
     width: 20,

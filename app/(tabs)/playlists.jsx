@@ -4,7 +4,9 @@ import Downloads from "./downloads";
 const playlists = () => {
   return (
     <>
-      <Downloads />
+      <View>
+        <Text>Playlists</Text>
+      </View>
     </>
   );
 };

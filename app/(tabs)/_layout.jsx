@@ -12,7 +12,7 @@ import { KeyboardAvoidingView, Platform, Keyboard } from "react-native";
 import home from "@/assets/images/home.png";
 import search from "@/assets/images/search.png";
 import playlistIcon from "@/assets/images/playlist.png";
-import downloads from "@/assets/images/download.png";
+import downloads from "@/assets/images/user.png";
 import playSong from "@/assets/images/playIcon.png";
 import pauseSong from "@/assets/images/pauseIcon.png";
 import playnextSong from "@/assets/images/nextIcon.png";
@@ -128,7 +128,7 @@ const RootLayout = () => {
     >
       <View style={{ flex: 1 }}>
         <Tabs
-          initialRouteName="index"
+          initialRouteName="playlists"
           screenOptions={{
             headerShown: false,
             tabBarShowLabel: false,
