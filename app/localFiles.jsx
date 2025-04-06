@@ -95,6 +95,7 @@ const localFiles = () => {
                           song_url={item.music}
                           index={index}
                           allSongs={songs || []}
+                          isdownloadedSongs={true}
                         />
                       </>
                     )}

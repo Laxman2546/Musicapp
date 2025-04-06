@@ -66,8 +66,8 @@ const MusicPlayer = () => {
     playPrevious();
   };
   const config = {
-    velocityThreshold: 0.3,
-    directionalOffsetThreshold: 80,
+    velocityThreshold: 0.2,
+    directionalOffsetThreshold: 40,
   };
   useEffect(() => {
     const checkFavoriteStatus = async () => {

@@ -1,13 +1,6 @@
 import { Image, Text, View, StyleSheet, Pressable } from "react-native";
 import React, { useEffect, useState } from "react";
-import {
-  SplashScreen,
-  Stack,
-  Tabs,
-  useNavigation,
-  usePathname,
-  useRouter,
-} from "expo-router";
+import { Tabs, useNavigation, usePathname, useRouter } from "expo-router";
 import { KeyboardAvoidingView, Platform, Keyboard } from "react-native";
 import home from "@/assets/images/home.png";
 import search from "@/assets/images/search.png";
@@ -20,6 +13,7 @@ import playpreviousSong from "@/assets/images/previousIcon.png";
 import { useFonts } from "expo-font";
 import "@/global.css";
 import { usePlayer } from "@/context/playerContext";
+import WelcomeComponent from "@/components/welcomeComponent";
 const RootLayout = () => {
   const router = useRouter();
   const {
@@ -42,6 +36,7 @@ const RootLayout = () => {
   } = usePlayer();
   const navigation = useNavigation();
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [loading, setLoading] = useState(true);
   const pathname = usePathname();
   const isPlayerScreen = pathname === "/player";
   const [fontsLoaded, error] = useFonts({
@@ -54,9 +49,13 @@ const RootLayout = () => {
 
   useEffect(() => {
     if (error) throw error;
-    if (fontsLoaded) SplashScreen.hideAsync();
   }, [fontsLoaded, error]);
 
+  useEffect(() => {
+    setTimeout(() => {
+      setLoading(false);
+    }, 2000);
+  });
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
       "keyboardDidShow",
@@ -91,7 +90,7 @@ const RootLayout = () => {
           justifyContent: "center",
         }}
       >
-        Loading...
+        <WelcomeComponent />
       </Text>
     );
   }
@@ -122,174 +121,190 @@ const RootLayout = () => {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1 }}
-    >
-      <View style={{ flex: 1 }}>
-        <Tabs
-          initialRouteName="playlists"
-          screenOptions={{
-            headerShown: false,
-            tabBarShowLabel: false,
-            tabBarActiveTintColor: "#000",
-            tabBarStyle: {
-              backgroundColor: "#fff",
-              borderTopWidth: 1,
-              borderTopLeftRadius: 28,
-              borderTopRightRadius: 28,
-              height: 60,
-              paddingBottom: 5,
-              borderColor: "transparent",
-              shadowColor: "#000",
-              shadowOpacity: 0.1,
-              shadowOffset: { width: 0, height: -2 },
-              shadowRadius: 5,
-              display: keyboardVisible || isPlayerScreen ? "none" : "flex",
-            },
-          }}
-        >
-          <Tabs.Screen
-            name="index"
-            options={{
-              title: "Home",
-              tabBarIcon: ({ color, focused }) => (
-                <TabIcon icon={home} color={color} focused={focused} />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name="search"
-            options={{
-              title: "Search",
-              tabBarIcon: ({ color, focused }) => (
-                <TabIcon icon={search} color={color} focused={focused} />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name="playlists"
-            options={{
-              title: "Playlists",
-              tabBarIcon: ({ color, focused }) => (
-                <TabIcon icon={playlistIcon} color={color} focused={focused} />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name="downloads"
-            options={{
-              title: "Downloads",
-              tabBarIcon: ({ color, focused }) => (
-                <TabIcon icon={downloads} color={color} focused={focused} />
-              ),
-            }}
-          />
-        </Tabs>
-        {!isPlayerScreen && currentSong && (
-          <View
-            style={{
-              position: "absolute",
-              bottom: 70,
-              left: 10,
-              right: 10,
-              backgroundColor: "#222",
-              padding: 15,
-              borderRadius: 15,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              shadowColor: "#000",
-              shadowOpacity: 0.2,
-              shadowOffset: { width: 0, height: 2 },
-              shadowRadius: 5,
-            }}
+    <>
+      {loading ? (
+        <WelcomeComponent />
+      ) : (
+        <>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={{ flex: 1 }}
           >
-            <View>
-              <Pressable
-                onPress={navigatePlayer}
-                className="flex flex-row w-full items-center gap-3 relative"
-              >
-                <View>
-                  <Image
-                    source={getImageSource(currentSong.image)}
-                    defaultSource={require("@/assets/images/example.jpg")}
-                    style={{
-                      width: 50,
-                      height: 50,
-                      borderRadius: 50,
-                    }}
-                  />
-                </View>
-                <View>
-                  <Text
-                    className="text-white"
-                    numberOfLines={1}
-                    style={{
-                      paddingRight: 200,
-                      fontSize: 15,
-                      fontFamily: "Nunito-Bold",
-                    }}
-                  >
-                    {currentSong.song}
-                  </Text>
-                  <Text
-                    className="text-white"
-                    numberOfLines={1}
-                    style={{
-                      fontSize: 12,
-                      paddingRight: 200,
-                      fontFamily: "Nunito-Regular",
-                    }}
-                  >
-                    {currentSong.primary_artists || currentSong.music}
-                  </Text>
-                </View>
-              </Pressable>
-              <View
-                className="flex flex-row gap-2 items-center"
-                style={{
-                  position: "absolute",
-                  right: 50,
-                  top: 15,
+            <View style={{ flex: 1 }}>
+              <Tabs
+                initialRouteName="playlists"
+                screenOptions={{
+                  headerShown: false,
+                  tabBarShowLabel: false,
+                  tabBarActiveTintColor: "#000",
+                  tabBarStyle: {
+                    backgroundColor: "#fff",
+                    borderTopWidth: 1,
+                    borderTopLeftRadius: 28,
+                    borderTopRightRadius: 28,
+                    height: 60,
+                    paddingBottom: 5,
+                    borderColor: "transparent",
+                    shadowColor: "#000",
+                    shadowOpacity: 0.1,
+                    shadowOffset: { width: 0, height: -2 },
+                    shadowRadius: 5,
+                    display:
+                      keyboardVisible || isPlayerScreen ? "none" : "flex",
+                  },
                 }}
               >
-                <Pressable onPress={playPrevious}>
-                  <Image
-                    source={playpreviousSong}
-                    className="w-[15px] h-[15px]"
-                    style={{
-                      width: 20,
-                      height: 20,
-                    }}
-                  />
-                </Pressable>
-                <Pressable onPress={() => setIsPlaying(!isPlaying)}>
-                  <Image
-                    source={isPlaying ? pauseSong : playSong}
-                    className="w-[15px] h-[15px]"
-                    style={{
-                      width: 20,
-                      height: 20,
-                    }}
-                  />
-                </Pressable>
-                <Pressable onPress={playNext}>
-                  <Image
-                    source={playnextSong}
-                    className="w-[15px] h-[15px]"
-                    style={{
-                      width: 20,
-                      height: 20,
-                    }}
-                  />
-                </Pressable>
-              </View>
+                <Tabs.Screen
+                  name="index"
+                  options={{
+                    title: "Home",
+                    tabBarIcon: ({ color, focused }) => (
+                      <TabIcon icon={home} color={color} focused={focused} />
+                    ),
+                  }}
+                />
+                <Tabs.Screen
+                  name="search"
+                  options={{
+                    title: "Search",
+                    tabBarIcon: ({ color, focused }) => (
+                      <TabIcon icon={search} color={color} focused={focused} />
+                    ),
+                  }}
+                />
+                <Tabs.Screen
+                  name="playlists"
+                  options={{
+                    title: "Playlists",
+                    tabBarIcon: ({ color, focused }) => (
+                      <TabIcon
+                        icon={playlistIcon}
+                        color={color}
+                        focused={focused}
+                      />
+                    ),
+                  }}
+                />
+                <Tabs.Screen
+                  name="downloads"
+                  options={{
+                    title: "Downloads",
+                    tabBarIcon: ({ color, focused }) => (
+                      <TabIcon
+                        icon={downloads}
+                        color={color}
+                        focused={focused}
+                      />
+                    ),
+                  }}
+                />
+              </Tabs>
+              {!isPlayerScreen && currentSong && (
+                <View
+                  style={{
+                    position: "absolute",
+                    bottom: 70,
+                    left: 10,
+                    right: 10,
+                    backgroundColor: "#222",
+                    padding: 15,
+                    borderRadius: 15,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    shadowColor: "#000",
+                    shadowOpacity: 0.2,
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowRadius: 5,
+                  }}
+                >
+                  <View>
+                    <Pressable
+                      onPress={navigatePlayer}
+                      className="flex flex-row w-full items-center gap-3 relative"
+                    >
+                      <View>
+                        <Image
+                          source={getImageSource(currentSong.image)}
+                          style={{
+                            width: 50,
+                            height: 50,
+                            borderRadius: 50,
+                          }}
+                        />
+                      </View>
+                      <View>
+                        <Text
+                          className="text-white"
+                          numberOfLines={1}
+                          style={{
+                            paddingRight: 200,
+                            fontSize: 15,
+                            fontFamily: "Nunito-Bold",
+                          }}
+                        >
+                          {currentSong.song}
+                        </Text>
+                        <Text
+                          className="text-white"
+                          numberOfLines={1}
+                          style={{
+                            fontSize: 12,
+                            paddingRight: 200,
+                            fontFamily: "Nunito-Regular",
+                          }}
+                        >
+                          {currentSong.primary_artists || currentSong.music}
+                        </Text>
+                      </View>
+                    </Pressable>
+                    <View
+                      className="flex flex-row gap-2 items-center"
+                      style={{
+                        position: "absolute",
+                        right: 50,
+                        top: 15,
+                      }}
+                    >
+                      <Pressable onPress={playPrevious}>
+                        <Image
+                          source={playpreviousSong}
+                          className="w-[15px] h-[15px]"
+                          style={{
+                            width: 20,
+                            height: 20,
+                          }}
+                        />
+                      </Pressable>
+                      <Pressable onPress={() => setIsPlaying(!isPlaying)}>
+                        <Image
+                          source={isPlaying ? pauseSong : playSong}
+                          className="w-[15px] h-[15px]"
+                          style={{
+                            width: 20,
+                            height: 20,
+                          }}
+                        />
+                      </Pressable>
+                      <Pressable onPress={playNext}>
+                        <Image
+                          source={playnextSong}
+                          className="w-[15px] h-[15px]"
+                          style={{
+                            width: 20,
+                            height: 20,
+                          }}
+                        />
+                      </Pressable>
+                    </View>
+                  </View>
+                </View>
+              )}
             </View>
-          </View>
-        )}
-      </View>
-    </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </>
+      )}
+    </>
   );
 };
 

@@ -65,6 +65,7 @@ const downloadsFolder = () => {
                       index={index}
                       allSongs={songs || []}
                       onDelete={loadSongs}
+                    
                     />
                   </>
                 )}

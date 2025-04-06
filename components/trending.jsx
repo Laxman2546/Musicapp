@@ -19,6 +19,7 @@ const Trending = ({
   song_url,
   index,
   allSongs,
+  isdownloadedSongs,
 }) => {
   const { playSong } = usePlayer();
   const [downloadProgress, setDownloadProgress] = useState(0);
@@ -55,6 +56,9 @@ const Trending = ({
   };
 
   const handleDownload = async () => {
+    if (downloadedSongs || isdownloadedSongs) {
+      return;
+    }
     try {
       setIsDownloading(true);
       setDownloadProgress(0);
@@ -226,7 +230,11 @@ const Trending = ({
                   </Svg>
                 ) : (
                   <Image
-                    source={downloadedSongs ? checked : DownloadSong}
+                    source={
+                      downloadedSongs || isdownloadedSongs
+                        ? checked
+                        : DownloadSong
+                    }
                     style={{
                       width: 25,
                       height: 25,
