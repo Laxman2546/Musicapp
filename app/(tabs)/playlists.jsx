@@ -90,13 +90,6 @@ const playlists = () => {
       category: "Whats your mood -Telugu",
       playlists: [
         {
-          title: "romance",
-          image:
-            "https://i.scdn.co/image/ab67616d0000b273b95e1e32951c1d162611dd0f",
-          perma_url:
-            "https://www.jiosaavn.com/featured/best-of-romance-telugu/RvsohkkonJJieSJqt9HmOQ__",
-        },
-        {
           title: "chill",
           image:
             "https://c.saavncdn.com/725/Chill-Vibe-English-2020-20200827001048-500x500.jpg",
@@ -122,6 +115,13 @@ const playlists = () => {
           image:
             "https://i.scdn.co/image/ab67616d0000b2735ca12e898fac5a6161fbf1df",
           perma_url: "https://www.jiosaavn.com/featured/gym-jam/nbMXkg9nIVI_",
+        },
+        {
+          title: "romance",
+          image:
+            "https://i.scdn.co/image/ab67616d0000b273b95e1e32951c1d162611dd0f",
+          perma_url:
+            "https://www.jiosaavn.com/featured/best-of-romance-telugu/RvsohkkonJJieSJqt9HmOQ__",
         },
         {
           title: "Travelling",

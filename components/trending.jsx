@@ -167,7 +167,7 @@ const Trending = ({
   return (
     <>
       {song ? (
-        <View className="w-full flex flex-row gap-6 bg-gray-100 rounded-2xl p-3 mb-2">
+        <View className="w-full flex flex-row gap-6 bg-gray-100 rounded-2xl p-4 mb-2">
           <View>
             <Image
               source={getImageSource(image)}

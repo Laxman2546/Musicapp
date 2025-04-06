@@ -125,7 +125,7 @@ const likedSongComponent = ({
             gotoPlayer;
           }}
         >
-          <View className="w-full flex flex-row gap-6 bg-gray-200 rounded-2xl mt-7 p-2 mb-2">
+          <View className="w-full flex flex-row gap-6 bg-gray-200 rounded-2xl  p-2 mb-2">
             <View>
               <Image
                 source={getImageSource(image)}

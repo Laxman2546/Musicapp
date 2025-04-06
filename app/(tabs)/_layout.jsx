@@ -132,7 +132,7 @@ const RootLayout = () => {
           >
             <View style={{ flex: 1 }}>
               <Tabs
-                initialRouteName="playlists"
+                initialRouteName="downloads"
                 screenOptions={{
                   headerShown: false,
                   tabBarShowLabel: false,

@@ -39,4 +39,3 @@ allprojects {
         maven { url 'https://www.jitpack.io' }
     }
 }
-  compile project(':react-native-get-music-files')
