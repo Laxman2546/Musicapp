@@ -36,10 +36,7 @@ const Home = () => {
     loadMore,
     allSongs,
     categoryIndices,
-  } = useFetch(
-    () => fetchMusic({ query: "", active, bhakthiActive }),
-    [active, bhakthiActive]
-  );
+  } = useFetch(() => fetchMusic({ query: "", active }), [active]);
 
   const [loadingMore, setLoadingMore] = useState(false);
   const [endReached, setEndReached] = useState(false);
@@ -83,14 +80,7 @@ const Home = () => {
       setLoadingMore(false);
     }
   };
-  const bhakthiOptions = [
-    { name: "VenkateshwaraSwamy" },
-    { name: "Shiva" },
-    { name: "Durga Devi" },
-    { name: "Ganesha" },
-    { name: "Sai Baba" },
-    { name: "Hanuman" },
-  ];
+
   const handleSearch = () => {
     setShowSearch(!showSearch);
     handleClearSearch();
@@ -204,9 +194,21 @@ const Home = () => {
                     style={styles.loader}
                   />
                 ) : error ? (
-                  <Text style={styles.errorText}>
-                    Something went wrong: {error.message}
-                  </Text>
+                  <View className="w-full flex flex-col gap-3 items-center justify-center">
+                    <Text style={styles.errorText}>
+                      Something went wrong😥: {error.message}
+                    </Text>
+                    <Pressable onPress={refetch}>
+                      <View className=" p-3 pl-5 pr-5 bg-black color-white rounded-xl">
+                        <Text
+                          style={styles.loadingText}
+                          className="color-white"
+                        >
+                          Retry
+                        </Text>
+                      </View>
+                    </Pressable>
+                  </View>
                 ) : (
                   <>
                     <View style={styles.section}>
@@ -347,197 +349,109 @@ const Home = () => {
                 </Pressable>
               </View>
             </View>
-            {active === "Bhakthi" ? (
-              <>
-                <View className="w-full">
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ paddingRight: 20 }}
-                  >
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        marginLeft: 15,
-                        gap: 10,
-                      }}
-                    >
-                      {bhakthiOptions.map((option, index) => (
-                        <BhakthiBtns
-                          key={index}
-                          btnName={option.name}
-                          handlePress={() => {
-                            setbhakthiActive(option.name);
-                            setEndReached(false);
-                          }}
-                          btnactive={bhakthiActive}
-                        />
-                      ))}
-                    </View>
-                  </ScrollView>
-                  <>
-                    {loading || (!music?.songs?.length && !error) ? (
-                      <ActivityIndicator size="large" color="#000" />
-                    ) : error ? (
-                      <Text style={styles.errorText}>
-                        Something went wrong: {error.message}
-                      </Text>
-                    ) : (
-                      <View className="mb-[600px]">
-                        <Text className="text-center">
-                          Bhakthi songs are still in Development...😐
-                        </Text>
-                        {/* <FlatList
-                          data={music?.songs || []}
-                          windowSize={5}
-                          showsVerticalScrollIndicator={false}
-                          maxToRenderPerBatch={5}
-                          updateCellsBatchingPeriod={50}
-                          removeClippedSubviews={true}
-                          renderItem={({ item, index }) => (
-                            <>
-                              <Trending
-                                type={active}
-                                song={item.song}
-                                image={item.image}
-                                music={item.music}
-                                duration={item.duration}
-                                primary_artists={item.primary_artists}
-                                song_url={item.media_url}
-                                index={index}
-                                allSongs={music?.songs || []}
-                              />
-                            </>
-                          )}
-                          onEndReached={handleEndReached}
-                          onEndReachedThreshold={0.5}
-                          ListFooterComponent={
-                            loadingMore ? (
-                              <View style={styles.footerLoadingContainer}>
-                                <ActivityIndicator size="small" color="#000" />
-                                <Text style={styles.loadingText}>
-                                  Finding more songs...😃
-                                </Text>
-                              </View>
-                            ) : endReached ? (
-                              <View style={styles.footerContainer}>
-                                <Text style={styles.footerText}>
-                                  You've caught them all! 🎶
-                                </Text>
-                              </View>
-                            ) : null
-                          }
-                          keyExtractor={(item, index) =>
-                            `${item.song}-${index}`
-                          }
-                        /> */}
-                      </View>
-                    )}
-                  </>
-                </View>
-              </>
+
+            {loading || (!music?.songs?.length && !error) ? (
+              <ActivityIndicator size="large" color="#000" />
+            ) : error ? (
+              <View className="w-full flex flex-col gap-3 items-center justify-center">
+                <Text style={styles.errorText}>
+                  Something went wrong: {error.message}
+                </Text>
+                <Pressable onPress={refetch}>
+                  <View className=" p-3 pl-5 pr-5 bg-black color-white rounded-xl">
+                    <Text style={styles.loadingText} className="color-white">
+                      Retry
+                    </Text>
+                  </View>
+                </Pressable>
+              </View>
             ) : (
               <>
-                {loading || (!music?.songs?.length && !error) ? (
-                  <ActivityIndicator size="large" color="#000" />
-                ) : error ? (
-                  <Text style={styles.errorText}>
-                    Something went wrong: {error.message}
-                  </Text>
-                ) : (
-                  <>
-                    {showSearch && (
-                      <View className="w-full p-4">
-                        <View className="relative">
-                          <Pressable
-                            style={styles.searchImg}
-                            onPress={() => handleSearchQuery(searchQuery)}
-                          >
-                            <Image source={searchImg} style={styles.img} />
-                          </Pressable>
-                          {searchQuery && (
-                            <Pressable
-                              onPress={handleClearSearch}
-                              style={styles.cancel}
-                            >
-                              <Image
-                                source={closeImg}
-                                style={styles.cancelImg}
-                              />
-                            </Pressable>
-                          )}
-                          <TextInput
-                            style={styles.SearchtextFont}
-                            className="bg-gray-200 w-full p-4 pl-10 rounded-md"
-                            placeholder={`Search in ${active} songs`}
-                            onChangeText={handleSearchQuery}
-                            value={searchQuery}
-                            enterKeyHint="search"
-                            onSubmitEditing={() =>
-                              handleSearchQuery(searchQuery)
-                            }
-                            returnKeyType="search"
-                          />
-                        </View>
-                      </View>
-                    )}
-
-                    <FlatList
-                      data={
-                        searchQuery && filteredSongs.length > 0
-                          ? filteredSongs
-                          : music?.songs || []
-                      }
-                      windowSize={5}
-                      showsVerticalScrollIndicator={false}
-                      maxToRenderPerBatch={5}
-                      updateCellsBatchingPeriod={50}
-                      removeClippedSubviews={true}
-                      renderItem={({ item, index }) => (
-                        <>
-                          <Trending
-                            type={active}
-                            song={item.song}
-                            image={item.image}
-                            music={item.music}
-                            duration={item.duration}
-                            primary_artists={item.primary_artists}
-                            song_url={item.media_url}
-                            index={index}
-                            allSongs={music?.songs || []}
-                          />
-                        </>
+                {showSearch && (
+                  <View className="w-full p-4">
+                    <View className="relative">
+                      <Pressable
+                        style={styles.searchImg}
+                        onPress={() => handleSearchQuery(searchQuery)}
+                      >
+                        <Image source={searchImg} style={styles.img} />
+                      </Pressable>
+                      {searchQuery && (
+                        <Pressable
+                          onPress={handleClearSearch}
+                          style={styles.cancel}
+                        >
+                          <Image source={closeImg} style={styles.cancelImg} />
+                        </Pressable>
                       )}
-                      onEndReached={handleEndReached}
-                      onEndReachedThreshold={0.5}
-                      ListFooterComponent={
-                        searchQuery ? (
-                          <>
-                            <View className="w-full  flex items-center">
-                              <Text style={styles.footerText}>
-                                end of search results for {searchQuery} 🧐
-                              </Text>
-                            </View>
-                          </>
-                        ) : loadingMore ? (
-                          <View style={styles.footerLoadingContainer}>
-                            <ActivityIndicator size="small" color="#000" />
-                            <Text style={styles.loadingText}>
-                              Finding more songs...😃
-                            </Text>
-                          </View>
-                        ) : endReached ? (
-                          <View style={styles.footerContainer}>
-                            <Text style={styles.footerText}>
-                              You've caught them all! 🎶
-                            </Text>
-                          </View>
-                        ) : null
-                      }
-                      keyExtractor={(item, index) => `${item.song}-${index}`}
-                    />
-                  </>
+                      <TextInput
+                        style={styles.SearchtextFont}
+                        className="bg-gray-200 w-full p-4 pl-10 rounded-md"
+                        placeholder={`Search in ${active} songs`}
+                        onChangeText={handleSearchQuery}
+                        value={searchQuery}
+                        enterKeyHint="search"
+                        onSubmitEditing={() => handleSearchQuery(searchQuery)}
+                        returnKeyType="search"
+                      />
+                    </View>
+                  </View>
                 )}
+
+                <FlatList
+                  data={
+                    searchQuery && filteredSongs.length > 0
+                      ? filteredSongs
+                      : music?.songs || []
+                  }
+                  windowSize={5}
+                  showsVerticalScrollIndicator={false}
+                  maxToRenderPerBatch={5}
+                  updateCellsBatchingPeriod={50}
+                  removeClippedSubviews={true}
+                  renderItem={({ item, index }) => (
+                    <>
+                      <Trending
+                        type={active}
+                        song={item.song}
+                        image={item.image}
+                        music={item.music}
+                        duration={item.duration}
+                        primary_artists={item.primary_artists}
+                        song_url={item.media_url}
+                        index={index}
+                        allSongs={music?.songs || []}
+                      />
+                    </>
+                  )}
+                  onEndReached={handleEndReached}
+                  onEndReachedThreshold={0.5}
+                  ListFooterComponent={
+                    searchQuery ? (
+                      <>
+                        <View className="w-full  flex items-center">
+                          <Text style={styles.footerText}>
+                            end of search results for {searchQuery} 🧐
+                          </Text>
+                        </View>
+                      </>
+                    ) : loadingMore ? (
+                      <View style={styles.footerLoadingContainer}>
+                        <ActivityIndicator size="small" color="#000" />
+                        <Text style={styles.loadingText}>
+                          Finding more songs...😃
+                        </Text>
+                      </View>
+                    ) : endReached ? (
+                      <View style={styles.footerContainer}>
+                        <Text style={styles.footerText}>
+                          You've caught them all! 🎶
+                        </Text>
+                      </View>
+                    ) : null
+                  }
+                  keyExtractor={(item, index) => `${item.song}-${index}`}
+                />
               </>
             )}
           </>
@@ -565,6 +479,7 @@ export const styles = StyleSheet.create({
     fontSize: 18,
   },
   errorText: {
+    fontFamily: "Poppins-SemiBold",
     fontSize: 16,
     color: "red",
   },

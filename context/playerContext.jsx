@@ -86,18 +86,30 @@ export const PlayerProvider = ({ children }) => {
   useEffect(() => {
     const setupAudioMode = async () => {
       try {
+        // Configure audio mode
         await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
           playsInSilentModeIOS: true,
-          shouldDuckAndroid: true,
           staysActiveInBackground: true,
+          shouldDuckAndroid: true,
           playThroughEarpieceAndroid: false,
+          mixingWithOthers: false,
         });
+
+        // Setup notification/controls
+        if (Platform.OS === "android") {
+          await Notifications.setNotificationChannelAsync("audio_playback", {
+            name: "Audio Playback",
+            importance: Notifications.AndroidImportance.MAX,
+            sound: "default",
+            vibrationPattern: [0, 250, 250, 250],
+            lightColor: "#FF231F7C",
+          });
+        }
       } catch (error) {
-        console.error("Error setting audio mode:", error);
+        console.error("Background audio setup failed:", error);
       }
     };
-
-    setupAudioMode();
 
     return () => {
       isMounted.current = false;
@@ -118,15 +130,22 @@ export const PlayerProvider = ({ children }) => {
     return indexes;
   }, []);
 
-  // Initialize shuffled indexes when shuffle is activated
   useEffect(() => {
-    if (shuffleActive && playlist.length > 0) {
-      setShuffledIndexes(
-        generateShuffledIndexes(playlist.length, currentIndex)
+    if (shuffleActive && playlist.length > 0 && shuffledIndexes.length === 0) {
+      const newShuffledIndexes = generateShuffledIndexes(
+        playlist.length,
+        currentIndex
       );
+      setShuffledIndexes(newShuffledIndexes);
       setHistory([currentIndex]);
     }
-  }, [shuffleActive, playlist.length, currentIndex, generateShuffledIndexes]);
+  }, [
+    shuffleActive,
+    playlist.length,
+    currentIndex,
+    generateShuffledIndexes,
+    shuffledIndexes.length,
+  ]);
 
   // Safe unload function
   const unloadSound = useCallback(async () => {

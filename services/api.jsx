@@ -102,7 +102,6 @@ export const fetchMusic = async ({
 export const getNextPlaylist = async (active, bhakthiActive) => {
   return await fetchMusic({
     active,
-    bhakthiActive,
     nextPlaylist: true,
   });
 };

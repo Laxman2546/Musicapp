@@ -17,10 +17,20 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/appicon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.lakshmannnani.nanimusic"
+      "package": "com.lakshmannnani.nanimusic",
+      "permissions": [
+        "FOREGROUND_SERVICE",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ],
+      "foregroundService": {
+        "startForegroundService": true,
+        "notificationTitle": "Nani Music",
+        "notificationBody": "Playing in background"
+      }
     },
     "web": {
       "bundler": "metro",

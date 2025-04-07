@@ -18,7 +18,7 @@ import searchImg from "@/assets/images/search.png";
 import closeImg from "@/assets/images/close.png";
 const Premlist = () => {
   const { premaUrl, listname, designImage } = useLocalSearchParams();
-  const { data, loading, error } = useFetch(
+  const { data, loading, error, refetch } = useFetch(
     () => fetchMusic({ premaUrl }),
     [premaUrl]
   );
@@ -126,13 +126,17 @@ const Premlist = () => {
         {loading || (!data && !error) ? (
           <ActivityIndicator size="large" color="#000" />
         ) : error ? (
-          <View className="w-full mt-10 justify-center items-center">
-            <Text className="text-red-500 " style={styles.fontStyle}>
-              Something went wrong.😥
+          <View className="w-full flex flex-col gap-3 items-center justify-center">
+            <Text style={styles.errorText}>
+              Something went wrong :😥 {error.message}
             </Text>
-            <Text className="text-red-500 " style={styles.fontStyle}>
-              we are sorry for the issue
-            </Text>
+            <Pressable onPress={refetch}>
+              <View className=" p-3 pl-5 pr-5 bg-black color-white rounded-xl">
+                <Text style={styles.loadingText} className="color-white">
+                  Retry
+                </Text>
+              </View>
+            </Pressable>
           </View>
         ) : (
           <View className="mb-[1000px]">
@@ -212,6 +216,15 @@ const styles = StyleSheet.create({
     height: 18,
     top: 25,
     zIndex: 50,
+  },
+  errorText: {
+    fontFamily: "Poppins-SemiBold",
+    fontSize: 16,
+    color: "red",
+  },
+  loadingText: {
+    fontFamily: "Poppins-Regular",
+    fontSize: 16,
   },
   cancel: {
     position: "absolute",

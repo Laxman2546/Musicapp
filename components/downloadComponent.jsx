@@ -1,12 +1,10 @@
 import { Image, Pressable, Text, TouchableOpacity, View } from "react-native";
 import React, { memo, useEffect, useState } from "react";
-import Marquee from "react-native-marquee";
 import { usePlayer } from "@/context/playerContext";
 import { router } from "expo-router";
 import moreIcon from "@/assets/images/more.png";
 import trash from "@/assets/images/trash.png";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { navigate } from "expo-router/build/global-state/routing";
 
 const DownloadComponent = ({
   type,
@@ -138,14 +136,12 @@ const DownloadComponent = ({
               </View>
 
               <View className="pr-16">
-                <Marquee>
-                  <Text
-                    numberOfLines={1}
-                    style={{ fontFamily: "Poppins-Regular" }}
-                  >
-                    {String(music || primary_artists || "...")}
-                  </Text>
-                </Marquee>
+                <Text
+                  numberOfLines={1}
+                  style={{ fontFamily: "Poppins-Regular" }}
+                >
+                  {String(music || primary_artists || "...")}
+                </Text>
               </View>
             </View>
           </TouchableOpacity>

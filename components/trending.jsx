@@ -1,14 +1,13 @@
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import React, { memo, useEffect, useState } from "react";
 import DownloadSong from "@/assets/images/downloadSong.png";
-import Marquee from "react-native-marquee";
 import { usePlayer } from "@/context/playerContext";
 import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system";
 import Svg, { Circle } from "react-native-svg";
 import checked from "@/assets/images/checked.png";
-
+import * as MediaLibrary from "expo-media-library";
 const Trending = ({
   type,
   song,
@@ -25,6 +24,7 @@ const Trending = ({
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadedSongs, setDownloadedSongs] = useState(false);
+  const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
   const radius = 12;
   const strokeWidth = 2;
   const circumference = 2 * Math.PI * radius;
@@ -58,6 +58,13 @@ const Trending = ({
   const handleDownload = async () => {
     if (downloadedSongs || isdownloadedSongs) {
       return;
+    }
+    if (permissionResponse?.status !== "granted") {
+      const { status } = await requestPermission();
+      if (status !== "granted") {
+        alert("Permission to access media library is required!");
+        return;
+      }
     }
     try {
       setIsDownloading(true);
@@ -116,7 +123,12 @@ const Trending = ({
         throw new Error("Download failed - no result or bad status");
       }
     } catch (e) {
-      console.error("Download failed:", e);
+      console.error("Full download error:", {
+        message: e.message,
+        stack: e.stack,
+        song_url,
+        downloadDest,
+      });
     } finally {
       setIsDownloading(false);
     }
@@ -181,7 +193,7 @@ const Trending = ({
           </View>
 
           <View className="flex flex-row justify-between align-middle w-3/4 relative">
-            <TouchableOpacity onPress={handleSong}>
+            <TouchableOpacity onPress={handleSong} hitSlop={10}>
               <View>
                 <View className="SongName pr-7">
                   <Text
@@ -196,16 +208,14 @@ const Trending = ({
                 </View>
 
                 <View className="pr-16">
-                  <Marquee>
-                    <Text
-                      numberOfLines={1}
-                      style={{
-                        fontFamily: "Poppins-Regular",
-                      }}
-                    >
-                      {String(music || primary_artists || "...")}
-                    </Text>
-                  </Marquee>
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      fontFamily: "Poppins-Regular",
+                    }}
+                  >
+                    {String(music || primary_artists || "...")}
+                  </Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -214,6 +224,7 @@ const Trending = ({
               <TouchableOpacity
                 onPress={handleDownload}
                 disabled={isDownloading}
+                hitSlop={10}
               >
                 {isDownloading ? (
                   <Svg width={radius * 2} height={radius * 2}>
