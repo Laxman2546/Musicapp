@@ -145,7 +145,7 @@ const MusicPlayer = () => {
               <View className="w-full flex  items-center mt-8">
                 <Text style={styles.textFont}>Now Playing</Text>
               </View>
-              <Pressable onPress={handlePress}>
+              <Pressable onPress={handlePress} hitSlop={10}>
                 <View>
                   <Image source={backIcon} style={styles.backBtn} />
                 </View>
@@ -182,7 +182,11 @@ const MusicPlayer = () => {
                   {currentSong.primary_artists || currentSong.music}
                 </Text>
               </View>
-              <Pressable style={styles.downloadButton} onPress={favouriteSongs}>
+              <Pressable
+                style={styles.downloadButton}
+                onPress={favouriteSongs}
+                hitSlop={10}
+              >
                 <Image
                   source={favouriteClick ? heartFill : heart}
                   style={styles.downloadSize}
@@ -205,6 +209,7 @@ const MusicPlayer = () => {
                   const width = 310;
                   const newProgress = Math.max(0, Math.min(touchX / width, 1));
                   seekTo(newProgress);
+                  hitSlop = 10;
                 }}
               />
               <View className="flex flex-row justify-between w-full">
@@ -218,7 +223,7 @@ const MusicPlayer = () => {
                   alignItems: "center",
                 }}
               >
-                <Pressable onPress={toggleShuffle}>
+                <Pressable onPress={toggleShuffle} hitSlop={10}>
                   <View
                     className="w-10 h-10 p-2 items-center justify-center rounded-2xl"
                     style={{
@@ -233,6 +238,7 @@ const MusicPlayer = () => {
                   <Pressable
                     onPress={playPrevious}
                     disabled={currentIndex <= 0 && !shuffleActive}
+                    hitSlop={10}
                   >
                     <Image
                       source={prevBtn}
@@ -244,7 +250,10 @@ const MusicPlayer = () => {
                       ]}
                     />
                   </Pressable>
-                  <Pressable onPress={() => setIsPlaying(!isPlaying)}>
+                  <Pressable
+                    onPress={() => setIsPlaying(!isPlaying)}
+                    hitSlop={10}
+                  >
                     <View className="w-16 h-14 p-2 items-center justify-center rounded-xl bg-[#2C2C2C]">
                       <Image
                         source={isPlaying ? pauseIcon : playIcon}
@@ -257,6 +266,7 @@ const MusicPlayer = () => {
                     disabled={
                       currentIndex >= playlist.length - 1 && !shuffleActive
                     }
+                    hitSlop={10}
                   >
                     <Image
                       source={nextIcon}
@@ -269,7 +279,7 @@ const MusicPlayer = () => {
                     />
                   </Pressable>
                 </View>
-                <Pressable onPress={toggleLoopMode}>
+                <Pressable onPress={toggleLoopMode} hitSlop={10}>
                   <View>
                     <Image
                       source={loopMode === 0 ? loopFirst : loopSecond}

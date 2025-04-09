@@ -1,4 +1,4 @@
-import { Image, Text, TouchableOpacity, View } from "react-native";
+import { Image, Text, TouchableOpacity, View, Alert } from "react-native";
 import React, { memo, useEffect, useState } from "react";
 import DownloadSong from "@/assets/images/downloadSong.png";
 import { usePlayer } from "@/context/playerContext";
@@ -8,6 +8,8 @@ import * as FileSystem from "expo-file-system";
 import Svg, { Circle } from "react-native-svg";
 import checked from "@/assets/images/checked.png";
 import * as MediaLibrary from "expo-media-library";
+import { Platform } from "react-native";
+
 const Trending = ({
   type,
   song,
@@ -54,56 +56,124 @@ const Trending = ({
     playSong(songObject, formattedAllSongs, index);
     router.push("/player");
   };
-
   const handleDownload = async () => {
+    // Skip if already downloaded
     if (downloadedSongs || isdownloadedSongs) {
       return;
     }
-    if (permissionResponse?.status !== "granted") {
-      const { status } = await requestPermission();
-      if (status !== "granted") {
-        alert("Permission to access media library is required!");
-        return;
-      }
-    }
+
+    let downloadDest = null;
+
     try {
+      // Check permissions - simplified and separate from the download logic
+      if (permissionResponse?.status !== "granted") {
+        try {
+          const { status } = await requestPermission();
+          if (status !== "granted") {
+            Alert.alert(
+              "Permission Required",
+              "Storage permission is needed to download songs."
+            );
+            return;
+          }
+        } catch (permError) {
+          const errorMsg = `Permission error: ${
+            permError.message || "Unknown"
+          }`;
+          console.log(errorMsg);
+          Alert.alert("Permission Error", errorMsg);
+          return;
+        }
+      }
+
       setIsDownloading(true);
       setDownloadProgress(0);
 
-      const existingSongs = await AsyncStorage.getItem("downloadedSongs");
-      let songsArray = existingSongs ? JSON.parse(existingSongs) : [];
+      // Check if song already exists in storage
+      let songsArray = [];
+      try {
+        const existingSongs = await AsyncStorage.getItem("downloadedSongs");
+        songsArray = existingSongs ? JSON.parse(existingSongs) : [];
 
-      if (
-        songsArray.some(
-          (s) => s.song === song && s.primary_artists === primary_artists
-        )
-      ) {
-        console.log("Song already downloaded");
-        setDownloadedSongs(true);
-        setIsDownloading(false);
-        return;
+        // Validate data structure
+        if (!Array.isArray(songsArray)) {
+          const errorMsg = "Songs data is not an array: " + typeof songsArray;
+          console.log(errorMsg);
+          Alert.alert("Data Error", errorMsg);
+          songsArray = [];
+          await AsyncStorage.setItem("downloadedSongs", JSON.stringify([]));
+        }
+      } catch (storageError) {
+        const errorMsg = `Storage error: ${storageError.message || "Unknown"}`;
+        console.log(errorMsg);
+        Alert.alert("Storage Error", errorMsg);
+        songsArray = [];
+        await AsyncStorage.setItem("downloadedSongs", JSON.stringify([]));
       }
 
-      const sanitizeFileName = (name) =>
-        name.replace(/[^a-z0-9]/gi, "_").toLowerCase();
-      const fileExt = song_url.split(".").pop() || "mp3";
-      const fileName = `${sanitizeFileName(song)}.${fileExt}`;
-      const downloadDest = `${FileSystem.documentDirectory}${fileName}`;
+      // Basic URL validation
+      if (!song_url || typeof song_url !== "string") {
+        const errorMsg = `Invalid URL: ${typeof song_url}`;
+        console.log(errorMsg);
+        Alert.alert("URL Error", errorMsg);
+        throw new Error(errorMsg);
+      }
 
-      const download = FileSystem.createDownloadResumable(
+      // Create a simple filename that's safe for all platforms
+      const safeTitle = song
+        ? song
+            .substring(0, 20)
+            .replace(/[^a-z0-9]/gi, "_")
+            .toLowerCase()
+        : "song";
+      const uniqueId = Date.now().toString().slice(-6);
+      const fileName = `${safeTitle}_${uniqueId}.mp3`;
+
+      // Use a guaranteed safe directory that works across platforms
+      downloadDest = `${FileSystem.cacheDirectory}${fileName}`;
+
+      // Log the download path for debugging
+      console.log("Download path:", downloadDest);
+      Alert.alert(
+        "Download Path",
+        `Attempting to download to: ${downloadDest}`
+      );
+
+      // Create and start the download
+      const downloadResumable = FileSystem.createDownloadResumable(
         song_url,
         downloadDest,
         {},
         (progress) => {
-          const percent =
-            progress.totalBytesWritten / progress.totalBytesExpectedToWrite;
-          setDownloadProgress(percent);
+          if (progress.totalBytesExpectedToWrite > 0) {
+            const percent =
+              progress.totalBytesWritten / progress.totalBytesExpectedToWrite;
+            setDownloadProgress(Math.min(percent, 0.99));
+          }
         }
       );
 
-      const result = await download.downloadAsync();
+      // Execute the download with a simple timeout
+      try {
+        const result = await Promise.race([
+          downloadResumable.downloadAsync(),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Download timeout")), 30000)
+          ),
+        ]);
 
-      if (result && result.status === 200) {
+        // Log the result for debugging
+        console.log("Download result:", JSON.stringify(result));
+
+        // Basic success validation
+        if (!result || !result.uri) {
+          const errorMsg = "Download failed - no result or uri";
+          console.log(errorMsg);
+          Alert.alert("Download Error", errorMsg);
+          throw new Error(errorMsg);
+        }
+
+        // Save the downloaded song info
         const songData = {
           song,
           image,
@@ -119,38 +189,72 @@ const Trending = ({
           JSON.stringify(songsArray)
         );
         setDownloadedSongs(true);
-      } else {
-        throw new Error("Download failed - no result or bad status");
+        setDownloadProgress(1);
+
+        Alert.alert(
+          "Success",
+          `Song downloaded successfully to: ${result.uri}`
+        );
+      } catch (downloadError) {
+        const errorMsg = `Download error: ${
+          downloadError.message || "Unknown"
+        }`;
+        console.log(errorMsg);
+        Alert.alert("Download Error", errorMsg);
+        throw downloadError;
       }
-    } catch (e) {
-      console.error("Full download error:", {
-        message: e.message,
-        stack: e.stack,
-        song_url,
-        downloadDest,
-      });
+    } catch (error) {
+      const errorDetails = `Error: ${error.message || "Unknown"}\nStack: ${
+        error.stack || "No stack trace"
+      }`;
+      console.log("Full error details:", errorDetails);
+      Alert.alert("Download Failed", errorDetails);
+
+      // Cleanup if needed
+      if (downloadDest) {
+        try {
+          const fileInfo = await FileSystem.getInfoAsync(downloadDest);
+          if (fileInfo.exists) {
+            await FileSystem.deleteAsync(downloadDest);
+          }
+        } catch (cleanupError) {
+          console.log("Cleanup error:", cleanupError);
+        }
+      }
     } finally {
       setIsDownloading(false);
     }
   };
-
   const getSongs = async () => {
     try {
       const data = await AsyncStorage.getItem("downloadedSongs");
-      let songDets = data ? JSON.parse(data) : [];
-      if (
-        songDets.some(
-          (s) => s.song === song && s.primary_artists === primary_artists
-        )
-      ) {
-        setDownloadedSongs(true);
-        setIsDownloading(false);
-        return;
+      if (!data) return;
+
+      try {
+        const songDets = JSON.parse(data);
+
+        // Validate data is an array
+        if (!Array.isArray(songDets)) {
+          console.log("Invalid songs data format");
+          return;
+        }
+
+        // Check if current song is downloaded
+        if (
+          songDets.some(
+            (s) => s.song === song && s.primary_artists === primary_artists
+          )
+        ) {
+          setDownloadedSongs(true);
+        }
+      } catch (parseError) {
+        console.log("Parse error:", parseError);
       }
-    } catch (e) {
-      console.log(e);
+    } catch (error) {
+      console.log("Error getting songs:", error);
     }
   };
+
   useEffect(() => {
     getSongs();
   }, []);
@@ -170,10 +274,14 @@ const Trending = ({
   const songName = song ? song.split(`(`)[0] : "Unknown Song";
 
   const getImageSource = (image) => {
-    if (typeof image === "string" && image.startsWith("http")) {
-      return { uri: image };
+    try {
+      if (typeof image === "string" && image.startsWith("http")) {
+        return { uri: image };
+      }
+      return require("../assets/images/musicImage.png");
+    } catch (e) {
+      return require("../assets/images/musicImage.png");
     }
-    return require("../assets/images/musicImage.png");
   };
 
   return (

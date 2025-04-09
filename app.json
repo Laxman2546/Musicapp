@@ -13,6 +13,9 @@
       "bundleIdentifier": "com.lakshmannnani.nanimusic",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
+      },
+      "runtimeVersion": {
+        "policy": "appVersion"
       }
     },
     "android": {
@@ -24,13 +27,17 @@
       "permissions": [
         "FOREGROUND_SERVICE",
         "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "FOREGROUND_SERVICE",
+        "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE"
       ],
       "foregroundService": {
         "startForegroundService": true,
         "notificationTitle": "Nani Music",
         "notificationBody": "Playing in background"
-      }
+      },
+      "runtimeVersion": "1.0.0"
     },
     "web": {
       "bundler": "metro",
@@ -60,6 +67,9 @@
         "projectId": "f14beaa9-f88b-4a23-893a-54ab9523e463"
       }
     },
-    "owner": "lakshmannnani"
+    "owner": "lakshmannnani",
+    "updates": {
+      "url": "https://u.expo.dev/f14beaa9-f88b-4a23-893a-54ab9523e463"
+    }
   }
 }

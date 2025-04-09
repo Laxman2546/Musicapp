@@ -8,6 +8,18 @@ import React, {
   useMemo,
 } from "react";
 import { Audio } from "expo-av";
+import { Platform } from "react-native";
+import * as Notifications from "expo-notifications";
+import * as BackgroundFetch from "expo-background-fetch";
+import * as TaskManager from "expo-task-manager";
+
+const BACKGROUND_PLAYBACK_TASK = "BACKGROUND_PLAYBACK";
+
+// Register background task
+TaskManager.defineTask(BACKGROUND_PLAYBACK_TASK, async () => {
+  // This task keeps the audio running in background
+  return BackgroundFetch.BackgroundFetchResult.NewData;
+});
 
 const PlayerContext = createContext();
 
@@ -81,29 +93,46 @@ export const PlayerProvider = ({ children }) => {
   const soundRef = useRef(null);
   const lastPlayedUri = useRef(null);
   const isMounted = useRef(true);
+  const backgroundTaskRegistered = useRef(false);
 
-  // Setup audio mode
+  // Setup audio mode and background tasks
   useEffect(() => {
     const setupAudioMode = async () => {
       try {
-        // Configure audio mode
+        // Configure audio mode with optimal settings for background play
         await Audio.setAudioModeAsync({
           allowsRecordingIOS: false,
           playsInSilentModeIOS: true,
           staysActiveInBackground: true,
+
           shouldDuckAndroid: true,
+
           playThroughEarpieceAndroid: false,
-          mixingWithOthers: false,
+          // Critical for background playback:
+          androidImplementation: "MediaPlayer", // Uses MediaPlayer API for better background support
         });
+
+        // Register background task if not already registered
+        if (!backgroundTaskRegistered.current) {
+          await BackgroundFetch.registerTaskAsync(BACKGROUND_PLAYBACK_TASK, {
+            minimumInterval: 1, // minimum 1 second between task executions
+            stopOnTerminate: false, // continue task when app is terminated
+            startOnBoot: true, // restart task after device reboot
+          });
+          backgroundTaskRegistered.current = true;
+        }
 
         // Setup notification/controls
         if (Platform.OS === "android") {
           await Notifications.setNotificationChannelAsync("audio_playback", {
             name: "Audio Playback",
-            importance: Notifications.AndroidImportance.MAX,
+            importance: Notifications.AndroidImportance.HIGH,
             sound: "default",
             vibrationPattern: [0, 250, 250, 250],
             lightColor: "#FF231F7C",
+            lockscreenVisibility:
+              Notifications.AndroidNotificationVisibility.PUBLIC,
+            bypassDnd: true,
           });
         }
       } catch (error) {
@@ -111,9 +140,34 @@ export const PlayerProvider = ({ children }) => {
       }
     };
 
+    setupAudioMode();
+
     return () => {
       isMounted.current = false;
-      unloadSound();
+      // Don't automatically unload sound on unmount - allows background playback
+      // Instead, just capture the unmount state
+    };
+  }, []);
+
+  // Additional effect for cleanup when app is fully terminated
+  useEffect(() => {
+    return () => {
+      // Only unload when the app is fully terminating
+      if (soundRef.current) {
+        soundRef.current
+          .getStatusAsync()
+          .then((status) => {
+            if (!status.isPlaying) {
+              unloadSound();
+            }
+          })
+          .catch((error) => {
+            console.error(
+              "Error checking playback status during cleanup:",
+              error
+            );
+          });
+      }
     };
   }, []);
 
@@ -163,37 +217,62 @@ export const PlayerProvider = ({ children }) => {
     }
   }, []);
 
-  // Playback status update handler
-  const onPlaybackStatusUpdate = useCallback((status) => {
-    if (!status.isLoaded) return;
+  // Playback status update handler with enhanced reliability
+  const onPlaybackStatusUpdate = useCallback(
+    (status) => {
+      if (!status.isLoaded) return;
 
-    if (status.durationMillis) {
-      setDuration((prev) => {
-        const newDuration = status.durationMillis / 1000;
-        return Math.abs(newDuration - prev) > 0.1 ? newDuration : prev;
-      });
-    }
-
-    if (status.positionMillis >= 0) {
-      const newPosition = status.positionMillis / 1000;
-      setPosition((prev) =>
-        Math.abs(newPosition - prev) > 0.1 ? newPosition : prev
-      );
-
-      if (status.durationMillis > 0) {
-        const newProgress = status.positionMillis / status.durationMillis;
-        setProgress((prev) =>
-          Math.abs(newProgress - prev) > 0.001 ? newProgress : prev
-        );
+      if (status.durationMillis) {
+        setDuration((prev) => {
+          const newDuration = status.durationMillis / 1000;
+          return Math.abs(newDuration - prev) > 0.1 ? newDuration : prev;
+        });
       }
-    }
 
-    if (status.didJustFinish && isMounted.current) {
-      setIsSongEnded(true);
-    }
-  }, []);
+      if (status.positionMillis >= 0) {
+        const newPosition = status.positionMillis / 1000;
+        setPosition((prev) =>
+          Math.abs(newPosition - prev) > 0.1 ? newPosition : prev
+        );
 
-  // Load sound when currentSong changes
+        if (status.durationMillis > 0) {
+          const newProgress = status.positionMillis / status.durationMillis;
+          setProgress((prev) =>
+            Math.abs(newProgress - prev) > 0.001 ? newProgress : prev
+          );
+        }
+      }
+
+      // Show notification with playback details (Android)
+      if (Platform.OS === "android" && currentSong) {
+        try {
+          Notifications.scheduleNotificationAsync({
+            content: {
+              title: currentSong.title || "Now Playing",
+              subtitle: currentSong.artist || "",
+              body: isPlaying ? "Playing" : "Paused",
+              data: { currentSong },
+              autoDismiss: false,
+              sticky: true,
+              priority: "high",
+              sound: false,
+            },
+            trigger: null,
+            channelId: "audio_playback",
+          });
+        } catch (error) {
+          console.error("Error showing notification:", error);
+        }
+      }
+
+      if (status.didJustFinish && isMounted.current) {
+        setIsSongEnded(true);
+      }
+    },
+    [currentSong, isPlaying]
+  );
+
+  // Load sound when currentSong changes with improved background support
   useEffect(() => {
     if (!currentSong?.song_url) return;
 
@@ -206,7 +285,13 @@ export const PlayerProvider = ({ children }) => {
 
         const { sound: newSound } = await Audio.Sound.createAsync(
           { uri: currentSong.song_url },
-          { shouldPlay: isPlaying },
+          {
+            shouldPlay: isPlaying,
+            progressUpdateIntervalMillis: 1000, // Update progress every second
+            positionMillis: 0,
+            androidImplementation: "MediaPlayer",
+            staysActiveInBackground: true,
+          },
           onPlaybackStatusUpdate
         );
 

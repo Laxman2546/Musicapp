@@ -51,7 +51,7 @@ const localFiles = () => {
     if (status === "granted") {
       const media = await MediaLibrary.getAssetsAsync({
         mediaType: MediaLibrary.MediaType.audio,
-        first: 100000,
+        first: 1000,
       });
 
       const songDetails = await Promise.all(

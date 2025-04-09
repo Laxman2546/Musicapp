@@ -49,6 +49,7 @@ const Search = () => {
           <Pressable
             style={styles.searchImg}
             onPress={() => handleSearchQuery(searchQuery)}
+            hitSlop={10}
           >
             <Image source={searchImg} style={styles.img} />
           </Pressable>
