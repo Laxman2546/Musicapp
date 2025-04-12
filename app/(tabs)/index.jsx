@@ -12,7 +12,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import HomeBtns from "../../components/homeBtns";
-import BhakthiBtns from "@/components/bhakthiBtns";
 import Trending from "../../components/trending";
 import useFetch from "@/services/useFetch";
 import { fetchMusic, getNextPlaylist } from "../../services/api";
@@ -21,6 +20,7 @@ import searchImg from "@/assets/images/search.png";
 import closeImg from "@/assets/images/close.png";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
+
 const Home = () => {
   const [active, setActive] = useState("All");
   const [bhakthiActive, setbhakthiActive] = useState("VenkateshwaraSwamy");
@@ -42,6 +42,7 @@ const Home = () => {
   const [endReached, setEndReached] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
   useEffect(() => {
     const date = new Date();
     const hrs = date.getHours();
@@ -214,7 +215,7 @@ const Home = () => {
                     <View style={styles.section}>
                       <View>
                         <Text style={styles.activeText}>
-                          Top charts -Telugu
+                          Top charts -telugu
                         </Text>
                       </View>
                       <FlatList
@@ -297,7 +298,7 @@ const Home = () => {
                     <View style={styles.section2}>
                       <View>
                         <Text style={styles.activeText}>
-                          Top playlists -Hindi
+                          Top playlists - Hindi
                         </Text>
                       </View>
                       <View>

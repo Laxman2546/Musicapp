@@ -8,7 +8,7 @@ import React, {
   useMemo,
 } from "react";
 import { Audio } from "expo-av";
-import { Platform } from "react-native";
+import { Platform, AppState } from "react-native";
 import * as Notifications from "expo-notifications";
 import * as BackgroundFetch from "expo-background-fetch";
 import * as TaskManager from "expo-task-manager";
@@ -94,6 +94,7 @@ export const PlayerProvider = ({ children }) => {
   const lastPlayedUri = useRef(null);
   const isMounted = useRef(true);
   const backgroundTaskRegistered = useRef(false);
+  const appState = useRef(AppState.currentState);
 
   // Setup audio mode and background tasks
   useEffect(() => {
@@ -104,22 +105,25 @@ export const PlayerProvider = ({ children }) => {
           allowsRecordingIOS: false,
           playsInSilentModeIOS: true,
           staysActiveInBackground: true,
-
           shouldDuckAndroid: true,
-
           playThroughEarpieceAndroid: false,
-          // Critical for background playback:
           androidImplementation: "MediaPlayer", // Uses MediaPlayer API for better background support
         });
 
         // Register background task if not already registered
         if (!backgroundTaskRegistered.current) {
-          await BackgroundFetch.registerTaskAsync(BACKGROUND_PLAYBACK_TASK, {
-            minimumInterval: 1, // minimum 1 second between task executions
-            stopOnTerminate: false, // continue task when app is terminated
-            startOnBoot: true, // restart task after device reboot
-          });
-          backgroundTaskRegistered.current = true;
+          try {
+            await BackgroundFetch.registerTaskAsync(BACKGROUND_PLAYBACK_TASK, {
+              minimumInterval: 1, // minimum 1 second between task executions
+              stopOnTerminate: false, // continue task when app is terminated
+              startOnBoot: true, // restart task after device reboot
+            });
+            backgroundTaskRegistered.current = true;
+          } catch (error) {
+            console.log("Background fetch registration error:", error);
+            // Fallback for devices that don't support background fetch
+            backgroundTaskRegistered.current = false;
+          }
         }
 
         // Setup notification/controls
@@ -142,12 +146,59 @@ export const PlayerProvider = ({ children }) => {
 
     setupAudioMode();
 
+    // Handle app state changes
+    const handleAppStateChange = async (nextAppState) => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === "active"
+      ) {
+        // App coming to foreground
+        if (soundRef.current && isPlaying) {
+          try {
+            const status = await soundRef.current.getStatusAsync();
+            if (status.isLoaded && !status.isPlaying) {
+              await soundRef.current.playAsync();
+            }
+          } catch (error) {
+            console.error("Error resuming playback:", error);
+          }
+        }
+      } else if (nextAppState === "background") {
+        // App going to background
+        if (soundRef.current && isPlaying) {
+          try {
+            await Notifications.scheduleNotificationAsync({
+              content: {
+                title: currentSong?.title || "Now Playing",
+                subtitle: currentSong?.artist || "",
+                body: "Playing in background",
+                data: { currentSong },
+                autoDismiss: false,
+                sticky: true,
+                priority: "high",
+                sound: false,
+              },
+              trigger: null,
+              channelId: "audio_playback",
+            });
+          } catch (error) {
+            console.error("Error showing background notification:", error);
+          }
+        }
+      }
+      appState.current = nextAppState;
+    };
+
+    const subscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange
+    );
+
     return () => {
       isMounted.current = false;
-      // Don't automatically unload sound on unmount - allows background playback
-      // Instead, just capture the unmount state
+      subscription.remove();
     };
-  }, []);
+  }, [isPlaying, currentSong]);
 
   // Additional effect for cleanup when app is fully terminated
   useEffect(() => {
@@ -243,7 +294,6 @@ export const PlayerProvider = ({ children }) => {
         }
       }
 
-      // Show notification with playback details (Android)
       if (Platform.OS === "android" && currentSong) {
         try {
           Notifications.scheduleNotificationAsync({
@@ -291,6 +341,7 @@ export const PlayerProvider = ({ children }) => {
             positionMillis: 0,
             androidImplementation: "MediaPlayer",
             staysActiveInBackground: true,
+            isLooping: loopMode === 2, // Enable native looping for single song loop
           },
           onPlaybackStatusUpdate
         );
@@ -312,7 +363,14 @@ export const PlayerProvider = ({ children }) => {
     };
 
     loadSound();
-  }, [currentSong, isPlaying, onPlaybackStatusUpdate, unloadSound, isLoading]);
+  }, [
+    currentSong,
+    isPlaying,
+    onPlaybackStatusUpdate,
+    unloadSound,
+    isLoading,
+    loopMode,
+  ]);
 
   // Control playback when isPlaying changes
   useEffect(() => {

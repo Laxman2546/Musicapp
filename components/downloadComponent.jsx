@@ -1,11 +1,10 @@
 import { Image, Pressable, Text, TouchableOpacity, View } from "react-native";
-import React, { memo, useEffect, useState } from "react";
+import React, { memo, useState } from "react";
 import { usePlayer } from "@/context/playerContext";
 import { router } from "expo-router";
 import moreIcon from "@/assets/images/more.png";
 import trash from "@/assets/images/trash.png";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
+import * as FileSystem from "expo-file-system";
 const DownloadComponent = ({
   type,
   song,
@@ -20,24 +19,11 @@ const DownloadComponent = ({
 }) => {
   const { playSong, currentSong, isPlaying } = usePlayer();
   const [showMore, setShowmore] = useState(false);
-  const [isEmpty, setIsEmpty] = useState(false);
 
-  useEffect(() => {
-    const checkIfEmpty = async () => {
-      try {
-        const data = await AsyncStorage.getItem("downloadedSongs");
-        const songs = data ? JSON.parse(data) : [];
-        setIsEmpty(songs.length === 0);
-      } catch (error) {
-        console.error("Error checking downloads:", error);
-        setIsEmpty(true);
-      }
-    };
-    checkIfEmpty();
-  }, []);
   const gotoPlayer = () => {
     if (currentSong == isPlaying) router.push("/player");
   };
+
   const handleSong = () => {
     const songObject = {
       song,
@@ -73,17 +59,22 @@ const DownloadComponent = ({
 
   const handleDelete = async () => {
     try {
-      const data = await AsyncStorage.getItem("downloadedSongs");
-      let songs = data ? JSON.parse(data) : [];
-      songs = songs.filter(
-        (s) => !(s.song === song && s.primary_artists === primary_artists)
-      );
-      await AsyncStorage.setItem("downloadedSongs", JSON.stringify(songs));
-      setIsEmpty(songs.length === 0);
-      if (onDelete) onDelete();
-      setShowmore(false);
+      // Try deleting the song file
+      await FileSystem.deleteAsync(song_url);
+
+      // Try deleting the associated JSON metadata file (if exists)
+      const jsonFile = song_url.replace(".mp3", ".json");
+      try {
+        await FileSystem.deleteAsync(jsonFile);
+      } catch (error) {
+        // If the JSON file doesn't exist, it will throw an error, but it's fine
+        console.log("No associated JSON file to delete");
+      }
+
+      // Reload the song list
+      onDelete();
     } catch (error) {
-      console.error("Error deleting song:", error);
+      console.log("Error deleting file:", error);
     }
   };
 
@@ -96,21 +87,11 @@ const DownloadComponent = ({
     return require("../assets/images/musicImage.png");
   };
 
-  if (isEmpty) {
-    return (
-      <View className="w-full h-full flex justify-center items-center pb-10">
-        <Text style={{ fontFamily: "Nunito-Bold", fontSize: 18 }}>
-          No downloaded songs found 😕
-        </Text>
-      </View>
-    );
-  }
-
   return (
     <Pressable
       onPress={() => {
         setShowmore(false);
-        gotoPlayer;
+        gotoPlayer();
       }}
     >
       <View className="w-full flex flex-row gap-6 bg-gray-100 rounded-2xl p-3 mb-2">

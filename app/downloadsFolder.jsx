@@ -8,172 +8,196 @@ import {
   TextInput,
 } from "react-native";
 import React, { useEffect, useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { goBack } from "expo-router/build/global-state/routing";
-import backIcon from "@/assets/images/backImg.png";
+import * as FileSystem from "expo-file-system";
 import { router } from "expo-router";
+import backIcon from "@/assets/images/backImg.png";
 import DownloadComponent from "@/components/downloadComponent";
 import searchImg from "@/assets/images/search.png";
 import closeImg from "@/assets/images/close.png";
-const downloadsFolder = () => {
-  const [songs, setSongs] = React.useState([]);
+
+const DOWNLOAD_DIR = FileSystem.documentDirectory + "downloads/";
+
+const DownloadsFolder = () => {
+  const [songs, setSongs] = useState([]);
   const [filteredSongs, setFilteredSongs] = useState([]);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
   const loadSongs = async () => {
     try {
-      const data = await AsyncStorage.getItem("downloadedSongs");
-      setSongs(data ? JSON.parse(data) : []);
+      const files = await FileSystem.readDirectoryAsync(DOWNLOAD_DIR);
+      console.log("All files:", files);
+
+      // Filter only .mp3 files
+      const mp3Files = files.filter((file) => file.endsWith(".mp3"));
+      console.log("MP3 files:", mp3Files);
+
+      // Filter corresponding .json files for metadata
+      const jsonFiles = files.filter((file) => file.endsWith(".json"));
+      console.log("JSON files:", jsonFiles);
+
+      // Create song objects
+      const songData = await Promise.all(
+        mp3Files.map(async (fileName) => {
+          const baseName = fileName.replace(".mp3", "");
+
+          // Find corresponding JSON metadata file
+          const jsonFile = jsonFiles.find((jsonFile) =>
+            jsonFile.includes(baseName)
+          );
+
+          let metadata = {
+            image: null,
+            primary_artists: "Unknown",
+            duration: "Unknown",
+          };
+
+          if (jsonFile) {
+            const jsonContent = await FileSystem.readAsStringAsync(
+              DOWNLOAD_DIR + jsonFile
+            );
+            metadata = JSON.parse(jsonContent); // Assuming the metadata structure in JSON
+          }
+
+          return {
+            song: baseName,
+            filePath: DOWNLOAD_DIR + fileName,
+            image: metadata.image || null,
+            primary_artists:
+              metadata.primary_artists || metadata.music || "Unknown",
+            duration: metadata.duration || "Unknown",
+          };
+        })
+      );
+
+      setSongs(songData);
+      setFilteredSongs(songData);
     } catch (e) {
-      console.log(e);
+      console.log("Error loading songs:", e);
     }
   };
+
   useEffect(() => {
     loadSongs();
   }, []);
 
   const handleBack = () => {
-    router.push(goBack);
+    router.back();
   };
+
   const handleSearch = () => {
     setShowSearch(!showSearch);
     handleClearSearch();
   };
-  const handleSearchQuery = (searchQuery) => {
-    setSearchQuery(searchQuery);
-    if (!searchQuery) {
-      return;
+
+  const handleSearchQuery = (text) => {
+    setSearchQuery(text);
+    if (!text) {
+      setFilteredSongs(songs);
+    } else {
+      const results = songs.filter((item) =>
+        item.song.toLowerCase().includes(text.toLowerCase())
+      );
+      setFilteredSongs(results);
     }
-    searchResults(searchQuery);
   };
+
   const handleClearSearch = () => {
     setSearchQuery("");
-    setFilteredSongs([]);
+    setFilteredSongs(songs);
   };
-  const searchResults = (searchQuery) => {
-    const songsData = songs;
-    const filteredResults = songsData.filter((item) =>
-      item.song.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-    setFilteredSongs(filteredResults);
-  };
-  return (
-    <>
-      <View className="p-5">
-        <View className="flex flex-row gap-3 items-center">
-          <Pressable onPress={handleBack}>
-            <View className="p-3 rounded-full bg-[#222]">
-              <Image source={backIcon} style={styles.backImg} />
-            </View>
-          </Pressable>
-          <Text style={styles.textStyle}>Downloads</Text>
-        </View>
-        {songs.length < 1 ? (
-          <>
-            <View className="w-full h-screen flex items-center justify-center">
-              <Text style={styles.textFont}>No Downloads found 😐</Text>
-              <Text style={styles.textFont}>Try downloading the songs....</Text>
-            </View>
-          </>
-        ) : (
-          <>
-            <View className="w-full flex flex-row items-center justify-between p-4">
-              <View>
-                <Pressable onPress={handleSearch}>
-                  <Image
-                    source={showSearch ? closeImg : searchImg}
-                    style={styles.searchIcon}
-                  />
-                </Pressable>
-              </View>
-            </View>
 
-            <View>
-              <View className="mb-[2px]">
-                {showSearch && (
-                  <View className="w-full p-4">
-                    <View className="relative">
-                      <Pressable
-                        style={styles.searchImg}
-                        onPress={() => handleSearchQuery(searchQuery)}
-                      >
-                        <Image source={searchImg} style={styles.img} />
-                      </Pressable>
-                      {searchQuery && (
-                        <Pressable
-                          onPress={handleClearSearch}
-                          style={styles.cancel}
-                        >
-                          <Image source={closeImg} style={styles.cancelImg} />
-                        </Pressable>
-                      )}
-                      <TextInput
-                        style={styles.SearchtextFont}
-                        className="bg-gray-200 w-full p-4 pl-10 rounded-md"
-                        placeholder={`Search in Downloads`}
-                        onChangeText={handleSearchQuery}
-                        value={searchQuery}
-                        enterKeyHint="search"
-                        onSubmitEditing={() => handleSearchQuery(searchQuery)}
-                        returnKeyType="search"
-                      />
-                    </View>
-                  </View>
+  return (
+    <View style={{ flex: 1 }} className="p-5">
+      <View className="flex flex-row gap-3 items-center">
+        <Pressable onPress={handleBack}>
+          <View className="p-3 rounded-full bg-[#222]">
+            <Image source={backIcon} style={styles.backImg} />
+          </View>
+        </Pressable>
+        <Text style={styles.textStyle}>Downloads</Text>
+      </View>
+
+      {songs.length < 1 ? (
+        <View className="flex-1 items-center justify-center">
+          <Text style={styles.textFont}>No Downloads found 😐</Text>
+          <Text style={styles.textFont}>Try downloading the songs....</Text>
+        </View>
+      ) : (
+        <>
+          <View className="w-full flex flex-row items-center justify-between p-4">
+            <Pressable onPress={handleSearch}>
+              <Image
+                source={showSearch ? closeImg : searchImg}
+                style={styles.searchIcon}
+              />
+            </Pressable>
+          </View>
+
+          {showSearch && (
+            <View className="w-full p-4">
+              <View className="relative">
+                <Pressable style={styles.searchImg}>
+                  <Image source={searchImg} style={styles.img} />
+                </Pressable>
+                {searchQuery && (
+                  <Pressable onPress={handleClearSearch} style={styles.cancel}>
+                    <Image source={closeImg} style={styles.cancelImg} />
+                  </Pressable>
                 )}
+                <TextInput
+                  style={styles.SearchtextFont}
+                  className="bg-gray-200 w-full p-4 pl-10 rounded-md"
+                  placeholder={`Search in Downloads`}
+                  onChangeText={handleSearchQuery}
+                  value={searchQuery}
+                  returnKeyType="search"
+                />
               </View>
             </View>
-            <View>
-              <FlatList
-                data={
-                  searchQuery && filteredSongs ? filteredSongs : songs || []
-                }
-                className="mb-16"
-                renderItem={({ item, index }) => (
-                  <>
-                    <DownloadComponent
-                      song={item.song}
-                      image={item.image}
-                      song_url={item.filePath}
-                      primary_artists={item.primary_artists}
-                      duration={item.duration}
-                      index={index}
-                      allSongs={songs || []}
-                      onDelete={loadSongs}
-                    />
-                  </>
-                )}
-                showsVerticalScrollIndicator={false}
-                ListFooterComponent={
-                  <View className="w-full items-center mb-[90px]">
-                    {searchQuery ? (
-                      filteredSongs.length > 0 ? (
-                        <View className="mb-[250px]">
-                          <Text style={styles.fontStyle}>{`Found ${
-                            filteredSongs.length
-                          } song${
-                            filteredSongs.length > 1 ? "s" : ""
-                          } 😊`}</Text>
-                        </View>
-                      ) : (
-                        <Text style={styles.fontStyle}>No songs found 😥</Text>
-                      )
-                    ) : (
-                      <Text style={styles.fontStyle}>
-                        You have reached the end ✨
-                      </Text>
-                    )}
-                  </View>
-                }
+          )}
+
+          <FlatList
+            data={filteredSongs}
+            keyExtractor={(item, index) => index.toString()}
+            renderItem={({ item, index }) => (
+              <DownloadComponent
+                song={item.song}
+                image={item.image}
+                song_url={item.filePath}
+                primary_artists={item.primary_artists}
+                duration={item.duration}
+                index={index}
+                allSongs={filteredSongs}
+                onDelete={loadSongs}
               />
-            </View>
-          </>
-        )}
-      </View>
-    </>
+            )}
+            ListFooterComponent={
+              <View className="w-full items-center mb-[90px]">
+                {searchQuery ? (
+                  filteredSongs.length > 0 ? (
+                    <Text style={styles.fontStyle}>
+                      Found {filteredSongs.length} song
+                      {filteredSongs.length > 1 ? "s" : ""} 😊
+                    </Text>
+                  ) : (
+                    <Text style={styles.fontStyle}>No songs found 😥</Text>
+                  )
+                ) : (
+                  <Text style={styles.fontStyle}>
+                    You have reached the end ✨
+                  </Text>
+                )}
+              </View>
+            }
+          />
+        </>
+      )}
+    </View>
   );
 };
 
-export default downloadsFolder;
+export default DownloadsFolder;
 
 const styles = StyleSheet.create({
   backImg: {

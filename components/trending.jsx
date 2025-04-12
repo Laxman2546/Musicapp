@@ -1,17 +1,32 @@
-import { Image, Text, TouchableOpacity, View, Alert } from "react-native";
-import React, { memo, useEffect, useState } from "react";
-import DownloadSong from "@/assets/images/downloadSong.png";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  Alert,
+  ActivityIndicator,
+  Platform,
+} from "react-native";
+import React, { useEffect, useState, memo } from "react";
 import { usePlayer } from "@/context/playerContext";
 import { router } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system";
-import Svg, { Circle } from "react-native-svg";
-import checked from "@/assets/images/checked.png";
 import * as MediaLibrary from "expo-media-library";
-import { Platform } from "react-native";
+import downloadIcon from "@/assets/images/downloadSong.png";
+import checkedIcon from "@/assets/images/checked.png";
+import defaultMusicImage from "@/assets/images/musicImage.png";
+
+const downloadsDir = `${FileSystem.documentDirectory}downloads/`;
+
+// Ensure directory exists
+const ensureDirExists = async () => {
+  const dir = await FileSystem.getInfoAsync(downloadsDir);
+  if (!dir.exists) {
+    await FileSystem.makeDirectoryAsync(downloadsDir, { intermediates: true });
+  }
+};
 
 const Trending = ({
-  type,
   song,
   image,
   music,
@@ -23,16 +38,26 @@ const Trending = ({
   isdownloadedSongs,
 }) => {
   const { playSong } = usePlayer();
-  const [downloadProgress, setDownloadProgress] = useState(0);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadedSongs, setDownloadedSongs] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [isDownloaded, setIsDownloaded] = useState(false);
   const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
-  const radius = 12;
-  const strokeWidth = 2;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference * (1 - downloadProgress);
 
-  const handleSong = () => {
+  const convertDuration = (duration) => {
+    if (!duration) return "00:00";
+    const min = Math.floor(duration / 60);
+    const sec = Math.floor(duration % 60);
+    return `${min.toString().padStart(2, "0")}:${sec
+      .toString()
+      .padStart(2, "0")}`;
+  };
+
+  const getImageSource = (uri) =>
+    typeof uri === "string" && uri.startsWith("http")
+      ? { uri }
+      : defaultMusicImage;
+
+  const handlePlay = () => {
     const songObject = {
       song,
       image,
@@ -42,245 +67,96 @@ const Trending = ({
       song_url,
     };
 
-    const formattedAllSongs = Array.isArray(allSongs)
-      ? allSongs.map((song, i) => ({
-          song: song.song,
-          image: song.image,
-          music: song.music,
-          duration: song.duration,
-          primary_artists: song.primary_artists,
-          song_url: song.media_url || song.music || song.filePath,
-        }))
-      : [songObject];
+    const formattedList = allSongs.map((item, i) => ({
+      song: item.song,
+      image: item.image,
+      music: item.music,
+      duration: item.duration,
+      primary_artists: item.primary_artists,
+      song_url: item.media_url || item.music || item.filePath,
+    }));
 
-    playSong(songObject, formattedAllSongs, index);
+    playSong(songObject, formattedList, index);
     router.push("/player");
   };
-  const handleDownload = async () => {
-    // Skip if already downloaded
-    if (downloadedSongs || isdownloadedSongs) {
-      return;
-    }
 
-    let downloadDest = null;
+  const checkIfAlreadyDownloaded = async () => {
+    await ensureDirExists();
+    const files = await FileSystem.readDirectoryAsync(downloadsDir);
+    const name = song;
+    const exists = files.some((file) => file.includes(name));
+    setIsDownloaded(exists);
+  };
+
+  useEffect(() => {
+    checkIfAlreadyDownloaded();
+  }, []);
+
+  const handleDownload = async () => {
+    if (isDownloaded || isDownloading || !song_url) return;
 
     try {
-      // Check permissions - simplified and separate from the download logic
+      setIsDownloading(true);
+      setDownloadProgress(0);
+      await ensureDirExists();
+
       if (permissionResponse?.status !== "granted") {
-        try {
-          const { status } = await requestPermission();
-          if (status !== "granted") {
-            Alert.alert(
-              "Permission Required",
-              "Storage permission is needed to download songs."
-            );
-            return;
-          }
-        } catch (permError) {
-          const errorMsg = `Permission error: ${
-            permError.message || "Unknown"
-          }`;
-          console.log(errorMsg);
-          Alert.alert("Permission Error", errorMsg);
+        const { status } = await requestPermission();
+        if (status !== "granted") {
+          Alert.alert(
+            "Permission Required",
+            "Media access is needed to save songs."
+          );
           return;
         }
       }
 
-      setIsDownloading(true);
-      setDownloadProgress(0);
+      const filename = `${song}.mp3`;
+      const filePath = `${downloadsDir}${filename}`;
 
-      // Check if song already exists in storage
-      let songsArray = [];
-      try {
-        const existingSongs = await AsyncStorage.getItem("downloadedSongs");
-        songsArray = existingSongs ? JSON.parse(existingSongs) : [];
-
-        // Validate data structure
-        if (!Array.isArray(songsArray)) {
-          const errorMsg = "Songs data is not an array: " + typeof songsArray;
-          console.log(errorMsg);
-          Alert.alert("Data Error", errorMsg);
-          songsArray = [];
-          await AsyncStorage.setItem("downloadedSongs", JSON.stringify([]));
-        }
-      } catch (storageError) {
-        const errorMsg = `Storage error: ${storageError.message || "Unknown"}`;
-        console.log(errorMsg);
-        Alert.alert("Storage Error", errorMsg);
-        songsArray = [];
-        await AsyncStorage.setItem("downloadedSongs", JSON.stringify([]));
-      }
-
-      // Basic URL validation
-      if (!song_url || typeof song_url !== "string") {
-        const errorMsg = `Invalid URL: ${typeof song_url}`;
-        console.log(errorMsg);
-        Alert.alert("URL Error", errorMsg);
-        throw new Error(errorMsg);
-      }
-
-      // Create a simple filename that's safe for all platforms
-      const safeTitle = song
-        ? song
-            .substring(0, 20)
-            .replace(/[^a-z0-9]/gi, "_")
-            .toLowerCase()
-        : "song";
-      const uniqueId = Date.now().toString().slice(-6);
-      const fileName = `${safeTitle}_${uniqueId}.mp3`;
-
-      // Use a guaranteed safe directory that works across platforms
-      downloadDest = `${FileSystem.cacheDirectory}${fileName}`;
-
-      // Log the download path for debugging
-      console.log("Download path:", downloadDest);
-      Alert.alert(
-        "Download Path",
-        `Attempting to download to: ${downloadDest}`
-      );
-
-      // Create and start the download
       const downloadResumable = FileSystem.createDownloadResumable(
         song_url,
-        downloadDest,
+        filePath,
         {},
         (progress) => {
           if (progress.totalBytesExpectedToWrite > 0) {
             const percent =
               progress.totalBytesWritten / progress.totalBytesExpectedToWrite;
-            setDownloadProgress(Math.min(percent, 0.99));
+            setDownloadProgress(percent);
           }
         }
       );
 
-      // Execute the download with a simple timeout
-      try {
-        const result = await Promise.race([
-          downloadResumable.downloadAsync(),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error("Download timeout")), 30000)
-          ),
-        ]);
+      const result = await downloadResumable.downloadAsync();
+      if (!result?.uri) throw new Error("Download failed");
 
-        // Log the result for debugging
-        console.log("Download result:", JSON.stringify(result));
-
-        // Basic success validation
-        if (!result || !result.uri) {
-          const errorMsg = "Download failed - no result or uri";
-          console.log(errorMsg);
-          Alert.alert("Download Error", errorMsg);
-          throw new Error(errorMsg);
-        }
-
-        // Save the downloaded song info
-        const songData = {
-          song,
-          image,
-          duration,
-          primary_artists,
-          filePath: result.uri,
-          downloadDate: new Date().toISOString(),
-        };
-
-        songsArray.push(songData);
-        await AsyncStorage.setItem(
-          "downloadedSongs",
-          JSON.stringify(songsArray)
-        );
-        setDownloadedSongs(true);
-        setDownloadProgress(1);
-
-        Alert.alert(
-          "Success",
-          `Song downloaded successfully to: ${result.uri}`
-        );
-      } catch (downloadError) {
-        const errorMsg = `Download error: ${
-          downloadError.message || "Unknown"
-        }`;
-        console.log(errorMsg);
-        Alert.alert("Download Error", errorMsg);
-        throw downloadError;
+      // Save to Media Library (Android)
+      if (Platform.OS === "android") {
+        const asset = await MediaLibrary.createAssetAsync(result.uri);
+        await MediaLibrary.createAlbumAsync("Music Downloads", asset, false);
       }
-    } catch (error) {
-      const errorDetails = `Error: ${error.message || "Unknown"}\nStack: ${
-        error.stack || "No stack trace"
-      }`;
-      console.log("Full error details:", errorDetails);
-      Alert.alert("Download Failed", errorDetails);
 
-      // Cleanup if needed
-      if (downloadDest) {
-        try {
-          const fileInfo = await FileSystem.getInfoAsync(downloadDest);
-          if (fileInfo.exists) {
-            await FileSystem.deleteAsync(downloadDest);
-          }
-        } catch (cleanupError) {
-          console.log("Cleanup error:", cleanupError);
-        }
-      }
+      // Save metadata (JSON) next to file
+      const metadata = {
+        song,
+        artist: primary_artists,
+        duration,
+        image,
+        music,
+        filePath: result.uri,
+        downloadedAt: new Date().toISOString(),
+      };
+
+      const metaFile = `${downloadsDir}${filename.replace(".mp3", ".json")}`;
+      await FileSystem.writeAsStringAsync(metaFile, JSON.stringify(metadata));
+      console.log(metadata);
+      setIsDownloaded(true);
+      Alert.alert("Downloaded", "Song downloaded with metadata!");
+    } catch (err) {
+      console.log("Download Error:", err.message);
+      Alert.alert("Error", "Failed to download song.");
     } finally {
       setIsDownloading(false);
-    }
-  };
-  const getSongs = async () => {
-    try {
-      const data = await AsyncStorage.getItem("downloadedSongs");
-      if (!data) return;
-
-      try {
-        const songDets = JSON.parse(data);
-
-        // Validate data is an array
-        if (!Array.isArray(songDets)) {
-          console.log("Invalid songs data format");
-          return;
-        }
-
-        // Check if current song is downloaded
-        if (
-          songDets.some(
-            (s) => s.song === song && s.primary_artists === primary_artists
-          )
-        ) {
-          setDownloadedSongs(true);
-        }
-      } catch (parseError) {
-        console.log("Parse error:", parseError);
-      }
-    } catch (error) {
-      console.log("Error getting songs:", error);
-    }
-  };
-
-  useEffect(() => {
-    getSongs();
-  }, []);
-
-  const convertDuration = (duration) => {
-    if (!duration) return "00:00";
-
-    const minutes = Math.floor((duration % 3600) / 60);
-    const seconds = Math.floor(duration % 60);
-
-    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(
-      2,
-      "0"
-    )}`;
-  };
-
-  const songName = song ? song.split(`(`)[0] : "Unknown Song";
-
-  const getImageSource = (image) => {
-    try {
-      if (typeof image === "string" && image.startsWith("http")) {
-        return { uri: image };
-      }
-      return require("../assets/images/musicImage.png");
-    } catch (e) {
-      return require("../assets/images/musicImage.png");
     }
   };
 
@@ -288,88 +164,63 @@ const Trending = ({
     <>
       {song ? (
         <View className="w-full flex flex-row gap-6 bg-gray-100 rounded-2xl p-4 mb-2">
-          <View>
-            <Image
-              source={getImageSource(image)}
-              defaultSource={require("../assets/images/musicImage.png")}
-              style={{
-                width: 60,
-                height: 60,
-                borderRadius: 10,
-              }}
-            />
+          <Image
+            source={getImageSource(image)}
+            defaultSource={defaultMusicImage}
+            style={{ width: 60, height: 60, borderRadius: 10 }}
+          />
+          <View className="flex-1 justify-between">
+            <TouchableOpacity onPress={handlePlay}>
+              <Text
+                numberOfLines={1}
+                className="text-lg font-bold"
+                style={{
+                  fontFamily: "Nunito-Bold",
+                }}
+              >
+                {song}
+              </Text>
+              <Text
+                numberOfLines={1}
+                className="text-sm text-gray-600"
+                style={{
+                  fontFamily: "Poppins-Regular",
+                }}
+              >
+                {primary_artists || music}
+              </Text>
+            </TouchableOpacity>
           </View>
 
-          <View className="flex flex-row justify-between align-middle w-3/4 relative">
-            <TouchableOpacity onPress={handleSong} hitSlop={10}>
-              <View>
-                <View className="SongName pr-7">
-                  <Text
-                    numberOfLines={1}
-                    style={{
-                      fontFamily: "Nunito-Bold",
-                    }}
-                    className="text-lg"
-                  >
-                    {songName}
+          {/* Download Icon */}
+          <View className="flex items-center gap-2">
+            <TouchableOpacity onPress={handleDownload} disabled={isDownloaded}>
+              {isDownloading ? (
+                <View className="items-center">
+                  <ActivityIndicator size="small" color="#000" />
+                  <Text style={{ fontSize: 10 }}>
+                    {Math.round(downloadProgress * 100)}%
                   </Text>
                 </View>
-
-                <View className="pr-16">
-                  <Text
-                    numberOfLines={1}
-                    style={{
-                      fontFamily: "Poppins-Regular",
-                    }}
-                  >
-                    {String(music || primary_artists || "...")}
-                  </Text>
-                </View>
-              </View>
+              ) : (
+                <Image
+                  source={
+                    isDownloaded || isdownloadedSongs
+                      ? checkedIcon
+                      : downloadIcon
+                  }
+                  style={{ width: 24, height: 24 }}
+                />
+              )}
             </TouchableOpacity>
-
-            <View className="flex gap-1 absolute right-2 items-center z-40">
-              <TouchableOpacity
-                onPress={handleDownload}
-                disabled={isDownloading}
-                hitSlop={10}
+            <View>
+              <Text
+                style={{
+                  fontFamily: "Poppins-Regular",
+                }}
               >
-                {isDownloading ? (
-                  <Svg width={radius * 2} height={radius * 2}>
-                    <Circle
-                      stroke="#000"
-                      fill="transparent"
-                      strokeWidth={strokeWidth}
-                      strokeDasharray={circumference}
-                      strokeDashoffset={strokeDashoffset}
-                      cx={radius}
-                      cy={radius}
-                      r={radius - strokeWidth / 2}
-                    />
-                  </Svg>
-                ) : (
-                  <Image
-                    source={
-                      downloadedSongs || isdownloadedSongs
-                        ? checked
-                        : DownloadSong
-                    }
-                    style={{
-                      width: 25,
-                      height: 25,
-                    }}
-                  />
-                )}
-              </TouchableOpacity>
-              <View>
-                <Text
-                  style={{
-                    fontFamily: "Poppins-Regular",
-                  }}
-                >
-                  {convertDuration(duration)}
-                </Text>
-              </View>
+                {convertDuration(duration)}
+              </Text>
             </View>
           </View>
         </View>
@@ -390,3 +241,92 @@ const Trending = ({
 };
 
 export default memo(Trending);
+
+// <>
+//   {song ? (
+//     <View className="w-full flex flex-row gap-6 bg-gray-100 rounded-2xl p-4 mb-2">
+//       <View>
+//         <Image
+//           source={getImageSource(image)}
+//           defaultSource={require("../assets/images/musicImage.png")}
+//           style={{
+//             width: 60,
+//             height: 60,
+//             borderRadius: 10,
+//           }}
+//         />
+//       </View>
+
+//       <View className="flex flex-row justify-between align-middle w-3/4 relative">
+//         <TouchableOpacity onPress={handleSong} hitSlop={10}>
+//           <View>
+//             <View className="SongName pr-7">
+//               <Text
+//                 numberOfLines={1}
+
+//                 className="text-lg"
+//               >
+//                 {songName}
+//               </Text>
+//             </View>
+
+//             <View className="pr-16">
+//               <Text
+//                 numberOfLines={1}
+
+//               >
+//                 {String(music || primary_artists || "...")}
+//               </Text>
+//             </View>
+//           </View>
+//         </TouchableOpacity>
+
+//         <View className="flex gap-1 absolute right-2 items-center z-40">
+//           <TouchableOpacity
+//             onPress={handleDownload}
+//             disabled={isDownloading}
+//             hitSlop={10}
+//           >
+//             {isDownloading ? (
+//               <Svg width={radius * 2} height={radius * 2}>
+//                 <Circle
+//                   stroke="#000"
+//                   fill="transparent"
+//                   strokeWidth={strokeWidth}
+//                   strokeDasharray={circumference}
+//                   strokeDashoffset={strokeDashoffset}
+//                   cx={radius}
+//                   cy={radius}
+//                   r={radius - strokeWidth / 2}
+//                 />
+//               </Svg>
+//             ) : (
+//               <Image
+//                 source={
+//                   downloadedSongs || isdownloadedSongs
+//                     ? checked
+//                     : DownloadSong
+//                 }
+//                 style={{
+//                   width: 25,
+//                   height: 25,
+//                 }}
+//               />
+//             )}
+//           </TouchableOpacity>
+//           <View>
+//             <Text
+//               style={{
+//                 fontFamily: "Poppins-Regular",
+//               }}
+//             >
+//               {convertDuration(duration)}
+//             </Text>
+//           </View>
+//         </View>
+//       </View>
+//     </View>
+//   ) : (
+//
+//   )}
+// </>;
