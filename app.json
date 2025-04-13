@@ -12,7 +12,10 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.lakshmannnani.nanimusic",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": [
+          "audio"
+        ]
       },
       "runtimeVersion": {
         "policy": "appVersion"
@@ -27,7 +30,9 @@
       "permissions": [
         "FOREGROUND_SERVICE",
         "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "WRITE_EXTERNAL_STORAGE",
+        "WAKE_LOCK",
+        "android.permission.FOREGROUND_SERVICE"
       ],
       "foregroundService": {
         "startForegroundService": true,
@@ -51,7 +56,18 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#ffffff",
+          "sounds": [],
+          "androidMode": "default",
+          "androidCollapsedTitle": "Music Player"
+        }
+      ],
+      "expo-build-properties"
     ],
     "experiments": {
       "typedRoutes": true

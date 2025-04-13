@@ -173,7 +173,5 @@ dependencies {
     } else {
         implementation jscFlavor
     }
-     implementation project(':react-native-fs')
-     compile project(':react-native-get-music-files')
-     implementation project(':react-native-music-metadata')
+
 } 

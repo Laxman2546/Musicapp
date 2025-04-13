@@ -64,7 +64,7 @@ const DownloadsFolder = () => {
             filePath: DOWNLOAD_DIR + fileName,
             image: metadata.image || null,
             primary_artists:
-              metadata.primary_artists || metadata.music || "Unknown",
+            metadata.primary_artists || metadata.music || "Unknown",
             duration: metadata.duration || "Unknown",
           };
         })

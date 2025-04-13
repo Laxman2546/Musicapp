@@ -6,13 +6,12 @@ import {
   Pressable,
   Dimensions,
 } from "react-native";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import ProgressBar from "react-native-progress/Bar";
 import prevBtn from "@/assets/images/previousIcon.png";
 import playIcon from "@/assets/images/playIcon.png";
 import pauseIcon from "@/assets/images/pauseIcon.png";
 import nextIcon from "@/assets/images/nextIcon.png";
-import downloadIcon from "@/assets/images/downloadIcon2.png";
 import ShuffleIcon from "@/assets/images/shuffle.png";
 import loopFirst from "@/assets/images/repeatFirst.png";
 import loopSecond from "@/assets/images/repeatSecond.png";
@@ -21,11 +20,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import backIcon from "@/assets/images/backImg.png";
 import heart from "@/assets/images/heart.png";
 import heartFill from "@/assets/images/heartfill.png";
-
 import { router } from "expo-router";
-import GestureRecognizer, {
-  swipeDirections,
-} from "react-native-swipe-gestures";
+import GestureRecognizer from "react-native-swipe-gestures";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const MusicPlayer = () => {
@@ -47,28 +43,9 @@ const MusicPlayer = () => {
     seekTo,
     formatTime,
   } = usePlayer();
-  const [favouriteClick, setfavouriteClick] = useState(false);
-  if (!currentSong) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.noSongText}>No song selected</Text>
-      </SafeAreaView>
-    );
-  }
 
-  const handlePress = () => {
-    router.back();
-  };
-  const onSwipeperLeftformed = () => {
-    playNext();
-  };
-  const onSwipeperRightformed = () => {
-    playPrevious();
-  };
-  const config = {
-    velocityThreshold: 0.2,
-    directionalOffsetThreshold: 40,
-  };
+  const [favouriteClick, setfavouriteClick] = useState(false);
+
   useEffect(() => {
     const checkFavoriteStatus = async () => {
       try {
@@ -79,22 +56,21 @@ const MusicPlayer = () => {
             favSong.song === currentSong?.song &&
             favSong.primary_artists === currentSong?.primary_artists
         );
-
         setfavouriteClick(isFav);
       } catch (error) {
         console.error("Error checking favorite status:", error);
       }
     };
 
-    if (currentSong) {
-      checkFavoriteStatus();
-    }
+    if (currentSong) checkFavoriteStatus();
   }, [currentSong]);
+
   const favouriteSongs = async () => {
     if (!currentSong) return;
     try {
       const favourites = await AsyncStorage.getItem("favouriteSongs");
       let favouriteList = favourites ? JSON.parse(favourites) : [];
+
       if (favouriteClick) {
         favouriteList = favouriteList.filter(
           (favSong) =>
@@ -107,7 +83,6 @@ const MusicPlayer = () => {
         favouriteList.push({
           song: currentSong.song,
           image: currentSong.image,
-
           duration: currentSong.duration,
           primary_artists: currentSong.primary_artists,
           song_url:
@@ -116,76 +91,82 @@ const MusicPlayer = () => {
             currentSong.song_url,
         });
       }
+
       await AsyncStorage.setItem(
         "favouriteSongs",
         JSON.stringify(favouriteList)
       );
       setfavouriteClick(!favouriteClick);
     } catch (e) {
-      console.log("this error is from the favourite songs", e);
+      console.log("Error saving favourite song:", e);
     }
   };
+
+  const handlePress = () => {
+    router.back();
+  };
+
   const getImageSource = (image) => {
     if (typeof image === "string" && image.startsWith("http")) {
-      return { uri: currentSong.image };
+      return { uri: image };
     }
-    return require("../assets/images/musicImage.png");
+    return require("@/assets/images/musicImage.png");
   };
+
+  if (!currentSong) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Text style={styles.noSongText}>No song selected</Text>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <GestureRecognizer
-      onSwipeLeft={onSwipeperLeftformed}
-      onSwipeRight={onSwipeperRightformed}
-      config={config}
+      onSwipeLeft={playNext}
+      onSwipeRight={playPrevious}
+      config={{ velocityThreshold: 0.2, directionalOffsetThreshold: 40 }}
       style={{ flex: 1 }}
     >
       <View className="w-full h-full mt-5" style={styles.mainBg}>
         <View className="flex flex-col gap-12">
           <View className="flex flex-col gap-14">
             <View className="w-full relative">
-              <View className="w-full flex  items-center mt-8">
+              <View className="w-full flex items-center mt-8">
                 <Text style={styles.textFont}>Now Playing</Text>
               </View>
               <Pressable onPress={handlePress} hitSlop={10}>
-                <View>
-                  <Image source={backIcon} style={styles.backBtn} />
-                </View>
+                <Image source={backIcon} style={styles.backBtn} />
               </Pressable>
             </View>
+
             <Pressable onPress={() => setIsPlaying(!isPlaying)}>
               <View className="w-full flex items-center justify-center">
                 <Image
                   source={getImageSource(currentSong.image)}
-                  defaultSource={require("@/assets/images/musicImage.png")}
                   style={styles.musicImg}
                 />
               </View>
             </Pressable>
           </View>
+
           <View
             className="w-full flex flex-col bg-black h-full p-5 gap-3"
             style={styles.musicBg}
           >
             <View className="flex flex-row items-center justify-between">
               <View style={styles.songInfoContainer}>
-                <Text
-                  style={styles.musicText}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
+                <Text style={styles.musicText} numberOfLines={1}>
                   {currentSong.song}
                 </Text>
-                <Text
-                  style={styles.musicArtist}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
+                <Text style={styles.musicArtist} numberOfLines={1}>
                   {currentSong.primary_artists || currentSong.music}
                 </Text>
               </View>
               <Pressable
-                style={styles.downloadButton}
                 onPress={favouriteSongs}
                 hitSlop={10}
+                style={styles.downloadButton}
               >
                 <Image
                   source={favouriteClick ? heartFill : heart}
@@ -200,32 +181,27 @@ const MusicPlayer = () => {
                 height={8}
                 width={310}
                 borderRadius={25}
-                color={"#fff"}
-                backgroundColor={"#303030"}
-                borderColor={"#303030"}
-                style={styles.progressBar}
+                color="#fff"
+                backgroundColor="#303030"
+                borderColor="#303030"
                 onTouchStart={(e) => {
                   const touchX = e.nativeEvent.locationX;
-                  const width = 310;
-                  const newProgress = Math.max(0, Math.min(touchX / width, 1));
+                  const newProgress = Math.max(0, Math.min(touchX / 310, 1));
                   seekTo(newProgress);
-                  hitSlop = 10;
                 }}
               />
+
               <View className="flex flex-row justify-between w-full">
                 <Text style={styles.textFont}>{formatTime(position)}</Text>
                 <Text style={styles.textFont}>{formatTime(duration)}</Text>
               </View>
+
               <View
                 className="flex flex-row items-center justify-between w-full"
-                style={{
-                  marginTop: 25,
-                  alignItems: "center",
-                }}
+                style={{ marginTop: 25 }}
               >
                 <Pressable onPress={toggleShuffle} hitSlop={10}>
                   <View
-                    className="w-10 h-10 p-2 items-center justify-center rounded-2xl"
                     style={{
                       backgroundColor: shuffleActive ? "#2C2C2C" : "",
                       borderRadius: shuffleActive ? 50 : "",
@@ -234,7 +210,8 @@ const MusicPlayer = () => {
                     <Image source={ShuffleIcon} style={styles.downloadSize} />
                   </View>
                 </Pressable>
-                <View className="flex flex-row items-center gap-9 align-middle justify-center ">
+
+                <View className="flex flex-row items-center gap-9">
                   <Pressable
                     onPress={playPrevious}
                     disabled={currentIndex <= 0 && !shuffleActive}
@@ -250,6 +227,7 @@ const MusicPlayer = () => {
                       ]}
                     />
                   </Pressable>
+
                   <Pressable
                     onPress={() => setIsPlaying(!isPlaying)}
                     hitSlop={10}
@@ -261,6 +239,7 @@ const MusicPlayer = () => {
                       />
                     </View>
                   </Pressable>
+
                   <Pressable
                     onPress={playNext}
                     disabled={
@@ -279,16 +258,15 @@ const MusicPlayer = () => {
                     />
                   </Pressable>
                 </View>
+
                 <Pressable onPress={toggleLoopMode} hitSlop={10}>
-                  <View>
-                    <Image
-                      source={loopMode === 0 ? loopFirst : loopSecond}
-                      style={[
-                        styles.downloadSize,
-                        loopMode > 0 && styles.activeButton,
-                      ]}
-                    />
-                  </View>
+                  <Image
+                    source={loopMode === 0 ? loopFirst : loopSecond}
+                    style={[
+                      styles.downloadSize,
+                      loopMode > 0 && styles.activeButton,
+                    ]}
+                  />
                 </Pressable>
               </View>
             </View>
@@ -301,7 +279,7 @@ const MusicPlayer = () => {
 
 export default MusicPlayer;
 
-export const styles = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
@@ -332,7 +310,6 @@ export const styles = StyleSheet.create({
     height: 250,
     borderRadius: 20,
   },
-
   songInfoContainer: {
     flex: 1,
     marginRight: 10,
@@ -348,7 +325,6 @@ export const styles = StyleSheet.create({
     fontSize: 18,
     color: "#fff",
   },
-
   downloadButton: {
     width: 44,
     height: 44,
@@ -358,7 +334,6 @@ export const styles = StyleSheet.create({
     alignItems: "center",
   },
   progressBar: {
-    color: "#fff",
     marginTop: 15,
   },
   iconsSize: {

@@ -20,6 +20,7 @@ import searchImg from "@/assets/images/search.png";
 import closeImg from "@/assets/images/close.png";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
+import * as Notifications from "expo-notifications";
 
 const Home = () => {
   const [active, setActive] = useState("All");
@@ -113,6 +114,36 @@ const Home = () => {
       getUser();
     }, [])
   );
+  useEffect(() => {
+    // Set up notification handling
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: false,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+      }),
+    });
+
+    // Listen for notification actions
+    const subscription = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        const { actionIdentifier, notification } = response;
+
+        if (actionIdentifier === "pause") {
+          // Handle pause action
+          setIsPlaying(false);
+        } else if (actionIdentifier === "play") {
+          // Handle play action
+          setIsPlaying(true);
+        } else if (actionIdentifier === "next") {
+          // Handle next action
+          playNext();
+        }
+      }
+    );
+
+    return () => subscription.remove();
+  }, []);
 
   return (
     <SafeAreaView className="bg-slate-50 h-full">

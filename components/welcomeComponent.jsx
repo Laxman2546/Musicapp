@@ -1,6 +1,6 @@
 import { View, Text, Image, StyleSheet } from "react-native";
 import React from "react";
-import splashImg from "@/assets/images/splashScreen.png";
+import splashImg from "@/assets/images/spalshImage.png";
 const welcomeComponent = () => {
   return (
     <View className="w-full h-screen flex justify-center items-center">
