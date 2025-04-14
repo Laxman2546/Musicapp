@@ -2,7 +2,7 @@
   "expo": {
     "name": "nanimusic",
     "slug": "nanimusic",
-    "runtimeVersion": "1.0.0",
+    "runtimeVersion": "1.0.0", 
 
     "orientation": "portrait",
     "icon": "./assets/images/appicon.png",
@@ -15,9 +15,6 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": ["audio"]
-      },
-      "runtimeVersion": {
-        "policy": "appVersion"
       }
     },
     "android": {
@@ -40,8 +37,7 @@
         "startForegroundService": true,
         "notificationTitle": "Nani Music",
         "notificationBody": "Playing in background"
-      },
-      "runtimeVersion": "1.0.0"
+      }
     },
     "web": {
       "bundler": "metro",

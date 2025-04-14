@@ -5,15 +5,13 @@
         "buildType": "apk"
       },
       "channel": "preview",
-      "runtimeVersion": "1.0.0", 
       "distribution": "internal"
     },
     "preview2": {
       "android": {
         "gradleCommand": ":app:assembleRelease"
       },
-      "channel": "preview",
-      "runtimeVersion": "1.0.0"
+      "channel": "preview"
     },
     "preview3": {
       "developmentClient": true
@@ -23,8 +21,7 @@
         "buildType": "apk"
       },
       "distribution": "store",
-      "channel": "production",
-      "runtimeVersion": "1.0.0"
+      "channel": "production"
     }
   }
 }
