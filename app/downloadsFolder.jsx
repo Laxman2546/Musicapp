@@ -16,6 +16,9 @@ import searchImg from "@/assets/images/search.png";
 import closeImg from "@/assets/images/close.png";
 
 const DOWNLOAD_DIR = FileSystem.documentDirectory + "downloads/";
+const cleanSongName = (name) => {
+  return name.replace(/_/g, " ").replace(/\s+/g, " ").trim();
+};
 
 const DownloadsFolder = () => {
   const [songs, setSongs] = useState([]);
@@ -25,47 +28,45 @@ const DownloadsFolder = () => {
 
   const loadSongs = async () => {
     try {
+      await FileSystem.makeDirectoryAsync(DOWNLOAD_DIR, {
+        intermediates: true,
+      });
       const files = await FileSystem.readDirectoryAsync(DOWNLOAD_DIR);
-      console.log("All files:", files);
 
       // Filter only .mp3 files
       const mp3Files = files.filter((file) => file.endsWith(".mp3"));
-      console.log("MP3 files:", mp3Files);
-
-      // Filter corresponding .json files for metadata
-      const jsonFiles = files.filter((file) => file.endsWith(".json"));
-      console.log("JSON files:", jsonFiles);
 
       // Create song objects
       const songData = await Promise.all(
         mp3Files.map(async (fileName) => {
           const baseName = fileName.replace(".mp3", "");
-
-          // Find corresponding JSON metadata file
-          const jsonFile = jsonFiles.find((jsonFile) =>
-            jsonFile.includes(baseName)
-          );
+          const jsonFile = `${baseName}.json`;
 
           let metadata = {
             image: null,
-            primary_artists: "Unknown",
-            duration: "Unknown",
+            primary_artists: "Unknown Artist",
+            duration: "0:00",
           };
 
-          if (jsonFile) {
-            const jsonContent = await FileSystem.readAsStringAsync(
-              DOWNLOAD_DIR + jsonFile
-            );
-            metadata = JSON.parse(jsonContent); // Assuming the metadata structure in JSON
+          try {
+            const jsonPath = `${DOWNLOAD_DIR}${jsonFile}`;
+            const fileInfo = await FileSystem.getInfoAsync(jsonPath);
+
+            if (fileInfo.exists) {
+              const jsonContent = await FileSystem.readAsStringAsync(jsonPath);
+              metadata = JSON.parse(jsonContent);
+            }
+          } catch (e) {
+            console.log(`Error loading metadata for ${fileName}:`, e);
           }
 
           return {
-            song: baseName,
-            filePath: DOWNLOAD_DIR + fileName,
+            song: cleanSongName(baseName),
+            filePath: `${DOWNLOAD_DIR}${fileName}`,
             image: metadata.image || null,
             primary_artists:
-            metadata.primary_artists || metadata.music || "Unknown",
-            duration: metadata.duration || "Unknown",
+              metadata.primary_artists || metadata.artist || "Unknown Artist",
+            duration: metadata.duration || "0:00",
           };
         })
       );
@@ -87,7 +88,9 @@ const DownloadsFolder = () => {
 
   const handleSearch = () => {
     setShowSearch(!showSearch);
-    handleClearSearch();
+    if (showSearch) {
+      handleClearSearch();
+    }
   };
 
   const handleSearchQuery = (text) => {
@@ -172,6 +175,7 @@ const DownloadsFolder = () => {
                 onDelete={loadSongs}
               />
             )}
+            showsVerticalScrollIndicator={false}
             ListFooterComponent={
               <View className="w-full items-center mb-[90px]">
                 {searchQuery ? (

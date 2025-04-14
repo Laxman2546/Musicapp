@@ -3,7 +3,6 @@ import {
   Text,
   TouchableOpacity,
   Image,
-  Alert,
   ActivityIndicator,
   Platform,
 } from "react-native";
@@ -24,6 +23,20 @@ const ensureDirExists = async () => {
   if (!dir.exists) {
     await FileSystem.makeDirectoryAsync(downloadsDir, { intermediates: true });
   }
+};
+
+// Sanitize filename to remove illegal characters
+const sanitizeFilename = (filename) => {
+  return filename
+    .replace(/[^a-z0-9\-_ ]/gi, "") // Remove special characters except spaces, hyphens, and underscores
+    .replace(/\s+/g, " ") // Replace multiple spaces with single space
+    .trim() // Trim whitespace
+    .replace(/\s/g, "_"); // Replace remaining spaces with underscores
+};
+
+// Clean song name for display
+const cleanSongName = (name) => {
+  return name.replace(/_/g, " ").replace(/\s+/g, " ").trim();
 };
 
 const Trending = ({
@@ -59,7 +72,7 @@ const Trending = ({
 
   const handlePlay = () => {
     const songObject = {
-      song,
+      song: cleanSongName(song),
       image,
       music,
       duration,
@@ -68,7 +81,7 @@ const Trending = ({
     };
 
     const formattedList = allSongs.map((item, i) => ({
-      song: item.song,
+      song: cleanSongName(item.song),
       image: item.image,
       music: item.music,
       duration: item.duration,
@@ -83,8 +96,8 @@ const Trending = ({
   const checkIfAlreadyDownloaded = async () => {
     await ensureDirExists();
     const files = await FileSystem.readDirectoryAsync(downloadsDir);
-    const name = song;
-    const exists = files.some((file) => file.includes(name));
+    const sanitizedSongName = sanitizeFilename(song);
+    const exists = files.some((file) => file.includes(sanitizedSongName));
     setIsDownloaded(exists);
   };
 
@@ -93,8 +106,10 @@ const Trending = ({
   }, []);
 
   const handleDownload = async () => {
-    if (isDownloaded || isDownloading || !song_url) return;
-
+    if (isDownloaded || !song_url) return;
+    if (isDownloading) {
+      Alert.alert("wait a sec one song is already downloading...😊");
+    }
     try {
       setIsDownloading(true);
       setDownloadProgress(0);
@@ -103,15 +118,12 @@ const Trending = ({
       if (permissionResponse?.status !== "granted") {
         const { status } = await requestPermission();
         if (status !== "granted") {
-          Alert.alert(
-            "Permission Required",
-            "Media access is needed to save songs."
-          );
           return;
         }
       }
 
-      const filename = `${song}.mp3`;
+      const sanitizedSongName = sanitizeFilename(song);
+      const filename = `${sanitizedSongName}.mp3`;
       const filePath = `${downloadsDir}${filename}`;
 
       const downloadResumable = FileSystem.createDownloadResumable(
@@ -132,13 +144,12 @@ const Trending = ({
 
       // Save to Media Library (Android)
       if (Platform.OS === "android") {
-        const asset = await MediaLibrary.createAssetAsync(result.uri);
-        await MediaLibrary.createAlbumAsync("Music Downloads", asset, false);
+        await MediaLibrary.createAssetAsync(result.uri);
       }
 
-      // Save metadata (JSON) next to file
+      // Save metadata (JSON)
       const metadata = {
-        song,
+        song: cleanSongName(song),
         artist: primary_artists,
         duration,
         image,
@@ -147,14 +158,12 @@ const Trending = ({
         downloadedAt: new Date().toISOString(),
       };
 
-      const metaFile = `${downloadsDir}${filename.replace(".mp3", ".json")}`;
+      const metaFile = `${downloadsDir}${sanitizedSongName}.json`;
       await FileSystem.writeAsStringAsync(metaFile, JSON.stringify(metadata));
-      console.log(metadata);
+
       setIsDownloaded(true);
-      Alert.alert("Downloaded", "Song downloaded with metadata!");
     } catch (err) {
       console.log("Download Error:", err.message);
-      Alert.alert("Error", "Failed to download song.");
     } finally {
       setIsDownloading(false);
     }
@@ -178,7 +187,7 @@ const Trending = ({
                   fontFamily: "Nunito-Bold",
                 }}
               >
-                {song}
+                {cleanSongName(song)}
               </Text>
               <Text
                 numberOfLines={1}
@@ -192,7 +201,6 @@ const Trending = ({
             </TouchableOpacity>
           </View>
 
-          {/* Download Icon */}
           <View className="flex items-center gap-2">
             <TouchableOpacity onPress={handleDownload} disabled={isDownloaded}>
               {isDownloading ? (
@@ -241,92 +249,3 @@ const Trending = ({
 };
 
 export default memo(Trending);
-
-// <>
-//   {song ? (
-//     <View className="w-full flex flex-row gap-6 bg-gray-100 rounded-2xl p-4 mb-2">
-//       <View>
-//         <Image
-//           source={getImageSource(image)}
-//           defaultSource={require("../assets/images/musicImage.png")}
-//           style={{
-//             width: 60,
-//             height: 60,
-//             borderRadius: 10,
-//           }}
-//         />
-//       </View>
-
-//       <View className="flex flex-row justify-between align-middle w-3/4 relative">
-//         <TouchableOpacity onPress={handleSong} hitSlop={10}>
-//           <View>
-//             <View className="SongName pr-7">
-//               <Text
-//                 numberOfLines={1}
-
-//                 className="text-lg"
-//               >
-//                 {songName}
-//               </Text>
-//             </View>
-
-//             <View className="pr-16">
-//               <Text
-//                 numberOfLines={1}
-
-//               >
-//                 {String(music || primary_artists || "...")}
-//               </Text>
-//             </View>
-//           </View>
-//         </TouchableOpacity>
-
-//         <View className="flex gap-1 absolute right-2 items-center z-40">
-//           <TouchableOpacity
-//             onPress={handleDownload}
-//             disabled={isDownloading}
-//             hitSlop={10}
-//           >
-//             {isDownloading ? (
-//               <Svg width={radius * 2} height={radius * 2}>
-//                 <Circle
-//                   stroke="#000"
-//                   fill="transparent"
-//                   strokeWidth={strokeWidth}
-//                   strokeDasharray={circumference}
-//                   strokeDashoffset={strokeDashoffset}
-//                   cx={radius}
-//                   cy={radius}
-//                   r={radius - strokeWidth / 2}
-//                 />
-//               </Svg>
-//             ) : (
-//               <Image
-//                 source={
-//                   downloadedSongs || isdownloadedSongs
-//                     ? checked
-//                     : DownloadSong
-//                 }
-//                 style={{
-//                   width: 25,
-//                   height: 25,
-//                 }}
-//               />
-//             )}
-//           </TouchableOpacity>
-//           <View>
-//             <Text
-//               style={{
-//                 fontFamily: "Poppins-Regular",
-//               }}
-//             >
-//               {convertDuration(duration)}
-//             </Text>
-//           </View>
-//         </View>
-//       </View>
-//     </View>
-//   ) : (
-//
-//   )}
-// </>;
