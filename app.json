@@ -2,7 +2,8 @@
   "expo": {
     "name": "nanimusic",
     "slug": "nanimusic",
-    "version": "1.0.0",
+    "runtimeVersion": "1.0.0",
+
     "orientation": "portrait",
     "icon": "./assets/images/appicon.png",
     "scheme": "myapp",
@@ -13,9 +14,7 @@
       "bundleIdentifier": "com.lakshmannnani.nanimusic",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "UIBackgroundModes": [
-          "audio"
-        ]
+        "UIBackgroundModes": ["audio"]
       },
       "runtimeVersion": {
         "policy": "appVersion"
@@ -27,6 +26,9 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.lakshmannnani.nanimusic",
+      "infoplist": {
+        "UIBackgroundModes": ["audio"]
+      },
       "permissions": [
         "FOREGROUND_SERVICE",
         "READ_EXTERNAL_STORAGE",

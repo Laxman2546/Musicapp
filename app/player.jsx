@@ -203,6 +203,8 @@ const MusicPlayer = () => {
                 <Pressable onPress={toggleShuffle} hitSlop={10}>
                   <View
                     style={{
+                      width: 35,
+                      height: 35,
                       backgroundColor: shuffleActive ? "#2C2C2C" : "",
                       borderRadius: shuffleActive ? 50 : "",
                     }}
