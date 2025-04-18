@@ -65,22 +65,20 @@ const Trending = ({
       .padStart(2, "0")}`;
   };
 
-  const getImageSource = (uri) =>
-    typeof uri === "string" && uri.startsWith("http")
-      ? { uri }
-      : defaultMusicImage;
+  const getImageSource = (uri) => {
+    if (!uri) return defaultMusicImage;
+    if (typeof uri === "string") {
+      if (uri.startsWith("http")) {
+        return { uri };
+      } else if (uri.startsWith("content://") || uri.startsWith("file://")) {
+        return { uri };
+      }
+    }
+    return defaultMusicImage;
+  };
 
   const handlePlay = () => {
-    const songObject = {
-      song: cleanSongName(song),
-      image,
-      music,
-      duration,
-      primary_artists,
-      song_url,
-    };
-
-    const formattedList = allSongs.map((item, i) => ({
+    const formattedList = allSongs.map((item) => ({
       song: cleanSongName(item.song),
       image: item.image,
       music: item.music,
@@ -89,6 +87,7 @@ const Trending = ({
       song_url: item.media_url || item.music || item.filePath,
     }));
 
+    const songObject = formattedList[index]; // Use the correct index
     playSong(songObject, formattedList, index);
     router.push("/player");
   };
@@ -175,7 +174,6 @@ const Trending = ({
         <View className="w-full flex flex-row gap-6 bg-gray-100 rounded-2xl p-4 mb-2">
           <Image
             source={getImageSource(image)}
-            defaultSource={defaultMusicImage}
             style={{ width: 60, height: 60, borderRadius: 10 }}
           />
           <View className="flex-1 justify-between">

@@ -7,7 +7,12 @@ import {
   Dimensions,
 } from "react-native";
 import { useEffect, useState } from "react";
-import ProgressBar from "react-native-progress/Bar";
+import { usePlayer } from "@/context/playerContext";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { router } from "expo-router";
+import GestureRecognizer from "react-native-swipe-gestures";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import Slider from "@react-native-community/slider";
 import prevBtn from "@/assets/images/previousIcon.png";
 import playIcon from "@/assets/images/playIcon.png";
 import pauseIcon from "@/assets/images/pauseIcon.png";
@@ -15,14 +20,11 @@ import nextIcon from "@/assets/images/nextIcon.png";
 import ShuffleIcon from "@/assets/images/shuffle.png";
 import loopFirst from "@/assets/images/repeatFirst.png";
 import loopSecond from "@/assets/images/repeatSecond.png";
-import { usePlayer } from "@/context/playerContext";
-import { SafeAreaView } from "react-native-safe-area-context";
 import backIcon from "@/assets/images/backImg.png";
 import heart from "@/assets/images/heart.png";
 import heartFill from "@/assets/images/heartfill.png";
-import { router } from "expo-router";
-import GestureRecognizer from "react-native-swipe-gestures";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import TrackPlayer, { State } from "react-native-track-player";
+import defaultMusicImage from "@/assets/images/musicImage.png";
 
 const MusicPlayer = () => {
   const {
@@ -42,9 +44,23 @@ const MusicPlayer = () => {
     toggleLoopMode,
     seekTo,
     formatTime,
+    togglePlayPause,
   } = usePlayer();
 
   const [favouriteClick, setfavouriteClick] = useState(false);
+
+  useEffect(() => {
+    const syncPlaybackState = async () => {
+      try {
+        const state = await TrackPlayer.getState();
+        setIsPlaying(state === State.Playing);
+      } catch (err) {
+        console.log("Error getting playback state:", err);
+      }
+    };
+
+    syncPlaybackState();
+  }, [setIsPlaying]);
 
   useEffect(() => {
     const checkFavoriteStatus = async () => {
@@ -106,11 +122,23 @@ const MusicPlayer = () => {
     router.back();
   };
 
+  const handlePlayPause = () => {
+    togglePlayPause();
+  };
+
   const getImageSource = (image) => {
-    if (typeof image === "string" && image.startsWith("http")) {
-      return { uri: image };
+    if (!image) return defaultMusicImage;
+    if (typeof image === "string") {
+      if (image.startsWith("http")) {
+        return { uri: image };
+      } else if (
+        image.startsWith("content://") ||
+        image.startsWith("file://")
+      ) {
+        return { uri: image };
+      }
     }
-    return require("@/assets/images/musicImage.png");
+    return defaultMusicImage;
   };
 
   if (!currentSong) {
@@ -120,7 +148,6 @@ const MusicPlayer = () => {
       </SafeAreaView>
     );
   }
-
   return (
     <GestureRecognizer
       onSwipeLeft={playNext}
@@ -140,7 +167,7 @@ const MusicPlayer = () => {
               </Pressable>
             </View>
 
-            <Pressable onPress={() => setIsPlaying(!isPlaying)}>
+            <Pressable onPress={handlePlayPause}>
               <View className="w-full flex items-center justify-center">
                 <Image
                   source={getImageSource(currentSong.image)}
@@ -175,20 +202,16 @@ const MusicPlayer = () => {
               </Pressable>
             </View>
 
-            <View className="w-full flex items-center flex-col gap-25">
-              <ProgressBar
-                progress={progress || 0}
-                height={8}
-                width={310}
-                borderRadius={25}
-                color="#fff"
-                backgroundColor="#303030"
-                borderColor="#303030"
-                onTouchStart={(e) => {
-                  const touchX = e.nativeEvent.locationX;
-                  const newProgress = Math.max(0, Math.min(touchX / 310, 1));
-                  seekTo(newProgress);
-                }}
+            <View className="w-full flex items-center flex-col gap-2">
+              <Slider
+                style={{ width: 310, height: 40 }}
+                minimumValue={0}
+                maximumValue={duration}
+                value={position}
+                minimumTrackTintColor="#FFFFFF"
+                maximumTrackTintColor="#303030"
+                thumbTintColor="#FFFFFF"
+                onSlidingComplete={seekTo}
               />
 
               <View className="flex flex-row justify-between w-full">
@@ -196,21 +219,16 @@ const MusicPlayer = () => {
                 <Text style={styles.textFont}>{formatTime(duration)}</Text>
               </View>
 
-              <View
-                className="flex flex-row items-center justify-between w-full"
-                style={{ marginTop: 25 }}
-              >
-                <Pressable onPress={toggleShuffle} hitSlop={10}>
-                  <View
-                    style={{
-                      width: 35,
-                      height: 35,
-                      backgroundColor: shuffleActive ? "#2C2C2C" : "",
-                      borderRadius: shuffleActive ? 50 : "",
-                    }}
-                  >
-                    <Image source={ShuffleIcon} style={styles.downloadSize} />
-                  </View>
+              <View className="flex flex-row items-center justify-between w-full mt-4">
+                <Pressable
+                  onPress={toggleShuffle}
+                  hitSlop={10}
+                  style={[
+                    styles.controlButton,
+                    shuffleActive && styles.activeControlButton,
+                  ]}
+                >
+                  <Image source={ShuffleIcon} style={styles.controlIcon} />
                 </Pressable>
 
                 <View className="flex flex-row items-center gap-9">
@@ -222,7 +240,7 @@ const MusicPlayer = () => {
                     <Image
                       source={prevBtn}
                       style={[
-                        styles.iconsSize,
+                        styles.controlIcon,
                         currentIndex <= 0 &&
                           !shuffleActive &&
                           styles.disabledButton,
@@ -230,14 +248,11 @@ const MusicPlayer = () => {
                     />
                   </Pressable>
 
-                  <Pressable
-                    onPress={() => setIsPlaying(!isPlaying)}
-                    hitSlop={10}
-                  >
+                  <Pressable onPress={handlePlayPause}>
                     <View className="w-16 h-14 p-2 items-center justify-center rounded-xl bg-[#2C2C2C]">
                       <Image
                         source={isPlaying ? pauseIcon : playIcon}
-                        style={styles.PlaySize}
+                        style={styles.playPauseIcon}
                       />
                     </View>
                   </Pressable>
@@ -252,7 +267,7 @@ const MusicPlayer = () => {
                     <Image
                       source={nextIcon}
                       style={[
-                        styles.iconsSize,
+                        styles.controlIcon,
                         currentIndex >= playlist.length - 1 &&
                           !shuffleActive &&
                           styles.disabledButton,
@@ -261,12 +276,19 @@ const MusicPlayer = () => {
                   </Pressable>
                 </View>
 
-                <Pressable onPress={toggleLoopMode} hitSlop={10}>
+                <Pressable
+                  onPress={toggleLoopMode}
+                  hitSlop={10}
+                  style={[
+                    styles.controlButton,
+                    loopMode > 0 && styles.activeControlButton,
+                  ]}
+                >
                   <Image
                     source={loopMode === 0 ? loopFirst : loopSecond}
                     style={[
-                      styles.downloadSize,
-                      loopMode > 0 && styles.activeButton,
+                      styles.controlIcon,
+                      loopMode > 0 && styles.activeIcon,
                     ]}
                   />
                 </Pressable>
@@ -362,5 +384,26 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: -25,
     left: 15,
+  },
+  controlButton: {
+    width: 35,
+    height: 35,
+    borderRadius: 17.5,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  activeControlButton: {
+    backgroundColor: "#2C2C2C",
+  },
+  controlIcon: {
+    width: 20,
+    height: 20,
+  },
+  playPauseIcon: {
+    width: 20,
+    height: 20,
+  },
+  activeIcon: {
+    tintColor: "#fff",
   },
 });

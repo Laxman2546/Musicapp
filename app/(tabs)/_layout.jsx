@@ -19,7 +19,7 @@ const RootLayout = () => {
   const pathname = usePathname();
   const navigation = useNavigation();
 
-  const { currentSong, playNext, playPrevious, isPlaying, setIsPlaying } =
+  const { currentSong, isPlaying, playNext, playPrevious, togglePlayPause } =
     usePlayer();
 
   const isPlayerScreen = pathname === "/player";
@@ -51,6 +51,10 @@ const RootLayout = () => {
 
   const navigatePlayer = () => {
     router.push("/player");
+  };
+
+  const handlePlayPause = () => {
+    togglePlayPause();
   };
 
   const TabIcon = ({ icon, color }) => (
@@ -163,10 +167,7 @@ const RootLayout = () => {
                 <TouchableOpacity onPress={playPrevious} hitSlop={10}>
                   <Image source={playpreviousSong} style={styles.controlIcon} />
                 </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => setIsPlaying(!isPlaying)}
-                  hitSlop={10}
-                >
+                <TouchableOpacity onPress={handlePlayPause} hitSlop={10}>
                   <Image
                     source={isPlaying ? pauseSong : playSong}
                     style={styles.controlIcon}

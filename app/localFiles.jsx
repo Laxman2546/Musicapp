@@ -15,16 +15,19 @@ import { router } from "expo-router";
 import Trending from "@/components/trending";
 import searchImg from "@/assets/images/search.png";
 import closeImg from "@/assets/images/close.png";
+
 const localFiles = () => {
   const [songs, setSongs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filteredSongs, setFilteredSongs] = useState([]);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
   const handleSearch = () => {
     setShowSearch(!showSearch);
     handleClearSearch();
   };
+
   const handleSearchQuery = (searchQuery) => {
     setSearchQuery(searchQuery);
     if (!searchQuery) {
@@ -57,12 +60,31 @@ const localFiles = () => {
       const songDetails = await Promise.all(
         media.assets.map(async (song) => {
           const songInfo = await MediaLibrary.getAssetInfoAsync(song.id);
+          let artwork = null;
+
+          // Try to get artwork from album
+          try {
+            if (songInfo.albumId) {
+              const album = await MediaLibrary.getAlbumAsync(songInfo.albumId);
+              if (album?.coverImage) {
+                artwork = album.coverImage;
+              }
+            }
+
+            // Fallback: Try the asset's own uri if it has embedded artwork
+            if (!artwork) {
+              artwork = songInfo.uri;
+            }
+          } catch (error) {
+            console.log("Error getting album artwork:", error);
+          }
+
           return {
             id: song.id,
             song: songInfo.filename.replace(/\.[^/.]+$/, ""),
             music: song.uri,
             duration: songInfo.duration,
-            image: songInfo.album?.uri,
+            image: artwork,
           };
         })
       );

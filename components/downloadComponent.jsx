@@ -5,6 +5,8 @@ import { router } from "expo-router";
 import moreIcon from "@/assets/images/more.png";
 import trash from "@/assets/images/trash.png";
 import * as FileSystem from "expo-file-system";
+import defaultMusicImage from "@/assets/images/musicImage.png";
+
 const DownloadComponent = ({
   type,
   song,
@@ -81,10 +83,18 @@ const DownloadComponent = ({
   const songName = song ? song.split(`(`)[0] : "Unknown Song";
 
   const getImageSource = (image) => {
-    if (typeof image === "string" && image.startsWith("http")) {
-      return { uri: image };
+    if (!image) return defaultMusicImage;
+    if (typeof image === "string") {
+      if (image.startsWith("http")) {
+        return { uri: image };
+      } else if (
+        image.startsWith("content://") ||
+        image.startsWith("file://")
+      ) {
+        return { uri: image };
+      }
     }
-    return require("../assets/images/musicImage.png");
+    return defaultMusicImage;
   };
 
   return (
@@ -98,7 +108,6 @@ const DownloadComponent = ({
         <View>
           <Image
             source={getImageSource(image)}
-            defaultSource={require("../assets/images/musicImage.png")}
             style={{ width: 60, height: 60, borderRadius: 10 }}
           />
         </View>
