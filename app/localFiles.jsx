@@ -15,7 +15,7 @@ import { router } from "expo-router";
 import Trending from "@/components/trending";
 import searchImg from "@/assets/images/search.png";
 import closeImg from "@/assets/images/close.png";
-
+import DefaultImage from "@/assets/images/musicImage.png";
 const localFiles = () => {
   const [songs, setSongs] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -70,8 +70,6 @@ const localFiles = () => {
                 artwork = album.coverImage;
               }
             }
-
-            // Fallback: Try the asset's own uri if it has embedded artwork
             if (!artwork) {
               artwork = songInfo.uri;
             }
@@ -84,7 +82,7 @@ const localFiles = () => {
             song: songInfo.filename.replace(/\.[^/.]+$/, ""),
             music: song.uri,
             duration: songInfo.duration,
-            image: artwork,
+            image: artwork || DefaultImage,
           };
         })
       );
@@ -190,7 +188,7 @@ const localFiles = () => {
                       <>
                         <Trending
                           song={item.song}
-                          image={item.image}
+                          image={item.image || DefaultImage}
                           music={"Nanimusic..."}
                           duration={item.duration}
                           primary_artists={"Nanimusic..."}

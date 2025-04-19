@@ -15,6 +15,7 @@ import closeImg from "@/assets/images/close.png";
 import { fetchMusic } from "@/services/api";
 import useFetch from "@/services/useFetch";
 import Trending from "@/components/trending";
+import { ColorSpace } from "react-native-reanimated";
 
 const Search = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -96,7 +97,7 @@ const Search = () => {
               <FlatList
                 data={music?.results || []}
                 className="mb-[500px]"
-                renderItem={({ item }) => (
+                renderItem={({ item, index }) => (
                   <>
                     {searchQuery != "" ? (
                       <Trending
@@ -107,6 +108,7 @@ const Search = () => {
                         primary_artists={item.primary_artists}
                         song_url={item.media_url}
                         allSongs={music?.results || []}
+                        index={index}
                       />
                     ) : (
                       ""

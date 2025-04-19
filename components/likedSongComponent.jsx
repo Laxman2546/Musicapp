@@ -46,19 +46,39 @@ const likedSongComponent = ({
       music,
       duration,
       primary_artists,
-      song_url,
+      song_url: song_url || "",
     };
 
-    const formattedAllSongs = allSongs.map((song, i) => ({
-      song: song.song,
-      image: song.image,
-      music: song.music,
-      duration: song.duration,
-      primary_artists: song.primary_artists,
-      song_url: song.media_url || song.music || song.filePath || song.song_url,
-    }));
+    const formattedAllSongs = allSongs
+      .map((song, i) => ({
+        song: song.song,
+        image: song.image,
+        music: song.music,
+        duration: song.duration,
+        primary_artists: song.primary_artists,
+        song_url:
+          song.media_url || song.music || song.filePath || song.song_url || "",
+      }))
+      .filter((song) => song.song_url); // Filter out songs with no URL
 
-    playSong(songObject, formattedAllSongs, index);
+    if (formattedAllSongs.length === 0) {
+      console.error("No valid songs to play");
+      return;
+    }
+
+    // Find the correct index in the filtered list
+    const newIndex = formattedAllSongs.findIndex(
+      (s) =>
+        s.song === songObject.song &&
+        s.primary_artists === songObject.primary_artists
+    );
+
+    if (newIndex === -1) {
+      console.error("Could not find song in playlist");
+      return;
+    }
+
+    playSong(songObject, formattedAllSongs, newIndex);
     router.push("/player");
   };
 
@@ -92,19 +112,11 @@ const likedSongComponent = ({
 
   const songName = song ? song.split(`(`)[0] : "Unknown Song";
 
-  const getImageSource = (image) => {
-    if (!image) return defaultMusicImage;
-    if (typeof image === "string") {
-      if (image.startsWith("http")) {
-        return { uri: image };
-      } else if (
-        image.startsWith("content://") ||
-        image.startsWith("file://")
-      ) {
-        return { uri: image };
-      }
+  const imageSource = (image) => {
+    if (typeof image == "string" && image.startsWith("http")) {
+      return { uri: image };
     }
-    return defaultMusicImage;
+    return require("../assets/images/musicImage.png");
   };
 
   if (isEmpty) {
@@ -135,7 +147,7 @@ const likedSongComponent = ({
           <View className="w-full flex flex-row gap-6 bg-gray-200 rounded-2xl  p-2 mb-2">
             <View>
               <Image
-                source={getImageSource(image)}
+                source={imageSource(image)}
                 style={{ width: 60, height: 60, borderRadius: 10 }}
               />
             </View>
@@ -158,7 +170,7 @@ const likedSongComponent = ({
                       numberOfLines={1}
                       style={{ fontFamily: "Poppins-Regular" }}
                     >
-                      {String(music || primary_artists || "...")}
+                      {String(music || primary_artists || "Nanimusic")}
                     </Text>
                   </View>
                 </View>

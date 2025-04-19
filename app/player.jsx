@@ -5,6 +5,7 @@ import {
   View,
   Pressable,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { useEffect, useState } from "react";
 import { usePlayer } from "@/context/playerContext";
@@ -126,25 +127,18 @@ const MusicPlayer = () => {
     togglePlayPause();
   };
 
-  const getImageSource = (image) => {
-    if (!image) return defaultMusicImage;
-    if (typeof image === "string") {
-      if (image.startsWith("http")) {
-        return { uri: image };
-      } else if (
-        image.startsWith("content://") ||
-        image.startsWith("file://")
-      ) {
-        return { uri: image };
-      }
+  const imageSource = (image) => {
+    if (typeof image == "string" && image.startsWith("http")) {
+      return { uri: image };
     }
-    return defaultMusicImage;
+    return require("../assets/images/musicImage.png");
   };
 
   if (!currentSong) {
     return (
       <SafeAreaView style={styles.container}>
-        <Text style={styles.noSongText}>No song selected</Text>
+        <Text style={styles.noSongText}>Loading Your song...</Text>
+        <ActivityIndicator size="large" color="#fff" />
       </SafeAreaView>
     );
   }
@@ -170,7 +164,7 @@ const MusicPlayer = () => {
             <Pressable onPress={handlePlayPause}>
               <View className="w-full flex items-center justify-center">
                 <Image
-                  source={getImageSource(currentSong.image)}
+                  source={imageSource(currentSong.image)}
                   style={styles.musicImg}
                 />
               </View>

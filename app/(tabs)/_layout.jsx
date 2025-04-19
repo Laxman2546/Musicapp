@@ -12,6 +12,7 @@ import playnextSong from "@/assets/images/nextIcon.png";
 import playpreviousSong from "@/assets/images/previousIcon.png";
 import { usePlayer } from "@/context/playerContext";
 import WelcomeComponent from "@/components/welcomeComponent";
+import musicPlay from "@/assets/images/playing.gif";
 import "@/global.css";
 
 const RootLayout = () => {
@@ -31,6 +32,7 @@ const RootLayout = () => {
     "Nunito-Bold": require("@/assets/fonts/Nunito-ExtraBold.ttf"),
     "Poppins-Regular": require("@/assets/fonts/Poppins-Regular.ttf"),
     "Poppins-SemiBold": require("@/assets/fonts/Poppins-SemiBold.ttf"),
+    "Audiowide-Regular": require("@/assets/fonts/Audiowide-Regular.ttf"),
   });
 
   useEffect(() => {
@@ -153,6 +155,10 @@ const RootLayout = () => {
                   source={getImageSource(currentSong.image)}
                   style={styles.songImage}
                 />
+                {isPlaying && (
+                  <Image source={musicPlay} style={styles.gifAnimation} />
+                )}
+
                 <View style={styles.songTextContainer}>
                   <Text numberOfLines={1} style={styles.songTitle}>
                     {currentSong.song}
@@ -242,5 +248,11 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     marginHorizontal: 5,
+  },
+  gifAnimation: {
+    position: "absolute",
+    left: 5,
+    width: 40,
+    height: 40,
   },
 });

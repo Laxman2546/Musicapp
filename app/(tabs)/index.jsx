@@ -115,7 +115,6 @@ const Home = () => {
     }, [])
   );
   useEffect(() => {
-    // Set up notification handling
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
         shouldShowAlert: false,
@@ -124,19 +123,15 @@ const Home = () => {
       }),
     });
 
-    // Listen for notification actions
     const subscription = Notifications.addNotificationResponseReceivedListener(
       (response) => {
         const { actionIdentifier, notification } = response;
 
         if (actionIdentifier === "pause") {
-          // Handle pause action
           setIsPlaying(false);
         } else if (actionIdentifier === "play") {
-          // Handle play action
           setIsPlaying(true);
         } else if (actionIdentifier === "next") {
-          // Handle next action
           playNext();
         }
       }
@@ -385,7 +380,7 @@ const Home = () => {
             {loading || (!music?.songs?.length && !error) ? (
               <ActivityIndicator size="large" color="#000" />
             ) : error ? (
-              <View className="w-full flex flex-col gap-3 items-center justify-center">
+              <View className="w-full flex flex-col gap-3 items-center justify-center p-4">
                 <Text style={styles.errorText}>
                   Something went wrong: {error.message}
                 </Text>

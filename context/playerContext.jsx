@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import React, {
   createContext,
   useState,
@@ -112,29 +113,47 @@ export const PlayerProvider = ({ children }) => {
     }
   }, [progress]);
 
-  // Play a song
-  const playSong = useCallback(async (song, allSongs, index) => {
-    try {
-      const tracks = allSongs.map((song) => ({
-        ...song,
-        url: song.song_url || song.media_url || song.filePath,
-        title: song.song,
-        artist: song.primary_artists || song.music,
-        artwork: song.image,
-      }));
+  const playSong = useCallback(
+    async (song, allSongs, index) => {
+      try {
+        const tracks = allSongs
+          .map((song) => ({
+            ...song,
+            url: song.song_url || song.media_url || song.filePath || "",
+            title: song.song || "Unknown Title",
+            artist: song.primary_artists || song.music || "Unknown Artist",
+            artwork: song.image || null,
+          }))
+          .filter((track) => track.url);
 
-      await TrackPlayer.reset();
-      await TrackPlayer.add(tracks);
-      await TrackPlayer.skip(index);
-      setPlaylist(tracks);
-      setCurrentIndex(index);
-      setCurrentSong(tracks[index]);
-      await TrackPlayer.play();
-      setIsPlaying(true);
-    } catch (error) {
-      console.error("Error playing song:", error);
-    }
-  }, []);
+        if (currentSong && song.song === currentSong.song) {
+          // If the same song is selected, navigate to player
+          router.push("/player");
+          return;
+        }
+
+        if (tracks.length === 0) {
+          console.error("No valid tracks to play");
+          return;
+        }
+
+        // Set current song first to ensure correct image shows immediately
+        setCurrentSong(tracks[index]);
+        setPlaylist(tracks);
+        setCurrentIndex(index);
+
+        // Then handle track player updates
+        await TrackPlayer.reset();
+        await TrackPlayer.add(tracks);
+        await TrackPlayer.skip(index);
+        await TrackPlayer.play();
+        setIsPlaying(true);
+      } catch (error) {
+        console.error("Error playing song:", error);
+      }
+    },
+    [currentSong]
+  );
 
   // Play next song
   const playNext = useCallback(async () => {

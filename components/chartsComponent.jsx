@@ -1,6 +1,7 @@
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import React from "react";
 import { router } from "expo-router";
+import Animated from "react-native-reanimated";
 const chartsComponent = ({ listname, premaUrl, image, index, type }) => {
   const imageSource = (image) => {
     if (typeof image == "string" && image.startsWith("http")) {
@@ -18,13 +19,13 @@ const chartsComponent = ({ listname, premaUrl, image, index, type }) => {
       },
     });
   };
-
   return (
     <View className="p-3">
       {type == "featured" ? (
         <>
           <Pressable onPress={handlePlaylist}>
-            <View className="w-full flex align-middle justify-center text-center">
+            <View className="w-full flex align-middle justify-center text-center"
+            >
               <Image
                 source={imageSource(image)}
                 style={styles.feturedimageDesign}

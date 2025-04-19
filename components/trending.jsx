@@ -14,6 +14,7 @@ import * as MediaLibrary from "expo-media-library";
 import downloadIcon from "@/assets/images/downloadSong.png";
 import checkedIcon from "@/assets/images/checked.png";
 import defaultMusicImage from "@/assets/images/musicImage.png";
+import musicPlay from "@/assets/images/playing.gif";
 
 const downloadsDir = `${FileSystem.documentDirectory}downloads/`;
 
@@ -50,7 +51,7 @@ const Trending = ({
   allSongs,
   isdownloadedSongs,
 }) => {
-  const { playSong } = usePlayer();
+  const { playSong, currentIndex, currentSong, isPlaying } = usePlayer();
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [isDownloaded, setIsDownloaded] = useState(false);
@@ -65,29 +66,36 @@ const Trending = ({
       .padStart(2, "0")}`;
   };
 
-  const getImageSource = (uri) => {
-    if (!uri) return defaultMusicImage;
-    if (typeof uri === "string") {
-      if (uri.startsWith("http")) {
-        return { uri };
-      } else if (uri.startsWith("content://") || uri.startsWith("file://")) {
-        return { uri };
-      }
+  const imageSource = (image) => {
+    if (typeof image == "string" && image.startsWith("http")) {
+      return { uri: image };
     }
-    return defaultMusicImage;
+    return require("../assets/images/musicImage.png");
   };
 
   const handlePlay = () => {
-    const formattedList = allSongs.map((item) => ({
-      song: cleanSongName(item.song),
-      image: item.image,
-      music: item.music,
-      duration: item.duration,
-      primary_artists: item.primary_artists,
-      song_url: item.media_url || item.music || item.filePath,
-    }));
+    const formattedList = allSongs
+      .map((item) => ({
+        song: cleanSongName(item.song),
+        image: item.image,
+        music: item.music,
+        duration: item.duration,
+        primary_artists: item.primary_artists,
+        song_url: item.media_url || item.music || item.filePath || "",
+      }))
+      .filter((song) => song.song_url);
 
-    const songObject = formattedList[index]; // Use the correct index
+    if (formattedList.length === 0) {
+      console.error("No valid songs to play");
+      return;
+    }
+
+    const songObject = formattedList[index];
+    if (!songObject) {
+      console.error("Invalid song index");
+      return;
+    }
+
     playSong(songObject, formattedList, index);
     router.push("/player");
   };
@@ -120,7 +128,6 @@ const Trending = ({
           return;
         }
       }
-
       const sanitizedSongName = sanitizeFilename(song);
       const filename = `${sanitizedSongName}.mp3`;
       const filePath = `${downloadsDir}${filename}`;
@@ -145,8 +152,6 @@ const Trending = ({
       if (Platform.OS === "android") {
         await MediaLibrary.createAssetAsync(result.uri);
       }
-
-      // Save metadata (JSON)
       const metadata = {
         song: cleanSongName(song),
         artist: primary_artists,
@@ -171,11 +176,29 @@ const Trending = ({
   return (
     <>
       {song ? (
-        <View className="w-full flex flex-row gap-6 bg-gray-100 rounded-2xl p-4 mb-2">
+        <View
+          className={`w-full flex flex-row gap-6 ${
+            currentSong?.song === cleanSongName(song)
+              ? `bg-gray-300`
+              : `bg-gray-100`
+          } rounded-2xl p-4 mb-2`}
+        >
           <Image
-            source={getImageSource(image)}
+            source={imageSource(image)}
             style={{ width: 60, height: 60, borderRadius: 10 }}
           />
+          {currentSong?.song === cleanSongName(song) && isPlaying && (
+            <Image
+              source={musicPlay}
+              style={{
+                width: 50,
+                height: 50,
+                position: "absolute",
+                top: 15,
+                left: 20,
+              }}
+            />
+          )}
           <View className="flex-1 justify-between">
             <TouchableOpacity onPress={handlePlay}>
               <Text
