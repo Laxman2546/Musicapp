@@ -21,14 +21,14 @@ import closeImg from "@/assets/images/close.png";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Notifications from "expo-notifications";
-
+import data from "@/constants/all";
+import PlaylistComponent from "@/components/playlistComponent";
 const Home = () => {
   const [active, setActive] = useState("All");
   const [bhakthiActive, setbhakthiActive] = useState("VenkateshwaraSwamy");
   const [greetings, setGreetings] = useState("Good Morning");
   const [userName, setuserName] = useState("user");
   const [filteredSongs, setFilteredSongs] = useState([]);
-
   const {
     data: music,
     loading,
@@ -117,8 +117,8 @@ const Home = () => {
   useEffect(() => {
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
-        shouldShowAlert: false,
-        shouldPlaySound: false,
+        shouldShowAlert: true,
+        shouldPlaySound: true,
         shouldSetBadge: false,
       }),
     });
@@ -126,13 +126,28 @@ const Home = () => {
     const subscription = Notifications.addNotificationResponseReceivedListener(
       (response) => {
         const { actionIdentifier, notification } = response;
+        try {
+          if (notification.request.content.data?.screen) {
+            router.push(notification.request.content.data.screen);
+          }
 
-        if (actionIdentifier === "pause") {
-          setIsPlaying(false);
-        } else if (actionIdentifier === "play") {
-          setIsPlaying(true);
-        } else if (actionIdentifier === "next") {
-          playNext();
+          switch (actionIdentifier) {
+            case "pause":
+              setIsPlaying(false);
+              break;
+            case "play":
+              setIsPlaying(true);
+              break;
+            case "next":
+              playNext();
+              break;
+            default:
+              router.push("/player");
+          }
+        } catch (error) {
+          console.error("Error handling notification:", error);
+          // On error, redirect to home
+          router.replace("/");
         }
       }
     );
@@ -213,8 +228,8 @@ const Home = () => {
             showsVerticalScrollIndicator={false}
           >
             <>
-              <View className="pt-5 pl-5">
-                {loading || (!music?.telugu?.charts?.length && !error) ? (
+              <View className="pl-5">
+                {loading || (!data && !error) ? (
                   <ActivityIndicator
                     size="large"
                     color="#000"
@@ -239,118 +254,7 @@ const Home = () => {
                 ) : (
                   <>
                     <View style={styles.section}>
-                      <View>
-                        <Text style={styles.activeText}>
-                          Top charts -telugu
-                        </Text>
-                      </View>
-                      <FlatList
-                        data={music?.telugu?.charts || []}
-                        contentContainerStyle={styles.flatListContent}
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        renderItem={({ item, index }) => (
-                          <>
-                            <ChartsComponent
-                              listname={item.listname}
-                              premaUrl={item.perma_url}
-                              image={item.image}
-                              index={index}
-                            />
-                          </>
-                        )}
-                      />
-                    </View>
-                    <View style={styles.section}>
-                      <View>
-                        <Text style={styles.activeText}>
-                          Featured Playlists
-                        </Text>
-                      </View>
-                      <View>
-                        <FlatList
-                          data={music.telugu.featured_playlists || []}
-                          contentContainerStyle={styles.flatListContent}
-                          horizontal
-                          showsHorizontalScrollIndicator={false}
-                          keyExtractor={(item, index) => index.toString()}
-                          windowSize={5}
-                          maxToRenderPerBatch={5}
-                          updateCellsBatchingPeriod={50}
-                          removeClippedSubviews={true}
-                          renderItem={({ item, index }) => (
-                            <>
-                              <ChartsComponent
-                                listname={item.listname}
-                                premaUrl={item.perma_url}
-                                image={item.image}
-                                index={index}
-                                type={"featured"}
-                              />
-                            </>
-                          )}
-                        />
-                      </View>
-                    </View>
-                    <View style={styles.section}>
-                      <View>
-                        <Text style={styles.activeText}>Top charts -Hindi</Text>
-                      </View>
-                      <View>
-                        <FlatList
-                          data={music?.general?.charts || []}
-                          contentContainerStyle={styles.flatListContent}
-                          horizontal
-                          showsHorizontalScrollIndicator={false}
-                          keyExtractor={(item, index) => index.toString()}
-                          windowSize={5}
-                          maxToRenderPerBatch={5}
-                          updateCellsBatchingPeriod={50}
-                          removeClippedSubviews={true}
-                          renderItem={({ item, index }) => (
-                            <>
-                              <ChartsComponent
-                                listname={item.title}
-                                premaUrl={item.perma_url}
-                                image={item.image}
-                                index={index}
-                                type={"featured"}
-                              />
-                            </>
-                          )}
-                        />
-                      </View>
-                    </View>
-                    <View style={styles.section2}>
-                      <View>
-                        <Text style={styles.activeText}>
-                          Top playlists - Hindi
-                        </Text>
-                      </View>
-                      <View>
-                        <FlatList
-                          data={music?.general?.top_playlists || []}
-                          contentContainerStyle={styles.flatListContent}
-                          horizontal
-                          showsHorizontalScrollIndicator={false}
-                          keyExtractor={(item, index) => index.toString()}
-                          windowSize={5}
-                          maxToRenderPerBatch={5}
-                          updateCellsBatchingPeriod={50}
-                          removeClippedSubviews={true}
-                          renderItem={({ item, index }) => (
-                            <>
-                              <ChartsComponent
-                                listname={item.listname}
-                                premaUrl={item.perma_url}
-                                image={item.image}
-                                index={index}
-                                type={"featured"}
-                              />
-                            </>
-                          )}
-                        />
-                      </View>
+                      <PlaylistComponent data={data} />
                     </View>
                   </>
                 )}
@@ -537,7 +441,7 @@ export const styles = StyleSheet.create({
   },
 
   section: {
-    marginBottom: 10,
+    marginBottom: 50,
   },
   section2: {
     marginBottom: 200,

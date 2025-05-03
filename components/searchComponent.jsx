@@ -26,6 +26,7 @@ const searchComponent = () => {
     );
     setFilteredSongs(filteredResults);
   };
+
   return (
     <>
       <View className="w-full flex flex-row items-center justify-between p-4">

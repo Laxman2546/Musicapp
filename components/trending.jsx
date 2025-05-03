@@ -74,14 +74,32 @@ const Trending = ({
   };
 
   const handlePlay = () => {
+    console.log("this form", allSongs);
     const formattedList = allSongs
       .map((item) => ({
-        song: cleanSongName(item.song),
-        image: item.image,
-        music: item.music,
+        song: item.song || item.name,
+        image:
+          Array.isArray(item.image) && item.image[2]?.url
+            ? item.image[2].url
+            : item.image,
+        music:
+          item.music ||
+          item.downloadUrl?.[4]?.url ||
+          item.downloadUrl?.[3]?.url ||
+          "",
         duration: item.duration,
-        primary_artists: item.primary_artists,
-        song_url: item.media_url || item.music || item.filePath || "",
+        primary_artists:
+          item.primary_artists ||
+          (item.artists?.primary
+            ? item.artists.primary.map((a) => a.name)
+            : "Unknown"),
+        song_url:
+          item.media_url ||
+          item.music ||
+          item.filePath ||
+          item.downloadUrl[4].url ||
+          item.downloadUrl[3].url ||
+          "",
       }))
       .filter((song) => song.song_url);
 
@@ -116,6 +134,7 @@ const Trending = ({
     if (isDownloaded || !song_url) return;
     if (isDownloading) {
       Alert.alert("wait a sec one song is already downloading...😊");
+      return;
     }
     try {
       setIsDownloading(true);
@@ -131,6 +150,26 @@ const Trending = ({
       const sanitizedSongName = sanitizeFilename(song);
       const filename = `${sanitizedSongName}.mp3`;
       const filePath = `${downloadsDir}${filename}`;
+
+      // Download the image if it's from a URL
+      let localImagePath = null;
+      if (image && typeof image === "string" && image.startsWith("http")) {
+        const imageExt = image.split(".").pop().split("?")[0] || "jpg";
+        const imageFilename = `${sanitizedSongName}_artwork.${imageExt}`;
+        const imageFilePath = `${downloadsDir}${imageFilename}`;
+
+        try {
+          const imageDownload = await FileSystem.downloadAsync(
+            image,
+            imageFilePath
+          );
+          if (imageDownload.status === 200) {
+            localImagePath = imageDownload.uri;
+          }
+        } catch (error) {
+          console.log("Error downloading image:", error);
+        }
+      }
 
       const downloadResumable = FileSystem.createDownloadResumable(
         song_url,
@@ -152,11 +191,12 @@ const Trending = ({
       if (Platform.OS === "android") {
         await MediaLibrary.createAssetAsync(result.uri);
       }
+
       const metadata = {
         song: cleanSongName(song),
         artist: primary_artists,
         duration,
-        image,
+        image: localImagePath || image,
         music,
         filePath: result.uri,
         downloadedAt: new Date().toISOString(),
@@ -178,7 +218,8 @@ const Trending = ({
       {song ? (
         <View
           className={`w-full flex flex-row gap-6 ${
-            currentSong?.song === cleanSongName(song)
+            currentSong?.song === cleanSongName(song) &&
+            currentSong.artist === primary_artists
               ? `bg-gray-300`
               : `bg-gray-100`
           } rounded-2xl p-4 mb-2`}

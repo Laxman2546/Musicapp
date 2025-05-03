@@ -5,6 +5,7 @@ import {
   Image,
   Pressable,
   TextInput,
+  Alert,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import fileIcon from "@/assets/images/fileIcon.png";
@@ -12,11 +13,69 @@ import userIcon from "@/assets/images/user.png";
 import editIcon from "@/assets/images/edit.png";
 import saveIcon from "@/assets/images/save.png";
 import { router } from "expo-router";
-
+import * as Updates from "expo-updates";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
 const downloads = () => {
   const [username, setUsername] = useState("user");
   const [editName, setEditname] = useState(false);
+  const [checking, setChecking] = useState(false);
+
+  const checkForUpdates = async () => {
+    try {
+      setChecking(true);
+      const update = await Updates.checkForUpdateAsync();
+
+      if (update.isAvailable) {
+        Alert.alert(
+          "Update Available",
+          "A new version is available. Would you like to update now?",
+          [
+            {
+              text: "Later",
+              style: "cancel",
+            },
+            {
+              text: "Update",
+              onPress: async () => {
+                try {
+                  await Updates.fetchUpdateAsync();
+                  Alert.alert(
+                    "Update Ready",
+                    "The update has been downloaded. The app will now restart.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await Updates.reloadAsync();
+                        },
+                      },
+                    ]
+                  );
+                } catch (error) {
+                  Alert.alert(
+                    "Error",
+                    "Failed to download the update. Please try again later."
+                  );
+                }
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert("No Updates", "You're running the latest version!");
+      }
+    } catch (error) {
+      console.error("Error checking for updates:", error);
+      Alert.alert(
+        "Error",
+        "Failed to check for updates. Please try again later."
+      );
+    } finally {
+      setChecking(false);
+    }
+  };
+
   const handleLocal = () => {
     router.push("/localFiles");
   };
@@ -42,7 +101,7 @@ const downloads = () => {
   };
   const getName = async () => {
     const userprofileName = await AsyncStorage.getItem("profileName");
-    if (userprofileName.length <= 0) {
+    if (userprofileName?.length <= 0) {
       setUsername("user");
       handleSave();
     }
@@ -111,6 +170,18 @@ const downloads = () => {
               resizeMode="contain"
             />
             <Text style={styles.textFont}>Liked songs</Text>
+          </View>
+        </Pressable>
+        <Pressable onPress={checkForUpdates}>
+          <View className="w-full flex flex-row gap-6 p-5 rounded-2xl bg-[#D3D3D3]">
+            <Image
+              source={fileIcon}
+              style={styles.fileSize}
+              resizeMode="contain"
+            />
+            <Text style={styles.textFont}>
+              {checking ? "Checking for Updates..." : "Check for Updates"}
+            </Text>
           </View>
         </Pressable>
       </View>

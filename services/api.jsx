@@ -1,5 +1,177 @@
+import CryptoJS from "crypto-js";
+
+const JIOSAAVN_ENDPOINTS = {
+  search: "https://jiosaavn-api-sigma-rouge.vercel.app/api/search/songs?query=",
+  songDetails:
+    "https://www.jiosaavn.com/api.php?__call=song.getDetails&cc=in&_marker=0%3F_marker%3D0&_format=json&pids=",
+  albumDetails:
+    "https://www.jiosaavn.com/api.php?__call=content.getAlbumDetails&_format=json&cc=in&_marker=0%3F_marker%3D0&albumid=",
+  playlistDetails:
+    "https://www.jiosaavn.com/api.php?__call=playlist.getDetails&_format=json&cc=in&_marker=0%3F_marker%3D0&listid=",
+  lyrics:
+    "https://www.jiosaavn.com/api.php?__call=lyrics.getLyrics&ctx=web6dot0&api_version=4&_format=json&_marker=0%3F_marker%3D0&lyrics_id=",
+};
+
+const HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+  Accept: "*/*",
+  "Accept-Language": "en-US,en;q=0.9",
+  Origin: "https://www.jiosaavn.com",
+  Referer: "https://www.jiosaavn.com/",
+};
+
+// DES decryption key and initialization vector
+const KEY = "38346591";
+const DES_IV = "00000000";
+
+export const decryptUrl = (encrypted) => {
+  if (!encrypted) return "";
+
+  try {
+    // Convert the key and IV to WordArray
+    const keyWords = CryptoJS.enc.Utf8.parse(KEY);
+    const iv = CryptoJS.enc.Utf8.parse(DES_IV);
+
+    // Decode base64
+    const ciphertext = CryptoJS.enc.Base64.parse(encrypted);
+
+    // Decrypt
+    const decrypted = CryptoJS.DES.decrypt(
+      { ciphertext: ciphertext },
+      keyWords,
+      {
+        iv: iv,
+        mode: CryptoJS.mode.ECB,
+        padding: CryptoJS.pad.Pkcs7,
+      }
+    );
+
+    // Convert to string and replace quality
+    const decryptedUrl = decrypted.toString(CryptoJS.enc.Utf8);
+    return decryptedUrl.replace("_96.mp4", "_320.mp4");
+  } catch (error) {
+    console.error("Error decrypting URL:", error);
+    return "";
+  }
+};
+
+const formatSong = (data) => {
+  try {
+    // Decrypt media URL
+    const mediaUrl = decryptUrl(data.encrypted_media_url);
+
+    // Format the song data
+    return {
+      id: data.id,
+      song: data.song,
+      album: data.album,
+      year: data.year,
+      primary_artists: data.primary_artists,
+      singers: data.singers,
+      image: data.image.replace("150x150", "500x500"),
+      duration: data.duration,
+      media_url: mediaUrl,
+      media_preview_url: mediaUrl
+        ?.replace("_320.mp4", "_96_p.mp4")
+        ?.replace("//aac.", "//preview."),
+      has_lyrics: data.has_lyrics,
+      lyrics: null, // Can be fetched separately if needed
+      copyright_text: data.copyright_text,
+      label: data.label,
+      labelUrl: data.label_url,
+      language: data.language,
+      perma_url: data.perma_url,
+      release_date: data.release_date,
+    };
+  } catch (error) {
+    console.error("Error formatting song:", error);
+    return data;
+  }
+};
+
+// Clean JSONP response
+const cleanResponse = async (response) => {
+  try {
+    const text = await response.text();
+    const cleanText = text.replace(/^[^{]*?({.*})[^}]*$/, "$1");
+    return JSON.parse(cleanText);
+  } catch (error) {
+    console.error("Error cleaning response:", error);
+    throw error;
+  }
+};
+
+export const searchSongs = async (query) => {
+  try {
+    const response = await fetch(
+      `${JIOSAAVN_ENDPOINTS.search}${encodeURIComponent(query)}`
+    );
+    const Jsondata = await response.json();
+    return Jsondata.data;
+  } catch (error) {
+    console.error("Error searching songs:", error);
+    throw error;
+  }
+};
+
+export const getSongDetails = async (id) => {
+  try {
+    const response = await fetch(`${JIOSAAVN_ENDPOINTS.songDetails}${id}`, {
+      headers: HEADERS,
+    });
+
+    const data = await cleanResponse(response);
+    return formatSong(data[id]);
+  } catch (error) {
+    console.error("Error getting song details:", error);
+    throw error;
+  }
+};
+
+export const getPlaylistDetails = async (listId) => {
+  try {
+    const response = await fetch(
+      `${JIOSAAVN_ENDPOINTS.playlistDetails}${listId}`,
+      {
+        headers: HEADERS,
+      }
+    );
+
+    const data = await cleanResponse(response);
+    return {
+      ...data,
+      songs: data.songs.map(formatSong),
+    };
+  } catch (error) {
+    console.error("Error getting playlist details:", error);
+    throw error;
+  }
+};
+
+export const getPlaylistFromUrl = async (url) => {
+  try {
+    const response = await fetch(url, {
+      headers: HEADERS,
+      method: "GET",
+    });
+
+    const html = await response.text();
+    const playlistId =
+      html.match(/"type":"playlist","id":"([^"]+)"/)?.[1] ||
+      html.match(/"page_id","([^"]+)"/)?.[1];
+
+    if (!playlistId) throw new Error("Could not extract playlist ID");
+
+    return await getPlaylistDetails(playlistId);
+  } catch (error) {
+    console.error("Error getting playlist from URL:", error);
+    throw error;
+  }
+};
+
+// Updated configuration with added categories
 export const MUSIC_CONFIG = {
-  BASE_URL: "https://nanimusciapi.vercel.app",
   PLAYLISTS: {
     Trending: [
       "https://www.jiosaavn.com/s/playlist/phulki_user/Now_Trending_-_Telugu/vid44GJ,K8FieSJqt9HmOQ__",
@@ -23,6 +195,7 @@ export const MUSIC_CONFIG = {
   },
 };
 
+// Tracking playlist indices
 const playlistIndices = {
   Trending: 0,
   Popular: 0,
@@ -31,77 +204,71 @@ const playlistIndices = {
   Hindi: 0,
 };
 
+// Direct JioSaavn API implementation
 export const fetchMusic = async ({
   query = "",
   active = "Trending",
   premaUrl = "",
   nextPlaylist = false,
 }) => {
-  let endpoint;
-  if (nextPlaylist && active) {
-    const currentIndex = playlistIndices[active];
-    const playlists = MUSIC_CONFIG.PLAYLISTS[active];
-
-    if (playlists && playlists.length > 0) {
-      playlistIndices[active] = (currentIndex + 1) % playlists.length;
-      const nextPlaylistUrl = playlists[playlistIndices[active]];
-
-      endpoint = `${MUSIC_CONFIG.BASE_URL}/playlist/?query=${encodeURIComponent(
-        nextPlaylistUrl
-      )}`;
-    }
-  } else if (query) {
-    endpoint = `${MUSIC_CONFIG.BASE_URL}/result/?query=${query}`;
-  } else if (premaUrl) {
-    endpoint = `${MUSIC_CONFIG.BASE_URL}/playlist/?query=${encodeURIComponent(
-      premaUrl
-    )}`;
-  } else if (active === "All") {
-    endpoint = `${MUSIC_CONFIG.BASE_URL}/combined`;
-  } else if (active === "Trending") {
-    const playlistUrl =
-      MUSIC_CONFIG.PLAYLISTS.Trending[playlistIndices.Trending];
-    endpoint = `${MUSIC_CONFIG.BASE_URL}/playlist/?query=${encodeURIComponent(
-      playlistUrl
-    )}`;
-  } else if (active === "Popular") {
-    const playlistUrl = MUSIC_CONFIG.PLAYLISTS.Popular[playlistIndices.Popular];
-    endpoint = `${MUSIC_CONFIG.BASE_URL}/playlist/?query=${encodeURIComponent(
-      playlistUrl
-    )}`;
-  } else if (active === "English") {
-    const playlistUrl = MUSIC_CONFIG.PLAYLISTS.English[playlistIndices.English];
-    endpoint = `${MUSIC_CONFIG.BASE_URL}/playlist/?query=${encodeURIComponent(
-      playlistUrl
-    )}`;
-  } else if (active === "Hindi") {
-    const playlistUrl = MUSIC_CONFIG.PLAYLISTS.Hindi[playlistIndices.Hindi];
-    endpoint = `${MUSIC_CONFIG.BASE_URL}/playlist/?query=${encodeURIComponent(
-      playlistUrl
-    )}`;
-  } else {
-    const playlistUrl = MUSIC_CONFIG.PLAYLISTS.Recent[playlistIndices.Recent];
-    endpoint = `${MUSIC_CONFIG.BASE_URL}/playlist/?query=${encodeURIComponent(
-      playlistUrl
-    )}`;
-  }
-
   try {
-    const response = await fetch(endpoint);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    if (query) {
+      return await searchSongs(query);
     }
-    const data = await response.json();
-    return data;
+
+    // Handle next playlist request
+    if (nextPlaylist && active) {
+      const currentIndex = playlistIndices[active];
+      const playlists = MUSIC_CONFIG.PLAYLISTS[active];
+
+      if (playlists && playlists.length > 0) {
+        playlistIndices[active] = (currentIndex + 1) % playlists.length;
+        const nextPlaylistUrl = playlists[playlistIndices[active]];
+        return await getPlaylistFromUrl(nextPlaylistUrl);
+      }
+    }
+    if (premaUrl) {
+      return await getPlaylistFromUrl(premaUrl);
+    }
+    if (MUSIC_CONFIG.PLAYLISTS[active]) {
+      const playlistUrl =
+        MUSIC_CONFIG.PLAYLISTS[active][playlistIndices[active]];
+      return await getPlaylistFromUrl(playlistUrl);
+    }
+
+    // Handle combined playlists (All category)
+    // if (active === "All") {
+    //   // This is a custom implementation as there's no direct JioSaavn API for combined playlists
+    //   // Get one playlist from each category and combine them
+    //   const results = await Promise.all(
+    //     Object.keys(MUSIC_CONFIG.PLAYLISTS).map(async (category) => {
+    //       const url = MUSIC_CONFIG.PLAYLISTS[category][0];
+    //       const playlist = await getPlaylistFromUrl(url);
+    //       return playlist.songs.slice(0, 10); // Take first 10 songs from each
+    //     })
+    //   );
+
+    //   // Flatten the results
+    //   const combinedSongs = results.flat();
+    //   console.log(combinedSongs, "this is combine");
+    //   return {
+    //     id: "combined",
+    //     title: "Combined Playlists",
+    //     perma_url: "",
+    //     songs: combinedSongs,
+    //   };
+    // }
+
+    // Default to Trending if no condition matches
+    const defaultPlaylistUrl =
+      MUSIC_CONFIG.PLAYLISTS.Trending[playlistIndices.Trending];
+    return await getPlaylistFromUrl(defaultPlaylistUrl);
   } catch (error) {
     console.error("Error fetching music:", error);
     throw error;
   }
 };
 
-export const getNextPlaylist = async (active, bhakthiActive) => {
-  return await fetchMusic({
-    active,
-    nextPlaylist: true,
-  });
+export const getNextPlaylist = async (active) => {
+  return await fetchMusic({ active, nextPlaylist: true });
 };

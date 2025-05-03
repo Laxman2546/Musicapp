@@ -6,6 +6,10 @@ import TrackPlayer, {
   Capability,
   AppKilledPlaybackBehavior,
 } from "react-native-track-player";
+import * as SplashScreen from "expo-splash-screen";
+
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
 
 // First, register the playback service
 TrackPlayer.registerPlaybackService(() => require("@/context/service.js"));
@@ -41,6 +45,8 @@ export default function RootLayout() {
         }
       } catch (error) {
         console.error("Failed to setup player:", error);
+      } finally {
+        await SplashScreen.hideAsync();
       }
     };
 
@@ -50,7 +56,11 @@ export default function RootLayout() {
   return (
     <PlayerProvider>
       <View style={{ flex: 1 }}>
-        <Stack>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+          }}
+        >
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen
             name="player"
@@ -62,27 +72,17 @@ export default function RootLayout() {
               animationDuration: 400,
             }}
           />
-          <Stack.Screen
-            name="localFiles"
-            options={{
-              headerShown: false,
-            }}
-          />
+          <Stack.Screen name="localFiles" options={{ headerShown: false }} />
           <Stack.Screen
             name="downloadsFolder"
-            options={{
-              headerShown: false,
-            }}
+            options={{ headerShown: false }}
           />
+          <Stack.Screen name="likedSongs" options={{ headerShown: false }} />
+          <Stack.Screen name="premlist" options={{ headerShown: false }} />
           <Stack.Screen
-            name="likedSongs"
+            name="[...unmatched]"
             options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="premlist"
-            options={{
+              title: "Not Found",
               headerShown: false,
             }}
           />

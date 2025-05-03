@@ -101,12 +101,18 @@ const Search = () => {
                   <>
                     {searchQuery != "" ? (
                       <Trending
-                        song={item.song}
-                        image={item.image}
-                        music={item.music}
+                        song={item.name}
+                        image={item.image[2].url}
+                        music={
+                          item.downloadUrl[4].url || item.downloadUrl[3].url
+                        }
                         duration={item.duration}
-                        primary_artists={item.primary_artists}
-                        song_url={item.media_url}
+                        primary_artists={item.artists.primary.map(
+                          (a) => a.name
+                        )}
+                        song_url={
+                          item.downloadUrl[4].url || item.downloadUrl[3].url
+                        }
                         allSongs={music?.results || []}
                         index={index}
                       />

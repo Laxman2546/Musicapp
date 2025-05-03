@@ -61,19 +61,13 @@ const DownloadComponent = ({
 
   const handleDelete = async () => {
     try {
-      // Try deleting the song file
       await FileSystem.deleteAsync(song_url);
-
-      // Try deleting the associated JSON metadata file (if exists)
       const jsonFile = song_url.replace(".mp3", ".json");
       try {
         await FileSystem.deleteAsync(jsonFile);
       } catch (error) {
-        // If the JSON file doesn't exist, it will throw an error, but it's fine
         console.log("No associated JSON file to delete");
       }
-
-      // Reload the song list
       onDelete();
     } catch (error) {
       console.log("Error deleting file:", error);
@@ -111,7 +105,18 @@ const DownloadComponent = ({
             style={{ width: 60, height: 60, borderRadius: 10 }}
           />
         </View>
-
+        {currentSong?.song === cleanSongName(song) && isPlaying && (
+          <Image
+            source={musicPlay}
+            style={{
+              width: 50,
+              height: 50,
+              position: "absolute",
+              top: 15,
+              left: 20,
+            }}
+          />
+        )}
         <View className="flex flex-row justify-between align-middle w-3/4 relative">
           <TouchableOpacity onPress={handleSong}>
             <View>

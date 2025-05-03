@@ -59,8 +59,6 @@ export const PlayerProvider = ({ children }) => {
 
     return () => {};
   }, []);
-
-  // Sync playback state with `isPlaying`
   useEffect(() => {
     const updatePlaybackState = async () => {
       if (playbackState === State.Playing) {
@@ -122,12 +120,22 @@ export const PlayerProvider = ({ children }) => {
             url: song.song_url || song.media_url || song.filePath || "",
             title: song.song || "Unknown Title",
             artist: song.primary_artists || song.music || "Unknown Artist",
-            artwork: song.image || null,
+            artwork:
+              typeof song.image === "string" &&
+              (song.image.startsWith("file://") ||
+                song.image.startsWith("content://"))
+                ? song.image
+                : song.image || null,
+            notificationCapabilities: [
+              Capability.Play,
+              Capability.Pause,
+              Capability.SkipToNext,
+              Capability.SkipToPrevious,
+            ],
           }))
           .filter((track) => track.url);
 
         if (currentSong && song.song === currentSong.song) {
-          // If the same song is selected, navigate to player
           router.push("/player");
           return;
         }
@@ -137,12 +145,10 @@ export const PlayerProvider = ({ children }) => {
           return;
         }
 
-        // Set current song first to ensure correct image shows immediately
         setCurrentSong(tracks[index]);
         setPlaylist(tracks);
         setCurrentIndex(index);
 
-        // Then handle track player updates
         await TrackPlayer.reset();
         await TrackPlayer.add(tracks);
         await TrackPlayer.skip(index);

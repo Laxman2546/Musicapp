@@ -1,6 +1,38 @@
-import TrackPlayer, { Event } from "react-native-track-player";
+import TrackPlayer, { Event, Capability } from "react-native-track-player";
 
 module.exports = async function () {
+  // Configure TrackPlayer
+  await TrackPlayer.updateOptions({
+    stopWithApp: true,
+    capabilities: [
+      Capability.Play,
+      Capability.Pause,
+      Capability.SkipToNext,
+      Capability.SkipToPrevious,
+      Capability.Stop,
+      Capability.SeekTo,
+    ],
+    compactCapabilities: [
+      Capability.Play,
+      Capability.Pause,
+      Capability.SkipToNext,
+      Capability.SkipToPrevious,
+    ],
+    android: {
+      // Enable high-quality artwork in notifications
+      alwaysPauseOnInterruption: true,
+      foregroundServiceSettings: {
+        notificationCapabilities: [
+          Capability.Play,
+          Capability.Pause,
+          Capability.SkipToNext,
+          Capability.SkipToPrevious,
+        ],
+        notificationIcon: "ic_launcher",
+      },
+    },
+  });
+
   TrackPlayer.addEventListener(Event.RemotePlay, () => {
     TrackPlayer.play();
   });
@@ -25,6 +57,5 @@ module.exports = async function () {
     TrackPlayer.seekTo(event.position);
   });
 
-  
   return Promise.resolve();
 };

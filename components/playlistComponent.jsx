@@ -5,7 +5,7 @@ import ChartsComponent from "./chartsComponent";
 const PlaylistComponent = ({ data }) => {
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
-      <View className="mt-5 mb-[100px]">
+      <View className="mt-5 mb-[200px]">
         {data.map((items, index) => (
           <View key={index}>
             <Text style={styles.activeText}>{items.category}</Text>
