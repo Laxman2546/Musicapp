@@ -128,10 +128,18 @@ const MusicPlayer = () => {
   };
 
   const imageSource = (image) => {
-    if (typeof image == "string" && image.startsWith("http")) {
-      return { uri: image };
+    if (!image) return defaultMusicImage;
+    if (typeof image === "string") {
+      if (image.startsWith("http")) {
+        return { uri: image };
+      } else if (
+        image.startsWith("content://") ||
+        image.startsWith("file://")
+      ) {
+        return { uri: image };
+      }
     }
-    return require("../assets/images/musicImage.png");
+    return defaultMusicImage;
   };
 
   if (!currentSong) {
@@ -367,7 +375,7 @@ const styles = StyleSheet.create({
     height: 20,
   },
   disabledButton: {
-    opacity: 0.5,
+    opacity: 0.3,
   },
   activeButton: {
     tintColor: "#fff",

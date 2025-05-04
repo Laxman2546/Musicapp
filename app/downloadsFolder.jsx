@@ -16,15 +16,18 @@ import searchImg from "@/assets/images/search.png";
 import closeImg from "@/assets/images/close.png";
 
 const DOWNLOAD_DIR = FileSystem.documentDirectory + "downloads/";
-const cleanSongName = (name) => {
-  return name.replace(/_/g, " ").replace(/\s+/g, " ").trim();
-};
 
 const DownloadsFolder = () => {
   const [songs, setSongs] = useState([]);
   const [filteredSongs, setFilteredSongs] = useState([]);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Move the cleanSongName function inside the component
+  const cleanSongName = (name) => {
+    if (!name) return "";
+    return name.replace(/_/g, " ").replace(/\s+/g, " ").trim();
+  };
 
   const loadSongs = async () => {
     try {

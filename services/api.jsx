@@ -21,7 +21,6 @@ const HEADERS = {
   Referer: "https://www.jiosaavn.com/",
 };
 
-// DES decryption key and initialization vector
 const KEY = "38346591";
 const DES_IV = "00000000";
 
@@ -235,31 +234,6 @@ export const fetchMusic = async ({
         MUSIC_CONFIG.PLAYLISTS[active][playlistIndices[active]];
       return await getPlaylistFromUrl(playlistUrl);
     }
-
-    // Handle combined playlists (All category)
-    // if (active === "All") {
-    //   // This is a custom implementation as there's no direct JioSaavn API for combined playlists
-    //   // Get one playlist from each category and combine them
-    //   const results = await Promise.all(
-    //     Object.keys(MUSIC_CONFIG.PLAYLISTS).map(async (category) => {
-    //       const url = MUSIC_CONFIG.PLAYLISTS[category][0];
-    //       const playlist = await getPlaylistFromUrl(url);
-    //       return playlist.songs.slice(0, 10); // Take first 10 songs from each
-    //     })
-    //   );
-
-    //   // Flatten the results
-    //   const combinedSongs = results.flat();
-    //   console.log(combinedSongs, "this is combine");
-    //   return {
-    //     id: "combined",
-    //     title: "Combined Playlists",
-    //     perma_url: "",
-    //     songs: combinedSongs,
-    //   };
-    // }
-
-    // Default to Trending if no condition matches
     const defaultPlaylistUrl =
       MUSIC_CONFIG.PLAYLISTS.Trending[playlistIndices.Trending];
     return await getPlaylistFromUrl(defaultPlaylistUrl);

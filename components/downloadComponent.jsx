@@ -6,6 +6,7 @@ import moreIcon from "@/assets/images/more.png";
 import trash from "@/assets/images/trash.png";
 import * as FileSystem from "expo-file-system";
 import defaultMusicImage from "@/assets/images/musicImage.png";
+import musicPlay from "@/assets/images/playing.gif";
 
 const DownloadComponent = ({
   type,
@@ -27,25 +28,47 @@ const DownloadComponent = ({
   };
 
   const handleSong = () => {
-    const songObject = {
-      song,
-      image,
-      music,
-      duration,
-      primary_artists,
-      song_url,
-    };
+    console.log(allSongs);
+    const formattedList = allSongs
+      .map((item) => ({
+        song: item.song || item.name,
+        image:
+          Array.isArray(item.image) && item.image[2]?.url
+            ? item.image[2].url
+            : item.image,
+        music:
+          item.music ||
+          item.downloadUrl?.[4]?.url ||
+          item.downloadUrl?.[3]?.url ||
+          "",
+        duration: item.duration,
+        primary_artists:
+          item.primary_artists ||
+          (item.artists?.primary
+            ? item.artists.primary.map((a) => a.name)
+            : "Unknown"),
+        song_url:
+          item.media_url ||
+          item.music ||
+          item.filePath ||
+          item.downloadUrl[4].url ||
+          item.downloadUrl[3].url ||
+          "",
+      }))
+      .filter((song) => song.song_url);
 
-    const formattedAllSongs = allSongs.map((song, i) => ({
-      song: song.song,
-      image: song.image,
-      music: song.music,
-      duration: song.duration,
-      primary_artists: song.primary_artists,
-      song_url: song.media_url || song.music || song.filePath,
-    }));
+    if (formattedList.length === 0) {
+      console.error("No valid songs to play");
+      return;
+    }
 
-    playSong(songObject, formattedAllSongs, index);
+    const songObject = formattedList[index];
+    if (!songObject) {
+      console.error("Invalid song index");
+      return;
+    }
+
+    playSong(songObject, formattedList, index);
     router.push("/player");
   };
 
@@ -105,7 +128,7 @@ const DownloadComponent = ({
             style={{ width: 60, height: 60, borderRadius: 10 }}
           />
         </View>
-        {currentSong?.song === cleanSongName(song) && isPlaying && (
+        {currentSong?.song === song && isPlaying && (
           <Image
             source={musicPlay}
             style={{

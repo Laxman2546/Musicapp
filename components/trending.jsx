@@ -74,7 +74,7 @@ const Trending = ({
   };
 
   const handlePlay = () => {
-    console.log("this form", allSongs);
+
     const formattedList = allSongs
       .map((item) => ({
         song: item.song || item.name,

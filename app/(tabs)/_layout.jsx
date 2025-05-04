@@ -45,10 +45,18 @@ const RootLayout = () => {
   }, []);
 
   const getImageSource = (image) => {
-    if (typeof image === "string" && image.startsWith("http")) {
-      return { uri: image };
+    if (!image) return defaultMusicImage;
+    if (typeof image === "string") {
+      if (image.startsWith("http")) {
+        return { uri: image };
+      } else if (
+        image.startsWith("content://") ||
+        image.startsWith("file://")
+      ) {
+        return { uri: image };
+      }
     }
-    return require("@/assets/images/musicImage.png");
+    return defaultMusicImage;
   };
 
   const navigatePlayer = () => {
