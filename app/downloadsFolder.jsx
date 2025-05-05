@@ -6,6 +6,7 @@ import {
   Image,
   FlatList,
   TextInput,
+  ActivityIndicator,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import * as FileSystem from "expo-file-system";
@@ -22,62 +23,123 @@ const DownloadsFolder = () => {
   const [filteredSongs, setFilteredSongs] = useState([]);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  // Move the cleanSongName function inside the component
+  // Clean song name for display
   const cleanSongName = (name) => {
-    if (!name) return "";
-    return name.replace(/_/g, " ").replace(/\s+/g, " ").trim();
+    if (!name) return "Unknown";
+    return String(name).replace(/_/g, " ").replace(/\s+/g, " ").trim();
   };
 
   const loadSongs = async () => {
+    setLoading(true);
     try {
-      await FileSystem.makeDirectoryAsync(DOWNLOAD_DIR, {
-        intermediates: true,
-      });
+      // Ensure downloads directory exists
+      const dirInfo = await FileSystem.getInfoAsync(DOWNLOAD_DIR);
+      if (!dirInfo.exists) {
+        await FileSystem.makeDirectoryAsync(DOWNLOAD_DIR, {
+          intermediates: true,
+        });
+        setSongs([]);
+        setFilteredSongs([]);
+        setLoading(false);
+        return;
+      }
+
       const files = await FileSystem.readDirectoryAsync(DOWNLOAD_DIR);
 
-      // Filter only .mp3 files
-      const mp3Files = files.filter((file) => file.endsWith(".mp3"));
+      // Prefer JSON files for metadata reading
+      const jsonFiles = files.filter((file) => file.endsWith(".json"));
 
-      // Create song objects
+      if (jsonFiles.length === 0) {
+        // Fallback to MP3 files if no JSON metadata
+        const mp3Files = files.filter((file) => file.endsWith(".mp3"));
+        if (mp3Files.length === 0) {
+          setSongs([]);
+          setFilteredSongs([]);
+          setLoading(false);
+          return;
+        }
+
+        // Create song objects from MP3 files (less metadata)
+        const songData = await Promise.all(
+          mp3Files.map(async (fileName) => {
+            const baseName = fileName.replace(".mp3", "");
+            return {
+              id: baseName,
+              song: cleanSongName(baseName),
+              filePath: `${DOWNLOAD_DIR}${fileName}`,
+              image: null,
+              primary_artists: "Unknown Artist",
+              duration: 0,
+              downloadedAt: new Date().toISOString(), // Default date
+            };
+          })
+        );
+
+        setSongs(songData);
+        setFilteredSongs(songData);
+        setLoading(false);
+        return;
+      }
+
+      // Create song objects with complete metadata from JSON files
       const songData = await Promise.all(
-        mp3Files.map(async (fileName) => {
-          const baseName = fileName.replace(".mp3", "");
-          const jsonFile = `${baseName}.json`;
-
-          let metadata = {
-            image: null,
-            primary_artists: "Unknown Artist",
-            duration: "0:00",
-          };
-
+        jsonFiles.map(async (jsonFile) => {
           try {
             const jsonPath = `${DOWNLOAD_DIR}${jsonFile}`;
-            const fileInfo = await FileSystem.getInfoAsync(jsonPath);
+            const jsonContent = await FileSystem.readAsStringAsync(jsonPath);
+            const metadata = JSON.parse(jsonContent);
 
-            if (fileInfo.exists) {
-              const jsonContent = await FileSystem.readAsStringAsync(jsonPath);
-              metadata = JSON.parse(jsonContent);
+            // Check if the MP3 file exists
+            const mp3Path =
+              metadata.filePath || `${DOWNLOAD_DIR}${metadata.id}.mp3`;
+            const mp3Exists = await FileSystem.getInfoAsync(mp3Path);
+
+            if (!mp3Exists.exists) {
+              console.log(`MP3 file not found for ${jsonFile}`);
+              return null;
             }
-          } catch (e) {
-            console.log(`Error loading metadata for ${fileName}:`, e);
-          }
 
-          return {
-            song: cleanSongName(baseName),
-            filePath: `${DOWNLOAD_DIR}${fileName}`,
-            image: metadata.image || null,
-            primary_artists:
-              metadata.primary_artists || metadata.artist || "Unknown Artist",
-            duration: metadata.duration || "0:00",
-          };
+            return {
+              id: metadata.id || jsonFile.replace(".json", ""),
+              song:
+                metadata.song ||
+                metadata.name ||
+                cleanSongName(metadata.id || jsonFile.replace(".json", "")),
+              filePath: mp3Path,
+              image: metadata.image || null,
+              primary_artists:
+                metadata.primary_artists ||
+                metadata.artist ||
+                metadata.music ||
+                "Unknown Artist",
+              duration: metadata.duration || 0,
+              downloadedAt: metadata.downloadedAt || new Date().toISOString(),
+            };
+          } catch (e) {
+            console.log(`Error loading metadata for ${jsonFile}:`, e);
+            return null;
+          }
         })
       );
 
-      setSongs(songData);
-      setFilteredSongs(songData);
+      // Filter out null entries (failed loads)
+      const validSongs = songData.filter((song) => song !== null);
+
+      // Sort by download date, newest first
+      validSongs.sort((a, b) => {
+        const dateA = new Date(a.downloadedAt);
+        const dateB = new Date(b.downloadedAt);
+        return dateB - dateA; // Descending order (newest first)
+      });
+
+      setSongs(validSongs);
+      setFilteredSongs(validSongs);
     } catch (e) {
       console.log("Error loading songs:", e);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -101,8 +163,10 @@ const DownloadsFolder = () => {
     if (!text) {
       setFilteredSongs(songs);
     } else {
-      const results = songs.filter((item) =>
-        item.song.toLowerCase().includes(text.toLowerCase())
+      const results = songs.filter(
+        (item) =>
+          item.song?.toLowerCase().includes(text.toLowerCase()) ||
+          item.primary_artists?.toLowerCase().includes(text.toLowerCase())
       );
       setFilteredSongs(results);
     }
@@ -124,7 +188,14 @@ const DownloadsFolder = () => {
         <Text style={styles.textStyle}>Downloads</Text>
       </View>
 
-      {songs.length < 1 ? (
+      {loading ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#000" />
+          <Text style={styles.textFont} className="mt-4">
+            Loading downloads...
+          </Text>
+        </View>
+      ) : songs.length < 1 ? (
         <View className="flex-1 items-center justify-center">
           <Text style={styles.textFont}>No Downloads found 😐</Text>
           <Text style={styles.textFont}>Try downloading the songs....</Text>
@@ -165,7 +236,7 @@ const DownloadsFolder = () => {
 
           <FlatList
             data={filteredSongs}
-            keyExtractor={(item, index) => index.toString()}
+            keyExtractor={(item) => item.id || item.filePath}
             renderItem={({ item, index }) => (
               <DownloadComponent
                 song={item.song}

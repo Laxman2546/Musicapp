@@ -1,5 +1,5 @@
 import { Image, Pressable, Text, TouchableOpacity, View } from "react-native";
-import React, { memo, useState } from "react";
+import React, { memo, useEffect, useState } from "react";
 import { usePlayer } from "@/context/playerContext";
 import { router } from "expo-router";
 import moreIcon from "@/assets/images/more.png";
@@ -7,6 +7,8 @@ import trash from "@/assets/images/trash.png";
 import * as FileSystem from "expo-file-system";
 import defaultMusicImage from "@/assets/images/musicImage.png";
 import musicPlay from "@/assets/images/playing.gif";
+
+const downloadsDir = `${FileSystem.documentDirectory}downloads/`;
 
 const DownloadComponent = ({
   type,
@@ -31,7 +33,9 @@ const DownloadComponent = ({
     console.log(allSongs);
     const formattedList = allSongs
       .map((item) => ({
+        id: item.id, // Make sure ID is included
         song: item.song || item.name,
+        name: item.song || item.name, // Include name for compatibility
         image:
           Array.isArray(item.image) && item.image[2]?.url
             ? item.image[2].url
@@ -44,6 +48,7 @@ const DownloadComponent = ({
         duration: item.duration,
         primary_artists:
           item.primary_artists ||
+          item.artist || // Include artist as fallback
           (item.artists?.primary
             ? item.artists.primary.map((a) => a.name)
             : "Unknown"),
@@ -51,8 +56,8 @@ const DownloadComponent = ({
           item.media_url ||
           item.music ||
           item.filePath ||
-          item.downloadUrl[4].url ||
-          item.downloadUrl[3].url ||
+          item.downloadUrl?.[4]?.url ||
+          item.downloadUrl?.[3]?.url ||
           "",
       }))
       .filter((song) => song.song_url);
@@ -84,20 +89,41 @@ const DownloadComponent = ({
 
   const handleDelete = async () => {
     try {
+      // Get the file ID from the song_url path
+      const fileId = song_url.split("/").pop().split(".")[0];
+
+      // Delete the MP3 file
       await FileSystem.deleteAsync(song_url);
-      const jsonFile = song_url.replace(".mp3", ".json");
+
+      // Delete the JSON metadata file
       try {
+        const jsonFile = `${downloadsDir}${fileId}.json`;
         await FileSystem.deleteAsync(jsonFile);
       } catch (error) {
-        console.log("No associated JSON file to delete");
+        console.log("Error deleting JSON file:", error);
       }
+
+      // Delete any associated image files
+      try {
+        const files = await FileSystem.readDirectoryAsync(downloadsDir);
+        const imageFiles = files.filter((file) =>
+          file.startsWith(`${fileId}_artwork`)
+        );
+        for (const imageFile of imageFiles) {
+          await FileSystem.deleteAsync(`${downloadsDir}${imageFile}`);
+        }
+      } catch (error) {
+        console.log("Error deleting image files:", error);
+      }
+
       onDelete();
     } catch (error) {
       console.log("Error deleting file:", error);
     }
   };
 
-  const songName = song ? song.split(`(`)[0] : "Unknown Song";
+  // Display the clean song name, not the ID
+  const songName = song ? song.split(`(`)[0].trim() : "Unknown Song";
 
   const getImageSource = (image) => {
     if (!image) return defaultMusicImage;
@@ -121,7 +147,11 @@ const DownloadComponent = ({
         gotoPlayer();
       }}
     >
-      <View className="w-full flex flex-row gap-6 bg-gray-100 rounded-2xl p-3 mb-2">
+      <View
+        className={`w-full flex flex-row gap-6 ${
+          currentSong?.song === song ? `bg-gray-300` : `bg-gray-100`
+        } bg-gray-100 rounded-2xl p-3 mb-2`}
+      >
         <View>
           <Image
             source={getImageSource(image)}

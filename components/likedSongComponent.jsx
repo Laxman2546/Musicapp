@@ -60,7 +60,7 @@ const likedSongComponent = ({
           song.media_url || song.music || song.filePath || song.song_url || "",
       }))
       .filter((song) => song.song_url); // Filter out songs with no URL
-
+    console.log(allSongs);
     if (formattedAllSongs.length === 0) {
       console.error("No valid songs to play");
       return;
@@ -113,10 +113,37 @@ const likedSongComponent = ({
   const songName = song ? song.split(`(`)[0] : "Unknown Song";
 
   const imageSource = (image) => {
-    if (typeof image == "string" && image.startsWith("http")) {
-      return { uri: image };
+    // If no image provided, use default
+    if (!image) return defaultMusicImage;
+
+    // If image is a string URL (http, file, or content)
+    if (typeof image === "string") {
+      if (
+        image.startsWith("http") ||
+        image.startsWith("https") ||
+        image.startsWith("content://") ||
+        image.startsWith("file://")
+      ) {
+        return { uri: image };
+      }
     }
-    return require("../assets/images/musicImage.png");
+
+    // If image is an array from the search API
+    if (Array.isArray(image)) {
+      // Try to get highest quality image (usually at index 2)
+      if (image[2] && image[2].url) {
+        return { uri: image[2].url };
+      }
+      // Fallback to any available image in the array
+      for (let i = 0; i < image.length; i++) {
+        if (image[i] && image[i].url) {
+          return { uri: image[i].url };
+        }
+      }
+    }
+
+    // Last resort - use default image
+    return defaultMusicImage;
   };
 
   if (isEmpty) {

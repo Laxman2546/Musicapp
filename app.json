@@ -2,7 +2,7 @@
   "expo": {
     "name": "nanimusic",
     "slug": "nanimusic",
-    "runtimeVersion": "1.0.0", 
+    "runtimeVersion": "1.0.0",
 
     "orientation": "portrait",
     "icon": "./assets/images/appicon.png",
@@ -80,7 +80,9 @@
     },
     "owner": "lakshmannnani",
     "updates": {
-      "url": "https://u.expo.dev/f14beaa9-f88b-4a23-893a-54ab9523e463"
+      "url": "https://u.expo.dev/f14beaa9-f88b-4a23-893a-54ab9523e463",
+      "fallbackToCacheTimeout": 0,
+      "checkAutomatically": "ON_LOAD"
     }
   }
 }

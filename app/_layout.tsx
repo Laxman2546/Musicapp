@@ -2,6 +2,7 @@ import { PlayerProvider } from "@/context/playerContext";
 import { Stack } from "expo-router";
 import { useEffect } from "react";
 import { View } from "react-native";
+import * as Linking from "expo-linking";
 import TrackPlayer, {
   Capability,
   AppKilledPlaybackBehavior,
@@ -13,6 +14,20 @@ SplashScreen.preventAutoHideAsync();
 
 // First, register the playback service
 TrackPlayer.registerPlaybackService(() => require("@/context/service.js"));
+const linking = {
+  prefixes: ["myapp://"],
+  config: {
+    screens: {
+      "(tabs)": "",
+      player: "player",
+      localFiles: "localFiles",
+      downloadsFolder: "downloadsFolder",
+      likedSongs: "likedSongs",
+      premlist: "premlist",
+      "[...unmatched]": "*",
+    },
+  },
+};
 
 export default function RootLayout() {
   useEffect(() => {

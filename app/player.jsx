@@ -4,7 +4,6 @@ import {
   Text,
   View,
   Pressable,
-  Dimensions,
   ActivityIndicator,
 } from "react-native";
 import { useEffect, useState } from "react";
@@ -24,10 +23,16 @@ import loopSecond from "@/assets/images/repeatSecond.png";
 import backIcon from "@/assets/images/backImg.png";
 import heart from "@/assets/images/heart.png";
 import heartFill from "@/assets/images/heartfill.png";
-import TrackPlayer, { State } from "react-native-track-player";
+import TrackPlayer, {
+  State,
+  usePlaybackState,
+} from "react-native-track-player";
 import defaultMusicImage from "@/assets/images/musicImage.png";
 
 const MusicPlayer = () => {
+  // Get the playback state directly from TrackPlayer hook
+  const playbackState = usePlaybackState();
+
   const {
     currentSong,
     playNext,
@@ -36,7 +41,6 @@ const MusicPlayer = () => {
     setIsPlaying,
     currentIndex,
     playlist,
-    progress,
     position,
     duration,
     shuffleActive,
@@ -47,21 +51,29 @@ const MusicPlayer = () => {
     formatTime,
     togglePlayPause,
   } = usePlayer();
-
+  // console.log("this is currenr", currentSong);
   const [favouriteClick, setfavouriteClick] = useState(false);
-
+  // Local state for UI rendering to make sure we're in sync with TrackPlayer
+  const [localIsPlaying, setLocalIsPlaying] = useState(isPlaying);
+  // Keep our local state in sync with both context and TrackPlayer
   useEffect(() => {
-    const syncPlaybackState = async () => {
-      try {
-        const state = await TrackPlayer.getState();
-        setIsPlaying(state === State.Playing);
-      } catch (err) {
-        console.log("Error getting playback state:", err);
-      }
-    };
+    // Update local state based on playerContext
+    setLocalIsPlaying(isPlaying);
+  }, [isPlaying]);
 
-    syncPlaybackState();
-  }, [setIsPlaying]);
+  // Listen directly to TrackPlayer's state
+  useEffect(() => {
+    if (playbackState === State.Playing) {
+      setLocalIsPlaying(true);
+      setIsPlaying(true);
+    } else if (
+      playbackState === State.Paused ||
+      playbackState === State.Stopped
+    ) {
+      setLocalIsPlaying(false);
+      setIsPlaying(false);
+    }
+  }, [playbackState, setIsPlaying]);
 
   useEffect(() => {
     const checkFavoriteStatus = async () => {
@@ -70,8 +82,9 @@ const MusicPlayer = () => {
         const favoriteList = favorites ? JSON.parse(favorites) : [];
         const isFav = favoriteList.some(
           (favSong) =>
-            favSong.song === currentSong?.song &&
-            favSong.primary_artists === currentSong?.primary_artists
+            favSong.song === currentSong?.song ||
+            (currentSong.title &&
+              favSong.primary_artists === currentSong?.primary_artists)
         );
         setfavouriteClick(isFav);
       } catch (error) {
@@ -92,20 +105,26 @@ const MusicPlayer = () => {
         favouriteList = favouriteList.filter(
           (favSong) =>
             !(
-              favSong.song === currentSong?.song &&
-              favSong.primary_artists === currentSong?.primary_artists
+              favSong.song === currentSong?.song ||
+              (currentSong.title &&
+                favSong.primary_artists === currentSong?.primary_artists) ||
+              currentSong.artists.primary.map((a) => a.name)
             )
         );
       } else {
         favouriteList.push({
-          song: currentSong.song,
+          song: currentSong.song || currentSong.title,
           image: currentSong.image,
           duration: currentSong.duration,
-          primary_artists: currentSong.primary_artists,
+          primary_artists:
+            currentSong.primary_artists ||
+            currentSong.artists.primary.map((a) => a.name),
           song_url:
             currentSong.media_url ||
             currentSong.filePath ||
-            currentSong.song_url,
+            currentSong.song_url ||
+            currentSong.downloadUrl[4]?.url ||
+            currentSong.downloadUrl[3].url,
         });
       }
 
@@ -123,22 +142,41 @@ const MusicPlayer = () => {
     router.back();
   };
 
-  const handlePlayPause = () => {
-    togglePlayPause();
+  const handlePlayPause = async () => {
+    await togglePlayPause();
   };
 
   const imageSource = (image) => {
+    // If no image provided, use default
     if (!image) return defaultMusicImage;
+
+    // If image is a string URL (http, file, or content)
     if (typeof image === "string") {
-      if (image.startsWith("http")) {
-        return { uri: image };
-      } else if (
+      if (
+        image.startsWith("http") ||
+        image.startsWith("https") ||
         image.startsWith("content://") ||
         image.startsWith("file://")
       ) {
         return { uri: image };
       }
     }
+
+    // If image is an array from the search API
+    if (Array.isArray(image)) {
+      // Try to get highest quality image (usually at index 2)
+      if (image[2] && image[2].url) {
+        return { uri: image[2].url };
+      }
+      // Fallback to any available image in the array
+      for (let i = 0; i < image.length; i++) {
+        if (image[i] && image[i].url) {
+          return { uri: image[i].url };
+        }
+      }
+    }
+
+    // Last resort - use default image
     return defaultMusicImage;
   };
 
@@ -150,6 +188,7 @@ const MusicPlayer = () => {
       </SafeAreaView>
     );
   }
+
   return (
     <GestureRecognizer
       onSwipeLeft={playNext}
@@ -186,10 +225,13 @@ const MusicPlayer = () => {
             <View className="flex flex-row items-center justify-between">
               <View style={styles.songInfoContainer}>
                 <Text style={styles.musicText} numberOfLines={1}>
-                  {currentSong.song}
+                  {currentSong.song || currentSong.title || "unknown song"}
                 </Text>
                 <Text style={styles.musicArtist} numberOfLines={1}>
-                  {currentSong.primary_artists || currentSong.music}
+                  {currentSong.primary_artists ||
+                    currentSong.music ||
+                    currentSong.artists.primary.map((a) => a.name) ||
+                    "unknown artist"}
                 </Text>
               </View>
               <Pressable
@@ -208,8 +250,8 @@ const MusicPlayer = () => {
               <Slider
                 style={{ width: 310, height: 40 }}
                 minimumValue={0}
-                maximumValue={duration}
-                value={position}
+                maximumValue={duration || 1}
+                value={position || 0}
                 minimumTrackTintColor="#FFFFFF"
                 maximumTrackTintColor="#303030"
                 thumbTintColor="#FFFFFF"
@@ -253,7 +295,7 @@ const MusicPlayer = () => {
                   <Pressable onPress={handlePlayPause}>
                     <View className="w-16 h-14 p-2 items-center justify-center rounded-xl bg-[#2C2C2C]">
                       <Image
-                        source={isPlaying ? pauseIcon : playIcon}
+                        source={localIsPlaying ? pauseIcon : playIcon}
                         style={styles.playPauseIcon}
                       />
                     </View>

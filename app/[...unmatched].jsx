@@ -1,9 +1,19 @@
 import { StyleSheet, Text, View, Pressable, Image } from "react-native";
-import React from "react";
+import React, { useEffect } from "react";
 import { router } from "expo-router";
 import backIcon from "@/assets/images/backImg.png";
 
 export default function NotFoundScreen() {
+  useEffect(() => {
+    const redirectTimer = setTimeout(() => {
+      router.replace("/");
+    }, 1000); // 3 seconds delay
+
+
+    return () => clearTimeout(redirectTimer);
+  }, []);
+
+  // Manual navigation function (if user wants to go back immediately)
   const handleBack = () => {
     router.replace("/");
   };
@@ -11,12 +21,11 @@ export default function NotFoundScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Oops! 😕</Text>
         <Text style={styles.message}>
-          We couldn't find what you're looking for.
+          Wait we Redirecting you to the home page...
         </Text>
         <Pressable onPress={handleBack} style={styles.button}>
-          <View className="flex flex-row items-center gap-2 bg-black p-4 rounded-xl">
+          <View style={styles.buttonContainer}>
             <Image source={backIcon} style={styles.backImg} />
             <Text style={styles.buttonText}>Go Back Home</Text>
           </View>
@@ -47,8 +56,28 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Regular",
     fontSize: 18,
     textAlign: "center",
-    marginBottom: 30,
+    marginBottom: 15,
     color: "#666",
+  },
+  redirectingText: {
+    fontFamily: "Poppins-Regular",
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 15,
+    color: "#999",
+    fontStyle: "italic",
+  },
+  button: {
+    marginTop: 10,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#000",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
   },
   buttonText: {
     fontFamily: "Poppins-SemiBold",

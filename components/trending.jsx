@@ -5,6 +5,7 @@ import {
   Image,
   ActivityIndicator,
   Platform,
+  Alert,
 } from "react-native";
 import React, { useEffect, useState, memo } from "react";
 import { usePlayer } from "@/context/playerContext";
@@ -26,18 +27,20 @@ const ensureDirExists = async () => {
   }
 };
 
+// Clean song name for display
+const cleanSongName = (name) => {
+  if (!name) return "Unknown";
+  return String(name).replace(/_/g, " ").replace(/\s+/g, " ").trim();
+};
+
 // Sanitize filename to remove illegal characters
 const sanitizeFilename = (filename) => {
-  return filename
+  if (!filename) return "unknown";
+  return String(filename)
     .replace(/[^a-z0-9\-_ ]/gi, "") // Remove special characters except spaces, hyphens, and underscores
     .replace(/\s+/g, " ") // Replace multiple spaces with single space
     .trim() // Trim whitespace
     .replace(/\s/g, "_"); // Replace remaining spaces with underscores
-};
-
-// Clean song name for display
-const cleanSongName = (name) => {
-  return name.replace(/_/g, " ").replace(/\s+/g, " ").trim();
 };
 
 const Trending = ({
@@ -50,12 +53,20 @@ const Trending = ({
   index,
   allSongs,
   isdownloadedSongs,
+  id, // Accept song ID if provided
 }) => {
-  const { playSong, currentIndex, currentSong, isPlaying } = usePlayer();
+  const { playSong, currentSong, isPlaying, isSameSong, generateUniqueId } =
+    usePlayer();
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [isDownloaded, setIsDownloaded] = useState(false);
   const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
+
+  // Generate unique ID for this song if not provided
+  const songId = id || generateUniqueId(song, primary_artists, duration);
+
+  // Clean the song name for display
+  const displaySongName = cleanSongName(song);
 
   const convertDuration = (duration) => {
     if (!duration) return "00:00";
@@ -66,76 +77,118 @@ const Trending = ({
       .padStart(2, "0")}`;
   };
 
+  // Fix for the Trending.js component - Improved image handling
+
   const imageSource = (image) => {
-    if (typeof image == "string" && image.startsWith("http")) {
-      return { uri: image };
+    // If no image provided, return default
+    if (!image) return defaultMusicImage;
+
+    // Handle string URLs
+    if (typeof image === "string") {
+      if (
+        image.startsWith("http") ||
+        image.startsWith("https") ||
+        image.startsWith("content://") ||
+        image.startsWith("file://")
+      ) {
+        return { uri: image };
+      }
     }
-    return require("../assets/images/musicImage.png");
+
+    // Handle image array from search API
+    if (Array.isArray(image)) {
+      // Try to get highest quality image (usually at index 2)
+      if (image[2] && image[2].url) {
+        return { uri: image[2].url };
+      }
+      // Fallback to any available image
+      for (let i = 0; i < image.length; i++) {
+        if (image[i] && image[i].url) {
+          return { uri: image[i].url };
+        }
+      }
+    }
+
+    // Default fallback
+    return defaultMusicImage;
   };
 
   const handlePlay = () => {
+    // Create a consistent song object with properly handled image
+    let imageUrl = null;
 
-    const formattedList = allSongs
-      .map((item) => ({
-        song: item.song || item.name,
-        image:
-          Array.isArray(item.image) && item.image[2]?.url
-            ? item.image[2].url
-            : item.image,
-        music:
-          item.music ||
-          item.downloadUrl?.[4]?.url ||
-          item.downloadUrl?.[3]?.url ||
-          "",
-        duration: item.duration,
-        primary_artists:
-          item.primary_artists ||
-          (item.artists?.primary
-            ? item.artists.primary.map((a) => a.name)
-            : "Unknown"),
-        song_url:
-          item.media_url ||
-          item.music ||
-          item.filePath ||
-          item.downloadUrl[4].url ||
-          item.downloadUrl[3].url ||
-          "",
-      }))
-      .filter((song) => song.song_url);
-
-    if (formattedList.length === 0) {
-      console.error("No valid songs to play");
-      return;
+    // Handle string image URLs
+    if (
+      typeof image === "string" &&
+      (image.startsWith("http") ||
+        image.startsWith("https") ||
+        image.startsWith("content://") ||
+        image.startsWith("file://"))
+    ) {
+      imageUrl = image;
+    }
+    // Handle image array from search API
+    else if (Array.isArray(image)) {
+      if (image[2] && image[2].url) {
+        imageUrl = image[2].url;
+      } else {
+        // Find first valid image URL
+        for (let i = 0; i < image.length; i++) {
+          if (image[i] && image[i].url) {
+            imageUrl = image[i].url;
+            break;
+          }
+        }
+      }
     }
 
-    const songObject = formattedList[index];
-    if (!songObject) {
-      console.error("Invalid song index");
-      return;
-    }
+    const songWithId = {
+      id: songId,
+      song: displaySongName,
+      name: displaySongName,
+      // Ensure image is properly passed as a string URL or array
+      image: imageUrl || image,
+      music: music,
+      duration: duration,
+      primary_artists: primary_artists,
+      artist: primary_artists,
+      song_url: song_url,
+    };
 
-    playSong(songObject, formattedList, index);
+    // Play the song with its unique ID
+    playSong(songWithId, allSongs, index);
     router.push("/player");
   };
 
   const checkIfAlreadyDownloaded = async () => {
     await ensureDirExists();
-    const files = await FileSystem.readDirectoryAsync(downloadsDir);
-    const sanitizedSongName = sanitizeFilename(song);
-    const exists = files.some((file) => file.includes(sanitizedSongName));
-    setIsDownloaded(exists);
+
+    try {
+      const files = await FileSystem.readDirectoryAsync(downloadsDir);
+
+      // Look for JSON metadata file with this song's unique ID
+      const metadataExists = files.some(
+        (file) => file === `${songId}.json` || file.startsWith(`${songId}_`)
+      );
+
+      setIsDownloaded(metadataExists);
+    } catch (error) {
+      console.error("Error checking downloaded status:", error);
+      setIsDownloaded(false);
+    }
   };
 
   useEffect(() => {
     checkIfAlreadyDownloaded();
-  }, []);
+  }, [songId]);
 
   const handleDownload = async () => {
     if (isDownloaded || !song_url) return;
     if (isDownloading) {
-      Alert.alert("wait a sec one song is already downloading...😊");
+      Alert.alert("Please wait", "One song is already downloading...");
       return;
     }
+
     try {
       setIsDownloading(true);
       setDownloadProgress(0);
@@ -144,18 +197,23 @@ const Trending = ({
       if (permissionResponse?.status !== "granted") {
         const { status } = await requestPermission();
         if (status !== "granted") {
+          Alert.alert(
+            "Permission required",
+            "Storage permission is needed to download songs"
+          );
           return;
         }
       }
-      const sanitizedSongName = sanitizeFilename(song);
-      const filename = `${sanitizedSongName}.mp3`;
+
+      // Use the unique song ID for filenames
+      const filename = `${songId}.mp3`;
       const filePath = `${downloadsDir}${filename}`;
 
       // Download the image if it's from a URL
       let localImagePath = null;
       if (image && typeof image === "string" && image.startsWith("http")) {
         const imageExt = image.split(".").pop().split("?")[0] || "jpg";
-        const imageFilename = `${sanitizedSongName}_artwork.${imageExt}`;
+        const imageFilename = `${songId}_artwork.${imageExt}`;
         const imageFilePath = `${downloadsDir}${imageFilename}`;
 
         try {
@@ -193,24 +251,44 @@ const Trending = ({
       }
 
       const metadata = {
-        song: cleanSongName(song),
+        id: songId,
+        song: displaySongName, // Store the clean song name in metadata
+        name: displaySongName, // Also store as name for compatibility
         artist: primary_artists,
         duration,
         image: localImagePath || image,
-        music,
+        music: primary_artists || music, // Store artist info in music field too for compatibility
         filePath: result.uri,
-        downloadedAt: new Date().toISOString(),
+        downloadedAt: new Date().toISOString(), // Store timestamp for sorting
       };
 
-      const metaFile = `${downloadsDir}${sanitizedSongName}.json`;
+      const metaFile = `${downloadsDir}${songId}.json`;
       await FileSystem.writeAsStringAsync(metaFile, JSON.stringify(metadata));
 
       setIsDownloaded(true);
     } catch (err) {
       console.log("Download Error:", err.message);
+      Alert.alert(
+        "Download Failed",
+        "Could not download song. Please try again."
+      );
     } finally {
       setIsDownloading(false);
     }
+  };
+
+  // Check if this song is currently playing using our helper function
+  const isCurrentlyPlaying = () => {
+    if (!currentSong) return false;
+
+    const thisSong = {
+      song: song,
+      title: song,
+      primary_artists: primary_artists,
+      artist: primary_artists,
+    };
+
+    return isSameSong(currentSong, thisSong);
   };
 
   return (
@@ -218,17 +296,14 @@ const Trending = ({
       {song ? (
         <View
           className={`w-full flex flex-row gap-6 ${
-            currentSong?.song === cleanSongName(song) &&
-            currentSong.artist === primary_artists
-              ? `bg-gray-300`
-              : `bg-gray-100`
+            isCurrentlyPlaying() ? `bg-gray-300` : `bg-gray-100`
           } rounded-2xl p-4 mb-2`}
         >
           <Image
             source={imageSource(image)}
             style={{ width: 60, height: 60, borderRadius: 10 }}
           />
-          {currentSong?.song === cleanSongName(song) && isPlaying && (
+          {isCurrentlyPlaying() && isPlaying && (
             <Image
               source={musicPlay}
               style={{
@@ -249,7 +324,7 @@ const Trending = ({
                   fontFamily: "Nunito-Bold",
                 }}
               >
-                {cleanSongName(song)}
+                {displaySongName}
               </Text>
               <Text
                 numberOfLines={1}
