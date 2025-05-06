@@ -34,9 +34,10 @@ const generateUniqueId = (song, artists, duration) => {
 const Search = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [debounceTimeout, setDebounceTimeout] = useState(null);
 
   const {
-    data: music,
+    data: searchResults,
     loading,
     error,
     refetch,
@@ -45,15 +46,44 @@ const Search = () => {
 
   const handleClearSearch = () => {
     setSearchQuery("");
+    setDebouncedQuery("");
+    if (debounceTimeout) {
+      clearTimeout(debounceTimeout);
+    }
     reset();
   };
 
   const handleSearchQuery = (searchQuery) => {
+    // Clear any existing timeout
+    if (debounceTimeout) {
+      clearTimeout(debounceTimeout);
+    }
+
     if (!searchQuery) {
+      setDebouncedQuery("");
+      reset();
       return;
     }
-    setDebouncedQuery(searchQuery);
+
+    // Set a new timeout
+    const timeout = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 500); // 500ms debounce time
+
+    // Save the timeout ID so we can clear it if needed
+    setDebounceTimeout(timeout);
   };
+
+  // Clean up timeout on component unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimeout) {
+        clearTimeout(debounceTimeout);
+      }
+    };
+  }, [debounceTimeout]);
+
+  console.log("Search results:", searchResults);
 
   return (
     <SafeAreaView>
@@ -76,17 +106,18 @@ const Search = () => {
             style={styles.SearchtextFont}
             className="bg-gray-200 w-full mt-3 p-4 pl-10 rounded-md"
             placeholder="Search for a song"
-            onChangeText={setSearchQuery}
+            onChangeText={(text) => {
+              setSearchQuery(text);
+              handleSearchQuery(text);
+            }}
             value={searchQuery}
             enterKeyHint="search"
-            onSubmitEditing={() => handleSearchQuery(searchQuery)}
             returnKeyType="search"
           />
         </View>
-        {/* Safely check if music and music.results exist before accessing */}
         <View className="pr-5 mt-3">
           {searchQuery === "" ? (
-            ""
+            <Text style={styles.SearchtextFont}>Search for music...</Text>
           ) : loading ? (
             <View className="items-center mt-10">
               <Text className="text-black" style={styles.textFont}>
@@ -100,79 +131,47 @@ const Search = () => {
             </Text>
           ) : (
             <>
-              {music && music.results && (
-                <Text style={styles.SearchtextFont}>
-                  {music.results.length > 0
-                    ? `Search results for "${searchQuery}"`
-                    : `No results found for "${searchQuery}"`}
-                </Text>
-              )}
+              <Text style={styles.SearchtextFont}>
+                {searchResults && searchResults.length > 0
+                  ? `Search results for "${searchQuery}"`
+                  : `No results found for "${searchQuery}"`}
+              </Text>
               <FlatList
-                data={music && music.results ? music.results : []}
+                data={searchResults || []}
                 className="mb-[500px]"
                 renderItem={({ item, index }) => {
                   if (!searchQuery) return null;
 
-                  // Add null checks for item and its properties
-                  if (
-                    !item ||
-                    !item.name ||
-                    !item.artists ||
-                    !item.artists.primary
-                  ) {
-                    return null;
-                  }
-
-                  // Make sure downloadUrl exists and has elements
-                  const downloadUrl =
-                    item.downloadUrl &&
-                    (item.downloadUrl[4]?.url || item.downloadUrl[3]?.url);
-
-                  if (!downloadUrl) {
-                    return null;
-                  }
-
-                  // Generate a unique ID for this song
-                  const songId = generateUniqueId(
-                    item.name,
-                    item.artists.primary.map((a) => a.name),
-                    item.duration
-                  );
+                  // Add null checks for item
+                  if (!item) return null;
 
                   return (
                     <Trending
-                      id={songId}
-                      song={item.name}
+                      song={item.song}
                       image={item.image}
-                      music={downloadUrl}
+                      music={item.media_url}
                       duration={item.duration}
-                      primary_artists={item.artists.primary
-                        .map((a) => a.name)
-                        .join(", ")}
-                      song_url={downloadUrl}
-                      allSongs={music.results || []}
+                      primary_artists={item.primary_artists}
+                      song_url={item.media_url}
+                      allSongs={searchResults || []}
                       index={index}
                     />
                   );
                 }}
                 showsVerticalScrollIndicator={false}
                 keyExtractor={(item, index) => {
-                  // Handle potential null items
                   if (!item) return `index_${index}`;
-
-                  return (
-                    item.id ||
-                    generateUniqueId(
-                      item.name || "",
-                      item.artists?.primary?.map((a) => a.name) || [],
-                      item.duration || 0
-                    )
-                  );
+                  return item.id || `index_${index}`;
                 }}
                 windowSize={5}
                 maxToRenderPerBatch={5}
                 updateCellsBatchingPeriod={50}
                 removeClippedSubviews={true}
+                ListEmptyComponent={() => (
+                  <View className="items-center mt-10">
+                    <Text style={styles.textFont}>No songs found</Text>
+                  </View>
+                )}
               />
             </>
           )}

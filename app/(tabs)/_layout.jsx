@@ -111,7 +111,7 @@ const RootLayout = () => {
       ) : (
         <View style={{ flex: 1 }}>
           <Tabs
-            initialRouteName="index"
+            initialRouteName="search"
             screenOptions={{
               headerShown: false,
               tabBarShowLabel: false,

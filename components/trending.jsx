@@ -146,7 +146,6 @@ const Trending = ({
       id: songId,
       song: displaySongName,
       name: displaySongName,
-      // Ensure image is properly passed as a string URL or array
       image: imageUrl || image,
       music: music,
       duration: duration,
@@ -244,22 +243,20 @@ const Trending = ({
 
       const result = await downloadResumable.downloadAsync();
       if (!result?.uri) throw new Error("Download failed");
-
-      // Save to Media Library (Android)
       if (Platform.OS === "android") {
         await MediaLibrary.createAssetAsync(result.uri);
       }
 
       const metadata = {
         id: songId,
-        song: displaySongName, // Store the clean song name in metadata
-        name: displaySongName, // Also store as name for compatibility
+        song: displaySongName,
+        name: displaySongName,
         artist: primary_artists,
         duration,
         image: localImagePath || image,
-        music: primary_artists || music, // Store artist info in music field too for compatibility
+        music: primary_artists || music,
         filePath: result.uri,
-        downloadedAt: new Date().toISOString(), // Store timestamp for sorting
+        downloadedAt: new Date().toISOString(),
       };
 
       const metaFile = `${downloadsDir}${songId}.json`;
@@ -270,7 +267,8 @@ const Trending = ({
       console.log("Download Error:", err.message);
       Alert.alert(
         "Download Failed",
-        "Could not download song. Please try again."
+        "Could not download song. Please try again.",
+        err.message
       );
     } finally {
       setIsDownloading(false);

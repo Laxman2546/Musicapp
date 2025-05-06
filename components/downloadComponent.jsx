@@ -126,17 +126,36 @@ const DownloadComponent = ({
   const songName = song ? song.split(`(`)[0].trim() : "Unknown Song";
 
   const getImageSource = (image) => {
+    // If no image provided, return default
     if (!image) return defaultMusicImage;
+
+    // Handle string URLs
     if (typeof image === "string") {
-      if (image.startsWith("http")) {
-        return { uri: image };
-      } else if (
+      if (
+        image.startsWith("http") ||
+        image.startsWith("https") ||
         image.startsWith("content://") ||
         image.startsWith("file://")
       ) {
         return { uri: image };
       }
     }
+
+    // Handle image array from search API
+    if (Array.isArray(image)) {
+      // Try to get highest quality image (usually at index 2)
+      if (image[2] && image[2].url) {
+        return { uri: image[2].url };
+      }
+      // Fallback to any available image
+      for (let i = 0; i < image.length; i++) {
+        if (image[i] && image[i].url) {
+          return { uri: image[i].url };
+        }
+      }
+    }
+
+    // Default fallback
     return defaultMusicImage;
   };
 

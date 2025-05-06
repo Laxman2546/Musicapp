@@ -164,16 +164,7 @@ export const PlayerProvider = ({ children }) => {
                 }
               }
             }
-            // Case 3: downloadUrl might have image info (different API format)
-            else if (
-              songItem.downloadUrl &&
-              Array.isArray(songItem.downloadUrl)
-            ) {
-              if (songItem.downloadUrl[2] && songItem.downloadUrl[2].image) {
-                artworkUrl = songItem.downloadUrl[2].image;
-              }
-            }
-
+            console.log("this is a song item", songItem);
             return {
               ...songItem,
               id,
@@ -181,12 +172,8 @@ export const PlayerProvider = ({ children }) => {
                 songItem.song_url ||
                 songItem.media_url ||
                 songItem.filePath ||
-                (songItem.downloadUrl && songItem.downloadUrl[4]
-                  ? songItem.downloadUrl[4].url
-                  : null) ||
-                (songItem.downloadUrl && songItem.downloadUrl[3]
-                  ? songItem.downloadUrl[3].url
-                  : null) ||
+                songItem.downloadUrl[4].url ||
+                songItem.downloadUrl[3].url ||
                 "",
               title: songItem.name || songItem.song || "Unknown Title",
               artist:

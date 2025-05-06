@@ -1,7 +1,9 @@
 import CryptoJS from "crypto-js";
 
 const JIOSAAVN_ENDPOINTS = {
-  search: "https://jiosaavn-api-sigma-rouge.vercel.app/api/search/songs?query=",
+  // search: "https://jiosaavn-api-sigma-rouge.vercel.app/api/search/songs?query=",
+  search:
+    "https://www.jiosaavn.com/api.php?__call=search.getResults&cc=in&_format=json&q=",
   songDetails:
     "https://www.jiosaavn.com/api.php?__call=song.getDetails&cc=in&_marker=0%3F_marker%3D0&_format=json&pids=",
   albumDetails:
@@ -57,35 +59,43 @@ export const decryptUrl = (encrypted) => {
 
 const formatSong = (data) => {
   try {
-    // Decrypt media URL
-    const mediaUrl = decryptUrl(data.encrypted_media_url);
+    // Check if data is valid
+    if (!data) return null;
 
-    // Format the song data
+    // Decrypt media URL if available
+    const mediaUrl = data.encrypted_media_url
+      ? decryptUrl(data.encrypted_media_url)
+      : "";
+
+    // Format the song data with null checks for all properties
     return {
-      id: data.id,
-      song: data.song,
-      album: data.album,
-      year: data.year,
-      primary_artists: data.primary_artists,
-      singers: data.singers,
-      image: data.image.replace("150x150", "500x500"),
-      duration: data.duration,
+      id: data.id || "",
+      song: data.song || "",
+      album: data.album || "",
+      year: data.year || "",
+      primary_artists: data.primary_artists || "",
+      singers: data.singers || "",
+      // Handle potentially missing image property
+      image: data.image ? data.image.replace("150x150", "500x500") : "",
+      duration: data.duration || "",
       media_url: mediaUrl,
       media_preview_url: mediaUrl
-        ?.replace("_320.mp4", "_96_p.mp4")
-        ?.replace("//aac.", "//preview."),
-      has_lyrics: data.has_lyrics,
-      lyrics: null, // Can be fetched separately if needed
-      copyright_text: data.copyright_text,
-      label: data.label,
-      labelUrl: data.label_url,
-      language: data.language,
-      perma_url: data.perma_url,
-      release_date: data.release_date,
+        ? mediaUrl
+            .replace("_320.mp4", "_96_p.mp4")
+            .replace("//aac.", "//preview.")
+        : "",
+      has_lyrics: data.has_lyrics || false,
+      lyrics: null,
+      copyright_text: data.copyright_text || "",
+      label: data.label || "",
+      labelUrl: data.label_url || "",
+      language: data.language || "",
+      perma_url: data.perma_url || "",
+      release_date: data.release_date || "",
     };
   } catch (error) {
     console.error("Error formatting song:", error);
-    return data;
+    return null; // Return null instead of potentially invalid data
   }
 };
 
@@ -101,16 +111,32 @@ const cleanResponse = async (response) => {
   }
 };
 
+// Updated searchSongs function that returns results in the correct format
 export const searchSongs = async (query) => {
   try {
     const response = await fetch(
-      `${JIOSAAVN_ENDPOINTS.search}${encodeURIComponent(query)}`
+      `${JIOSAAVN_ENDPOINTS.search}${encodeURIComponent(query)}`,
+      {
+        headers: HEADERS,
+      }
     );
-    const Jsondata = await response.json();
-    return Jsondata.data;
+    const data = await cleanResponse(response);
+    console.log("Raw search results:", data);
+
+    // Check if results exist
+    if (!data || !data.results) {
+      console.error("Invalid search results format:", data);
+      return [];
+    }
+
+    // Format each song and filter out null results
+    // Simply return the array of formatted songs instead of wrapping in an object
+    return Array.isArray(data.results)
+      ? data.results.map(formatSong).filter(Boolean)
+      : [formatSong(data.results)].filter(Boolean);
   } catch (error) {
     console.error("Error searching songs:", error);
-    throw error;
+    return []; // Return empty array instead of throwing
   }
 };
 
@@ -121,10 +147,14 @@ export const getSongDetails = async (id) => {
     });
 
     const data = await cleanResponse(response);
+    if (!data || !data[id]) {
+      console.error("Invalid song details format:", data);
+      return null;
+    }
     return formatSong(data[id]);
   } catch (error) {
     console.error("Error getting song details:", error);
-    throw error;
+    return null;
   }
 };
 
@@ -138,13 +168,18 @@ export const getPlaylistDetails = async (listId) => {
     );
 
     const data = await cleanResponse(response);
+    if (!data || !data.songs) {
+      console.error("Invalid playlist details format:", data);
+      return { songs: [] };
+    }
+
     return {
       ...data,
-      songs: data.songs.map(formatSong),
+      songs: data.songs.map(formatSong).filter(Boolean),
     };
   } catch (error) {
     console.error("Error getting playlist details:", error);
-    throw error;
+    return { songs: [] };
   }
 };
 
@@ -165,7 +200,7 @@ export const getPlaylistFromUrl = async (url) => {
     return await getPlaylistDetails(playlistId);
   } catch (error) {
     console.error("Error getting playlist from URL:", error);
-    throw error;
+    return { songs: [] }; // Return an empty playlist instead of throwing
   }
 };
 
@@ -239,7 +274,7 @@ export const fetchMusic = async ({
     return await getPlaylistFromUrl(defaultPlaylistUrl);
   } catch (error) {
     console.error("Error fetching music:", error);
-    throw error;
+    return { songs: [] }; // Return empty songs array instead of throwing
   }
 };
 
