@@ -16,10 +16,10 @@ import downloadIcon from "@/assets/images/downloadSong.png";
 import checkedIcon from "@/assets/images/checked.png";
 import defaultMusicImage from "@/assets/images/musicImage.png";
 import musicPlay from "@/assets/images/playing.gif";
+import he from "he";
 
 const downloadsDir = `${FileSystem.documentDirectory}downloads/`;
 
-// Ensure directory exists
 const ensureDirExists = async () => {
   const dir = await FileSystem.getInfoAsync(downloadsDir);
   if (!dir.exists) {
@@ -27,20 +27,21 @@ const ensureDirExists = async () => {
   }
 };
 
-// Clean song name for display
 const cleanSongName = (name) => {
   if (!name) return "Unknown";
-  return String(name).replace(/_/g, " ").replace(/\s+/g, " ").trim();
+
+  const decodedName = he.decode(name);
+  const songName = decodedName.replace(/_/g, " ").replace(/\s+/g, " ").trim();
+  return songName;
 };
 
-// Sanitize filename to remove illegal characters
 const sanitizeFilename = (filename) => {
   if (!filename) return "unknown";
   return String(filename)
-    .replace(/[^a-z0-9\-_ ]/gi, "") // Remove special characters except spaces, hyphens, and underscores
-    .replace(/\s+/g, " ") // Replace multiple spaces with single space
-    .trim() // Trim whitespace
-    .replace(/\s/g, "_"); // Replace remaining spaces with underscores
+    .replace(/[^a-z0-9\-_ ]/gi, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\s/g, "_");
 };
 
 const Trending = ({
@@ -53,7 +54,7 @@ const Trending = ({
   index,
   allSongs,
   isdownloadedSongs,
-  id, // Accept song ID if provided
+  id,
 }) => {
   const { playSong, currentSong, isPlaying, isSameSong, generateUniqueId } =
     usePlayer();
@@ -62,10 +63,8 @@ const Trending = ({
   const [isDownloaded, setIsDownloaded] = useState(false);
   const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
 
-  // Generate unique ID for this song if not provided
   const songId = id || generateUniqueId(song, primary_artists, duration);
 
-  // Clean the song name for display
   const displaySongName = cleanSongName(song);
 
   const convertDuration = (duration) => {
@@ -77,13 +76,9 @@ const Trending = ({
       .padStart(2, "0")}`;
   };
 
-  // Fix for the Trending.js component - Improved image handling
-
   const imageSource = (image) => {
-    // If no image provided, return default
     if (!image) return defaultMusicImage;
 
-    // Handle string URLs
     if (typeof image === "string") {
       if (
         image.startsWith("http") ||
@@ -95,13 +90,10 @@ const Trending = ({
       }
     }
 
-    // Handle image array from search API
     if (Array.isArray(image)) {
-      // Try to get highest quality image (usually at index 2)
       if (image[2] && image[2].url) {
         return { uri: image[2].url };
       }
-      // Fallback to any available image
       for (let i = 0; i < image.length; i++) {
         if (image[i] && image[i].url) {
           return { uri: image[i].url };
@@ -109,15 +101,12 @@ const Trending = ({
       }
     }
 
-    // Default fallback
     return defaultMusicImage;
   };
 
   const handlePlay = () => {
-    // Create a consistent song object with properly handled image
     let imageUrl = null;
 
-    // Handle string image URLs
     if (
       typeof image === "string" &&
       (image.startsWith("http") ||
@@ -126,13 +115,10 @@ const Trending = ({
         image.startsWith("file://"))
     ) {
       imageUrl = image;
-    }
-    // Handle image array from search API
-    else if (Array.isArray(image)) {
+    } else if (Array.isArray(image)) {
       if (image[2] && image[2].url) {
         imageUrl = image[2].url;
       } else {
-        // Find first valid image URL
         for (let i = 0; i < image.length; i++) {
           if (image[i] && image[i].url) {
             imageUrl = image[i].url;
@@ -144,8 +130,8 @@ const Trending = ({
 
     const songWithId = {
       id: songId,
-      song: displaySongName,
-      name: displaySongName,
+      song: cleanSongName(displaySongName),
+      name: cleanSongName(displaySongName),
       image: imageUrl || image,
       music: music,
       duration: duration,
@@ -154,7 +140,6 @@ const Trending = ({
       song_url: song_url,
     };
 
-    // Play the song with its unique ID
     playSong(songWithId, allSongs, index);
     router.push("/player");
   };
@@ -165,7 +150,6 @@ const Trending = ({
     try {
       const files = await FileSystem.readDirectoryAsync(downloadsDir);
 
-      // Look for JSON metadata file with this song's unique ID
       const metadataExists = files.some(
         (file) => file === `${songId}.json` || file.startsWith(`${songId}_`)
       );
@@ -204,11 +188,9 @@ const Trending = ({
         }
       }
 
-      // Use the unique song ID for filenames
       const filename = `${songId}.mp3`;
       const filePath = `${downloadsDir}${filename}`;
 
-      // Download the image if it's from a URL
       let localImagePath = null;
       if (image && typeof image === "string" && image.startsWith("http")) {
         const imageExt = image.split(".").pop().split("?")[0] || "jpg";
@@ -275,7 +257,6 @@ const Trending = ({
     }
   };
 
-  // Check if this song is currently playing using our helper function
   const isCurrentlyPlaying = () => {
     if (!currentSong) return false;
 

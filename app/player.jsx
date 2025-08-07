@@ -5,6 +5,7 @@ import {
   View,
   Pressable,
   ActivityIndicator,
+  Dimensions,
 } from "react-native";
 import { useEffect, useState } from "react";
 import { usePlayer } from "@/context/playerContext";
@@ -23,21 +24,28 @@ import loopSecond from "@/assets/images/repeatSecond.png";
 import backIcon from "@/assets/images/backImg.png";
 import heart from "@/assets/images/heart.png";
 import heartFill from "@/assets/images/heartfill.png";
+import he from "he";
+import {
+  MusicImageSkeleton,
+  SongInfoSkeleton,
+  FloatingParticles,
+} from "../components/SkeletonLoader.jsx";
 import TrackPlayer, {
   State,
   usePlaybackState,
 } from "react-native-track-player";
 import defaultMusicImage from "@/assets/images/musicImage.png";
 
-const MusicPlayer = () => {
-  // Get the playback state directly from TrackPlayer hook
-  const playbackState = usePlaybackState();
+const { width, height } = Dimensions.get("window");
 
+const MusicPlayer = () => {
+  const playbackState = usePlaybackState();
   const {
     currentSong,
     playNext,
     playPrevious,
     isPlaying,
+    loading,
     setIsPlaying,
     currentIndex,
     playlist,
@@ -51,17 +59,34 @@ const MusicPlayer = () => {
     formatTime,
     togglePlayPause,
   } = usePlayer();
-  // console.log("this is currenr", currentSong);
+
   const [favouriteClick, setfavouriteClick] = useState(false);
-  // Local state for UI rendering to make sure we're in sync with TrackPlayer
   const [localIsPlaying, setLocalIsPlaying] = useState(isPlaying);
-  // Keep our local state in sync with both context and TrackPlayer
+  const [musicLaoding, setmusicLaoding] = useState(true);
+
   useEffect(() => {
-    // Update local state based on playerContext
     setLocalIsPlaying(isPlaying);
   }, [isPlaying]);
 
-  // Listen directly to TrackPlayer's state
+  useEffect(() => {
+    if (!loading) {
+      const timer = setTimeout(() => {
+        setmusicLaoding(false);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
+
+  useEffect(() => {
+    if (shuffleActive || !shuffleActive) {
+      setmusicLaoding(true);
+    }
+    const timer = setTimeout(() => {
+      setmusicLaoding(false);
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, [shuffleActive]);
+
   useEffect(() => {
     if (playbackState === State.Playing) {
       setLocalIsPlaying(true);
@@ -107,8 +132,7 @@ const MusicPlayer = () => {
             !(
               favSong.song === currentSong?.song ||
               (currentSong.title &&
-                favSong.primary_artists === currentSong?.primary_artists) ||
-              currentSong.artists.primary.map((a) => a.name)
+                favSong.primary_artists === currentSong?.primary_artists)
             )
         );
       } else {
@@ -138,6 +162,12 @@ const MusicPlayer = () => {
     }
   };
 
+  const cleanSongName = (name) => {
+    if (!name) return "Unknown";
+    const decodedName = he.decode(name);
+    return decodedName.replace(/_/g, " ").replace(/\s+/g, " ").trim();
+  };
+
   const handlePress = () => {
     router.back();
   };
@@ -147,10 +177,8 @@ const MusicPlayer = () => {
   };
 
   const imageSource = (image) => {
-    // If no image provided, use default
     if (!image) return defaultMusicImage;
 
-    // If image is a string URL (http, file, or content)
     if (typeof image === "string") {
       if (
         image.startsWith("http") ||
@@ -162,13 +190,7 @@ const MusicPlayer = () => {
       }
     }
 
-    // If image is an array from the search API
     if (Array.isArray(image)) {
-      // Try to get highest quality image (usually at index 2)
-      if (image[2] && image[2].url) {
-        return { uri: image[2].url };
-      }
-      // Fallback to any available image in the array
       for (let i = 0; i < image.length; i++) {
         if (image[i] && image[i].url) {
           return { uri: image[i].url };
@@ -176,7 +198,6 @@ const MusicPlayer = () => {
       }
     }
 
-    // Last resort - use default image
     return defaultMusicImage;
   };
 
@@ -189,6 +210,10 @@ const MusicPlayer = () => {
     );
   }
 
+  const handleLyrics = () => {
+    console.log("lurics played");
+  };
+
   return (
     <GestureRecognizer
       onSwipeLeft={playNext}
@@ -196,148 +221,152 @@ const MusicPlayer = () => {
       config={{ velocityThreshold: 0.2, directionalOffsetThreshold: 40 }}
       style={{ flex: 1 }}
     >
-      <View className="w-full h-full mt-5" style={styles.mainBg}>
-        <View className="flex flex-col gap-12">
-          <View className="flex flex-col gap-14">
-            <View className="w-full relative">
-              <View className="w-full flex items-center mt-8">
-                <Text style={styles.textFont}>Now Playing</Text>
+      <View style={styles.mainBg}>
+        <View style={styles.topContainer}>
+          <View style={styles.header}>
+            <Text style={styles.textFont}>Now Playing</Text>
+            <Pressable onPress={handleLyrics} hitSlop={10}>
+              <View style={styles.Lyrics}>
+                <Text style={styles.textFontLyric}>Lyrics</Text>
               </View>
-              <Pressable onPress={handlePress} hitSlop={10}>
-                <Image source={backIcon} style={styles.backBtn} />
-              </Pressable>
-            </View>
+            </Pressable>
+            <Pressable onPress={handlePress} hitSlop={10}>
+              <Image source={backIcon} style={styles.backBtn} />
+            </Pressable>
+          </View>
 
-            <Pressable onPress={handlePlayPause}>
-              <View className="w-full flex items-center justify-center">
+          <Pressable onPress={handlePlayPause}>
+            <View style={styles.imageContainer}>
+              {musicLaoding ? (
+                <>
+                  <FloatingParticles count={4} />
+                  <MusicImageSkeleton />
+                </>
+              ) : (
                 <Image
                   source={imageSource(currentSong.image)}
                   style={styles.musicImg}
                 />
-              </View>
+              )}
+            </View>
+          </Pressable>
+        </View>
+
+        <View style={styles.musicBg}>
+          <View style={styles.songRow}>
+            <View style={styles.songInfoContainer}>
+              {musicLaoding ? (
+                <SongInfoSkeleton />
+              ) : (
+                <>
+                  <Text style={styles.musicText} numberOfLines={1}>
+                    {cleanSongName(currentSong.song || currentSong.title)}
+                  </Text>
+                  <Text style={styles.musicArtist} numberOfLines={1}>
+                    {currentSong.primary_artists ||
+                      currentSong.music ||
+                      currentSong.artists.primary.map((a) => a.name)}
+                  </Text>
+                </>
+              )}
+            </View>
+
+            <Pressable
+              onPress={favouriteSongs}
+              hitSlop={10}
+              style={styles.downloadButton}
+            >
+              <Image
+                source={favouriteClick ? heartFill : heart}
+                style={styles.downloadSize}
+              />
             </Pressable>
           </View>
 
-          <View
-            className="w-full flex flex-col bg-black h-full p-5 gap-3"
-            style={styles.musicBg}
-          >
-            <View className="flex flex-row items-center justify-between">
-              <View style={styles.songInfoContainer}>
-                <Text style={styles.musicText} numberOfLines={1}>
-                  {currentSong.song || currentSong.title || "unknown song"}
-                </Text>
-                <Text style={styles.musicArtist} numberOfLines={1}>
-                  {currentSong.primary_artists ||
-                    currentSong.music ||
-                    currentSong.artists.primary.map((a) => a.name) ||
-                    "unknown artist"}
-                </Text>
-              </View>
+          <Slider
+            style={{ width: width * 0.9, height: 40 }}
+            minimumValue={0}
+            maximumValue={duration || 1}
+            value={position || 0}
+            minimumTrackTintColor="#FFFFFF"
+            maximumTrackTintColor="#303030"
+            thumbTintColor="#FFFFFF"
+            onSlidingComplete={seekTo}
+          />
+
+          <View style={styles.timeRow}>
+            <Text style={styles.textFont}>{formatTime(position)}</Text>
+            <Text style={styles.textFont2}>{formatTime(duration)}</Text>
+          </View>
+
+          <View style={styles.controlsRow}>
+            <Pressable
+              onPress={toggleShuffle}
+              hitSlop={10}
+              style={[
+                styles.controlButton,
+                shuffleActive && styles.activeControlButton,
+              ]}
+            >
+              <Image source={ShuffleIcon} style={styles.controlIcon} />
+            </Pressable>
+
+            <View style={styles.middleControls}>
               <Pressable
-                onPress={favouriteSongs}
+                onPress={playPrevious}
+                disabled={currentIndex <= 0 && !shuffleActive}
                 hitSlop={10}
-                style={styles.downloadButton}
               >
                 <Image
-                  source={favouriteClick ? heartFill : heart}
-                  style={styles.downloadSize}
+                  source={prevBtn}
+                  style={[
+                    styles.controlIcon,
+                    currentIndex <= 0 &&
+                      !shuffleActive &&
+                      styles.disabledButton,
+                  ]}
+                />
+              </Pressable>
+
+              <Pressable onPress={handlePlayPause}>
+                <View style={styles.playPauseButton}>
+                  <Image
+                    source={localIsPlaying ? pauseIcon : playIcon}
+                    style={styles.playPauseIcon}
+                  />
+                </View>
+              </Pressable>
+
+              <Pressable
+                onPress={playNext}
+                disabled={currentIndex >= playlist.length - 1 && !shuffleActive}
+                hitSlop={10}
+              >
+                <Image
+                  source={nextIcon}
+                  style={[
+                    styles.controlIcon,
+                    currentIndex >= playlist.length - 1 &&
+                      !shuffleActive &&
+                      styles.disabledButton,
+                  ]}
                 />
               </Pressable>
             </View>
 
-            <View className="w-full flex items-center flex-col gap-2">
-              <Slider
-                style={{ width: 310, height: 40 }}
-                minimumValue={0}
-                maximumValue={duration || 1}
-                value={position || 0}
-                minimumTrackTintColor="#FFFFFF"
-                maximumTrackTintColor="#303030"
-                thumbTintColor="#FFFFFF"
-                onSlidingComplete={seekTo}
+            <Pressable
+              onPress={toggleLoopMode}
+              hitSlop={10}
+              style={[
+                styles.controlButton,
+                loopMode > 0 && styles.activeControlButton,
+              ]}
+            >
+              <Image
+                source={loopMode === 0 ? loopFirst : loopSecond}
+                style={[styles.controlIcon, loopMode > 0 && styles.activeIcon]}
               />
-
-              <View className="flex flex-row justify-between w-full">
-                <Text style={styles.textFont}>{formatTime(position)}</Text>
-                <Text style={styles.textFont}>{formatTime(duration)}</Text>
-              </View>
-
-              <View className="flex flex-row items-center justify-between w-full mt-4">
-                <Pressable
-                  onPress={toggleShuffle}
-                  hitSlop={10}
-                  style={[
-                    styles.controlButton,
-                    shuffleActive && styles.activeControlButton,
-                  ]}
-                >
-                  <Image source={ShuffleIcon} style={styles.controlIcon} />
-                </Pressable>
-
-                <View className="flex flex-row items-center gap-9">
-                  <Pressable
-                    onPress={playPrevious}
-                    disabled={currentIndex <= 0 && !shuffleActive}
-                    hitSlop={10}
-                  >
-                    <Image
-                      source={prevBtn}
-                      style={[
-                        styles.controlIcon,
-                        currentIndex <= 0 &&
-                          !shuffleActive &&
-                          styles.disabledButton,
-                      ]}
-                    />
-                  </Pressable>
-
-                  <Pressable onPress={handlePlayPause}>
-                    <View className="w-16 h-14 p-2 items-center justify-center rounded-xl bg-[#2C2C2C]">
-                      <Image
-                        source={localIsPlaying ? pauseIcon : playIcon}
-                        style={styles.playPauseIcon}
-                      />
-                    </View>
-                  </Pressable>
-
-                  <Pressable
-                    onPress={playNext}
-                    disabled={
-                      currentIndex >= playlist.length - 1 && !shuffleActive
-                    }
-                    hitSlop={10}
-                  >
-                    <Image
-                      source={nextIcon}
-                      style={[
-                        styles.controlIcon,
-                        currentIndex >= playlist.length - 1 &&
-                          !shuffleActive &&
-                          styles.disabledButton,
-                      ]}
-                    />
-                  </Pressable>
-                </View>
-
-                <Pressable
-                  onPress={toggleLoopMode}
-                  hitSlop={10}
-                  style={[
-                    styles.controlButton,
-                    loopMode > 0 && styles.activeControlButton,
-                  ]}
-                >
-                  <Image
-                    source={loopMode === 0 ? loopFirst : loopSecond}
-                    style={[
-                      styles.controlIcon,
-                      loopMode > 0 && styles.activeIcon,
-                    ]}
-                  />
-                </Pressable>
-              </View>
-            </View>
+            </Pressable>
           </View>
         </View>
       </View>
@@ -359,38 +388,92 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: "Poppins-SemiBold",
   },
-  textFont: {
-    fontFamily: "Poppins-SemiBold",
-    fontSize: 15,
-    color: "#fff",
-  },
   mainBg: {
+    flex: 1,
     backgroundColor: "#2A2A2A",
     borderTopLeftRadius: 35,
     borderTopRightRadius: 35,
   },
-  musicBg: {
-    borderTopLeftRadius: 35,
-    borderTopRightRadius: 35,
+  topContainer: {
+    flex: 1,
+    alignItems: "center",
+    paddingTop: height * 0.05,
+  },
+  textFont: {
+    fontFamily: "Poppins-SemiBold",
+    fontSize: width * 0.038,
+    color: "#fff",
+  },
+  textFontLyric: {
+    fontFamily: "Poppins-SemiBold",
+    fontSize: width * 0.038,
+    color: "#fff",
+    paddingLeft: 15,
+    paddingRight: 15,
+    paddingBottom: 2,
+    paddingTop: 3,
+    borderColor: "#696969",
+    borderWidth: 1,
+    borderRadius: 10,
+  },
+  Lyrics: {
+    position: "absolute",
+    textAlign: "center",
+    left: 80,
+    top: -28,
+  },
+  textFont2: {
+    fontFamily: "Poppins-SemiBold",
+    fontSize: width * 0.038,
+    color: "#fff",
+  },
+  header: {
+    width: "100%",
+    alignItems: "center",
+    position: "relative",
+  },
+  backBtn: {
+    width: 20,
+    height: 20,
+    position: "absolute",
+    top: -25,
+    right: 140,
+  },
+  imageContainer: {
+    marginVertical: height * 0.07,
   },
   musicImg: {
-    width: 250,
-    height: 250,
+    width: width * 0.8,
+    height: width * 0.8,
     borderRadius: 20,
+    backgroundColor: "#d7d7d7",
+  },
+  musicBg: {
+    backgroundColor: "#000",
+    borderTopLeftRadius: 35,
+    borderTopRightRadius: 35,
+    padding: width * 0.05,
+    paddingBottom: height * 0.05,
+  },
+  songRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: height * 0.02,
+    padding: 5,
   },
   songInfoContainer: {
     flex: 1,
     marginRight: 10,
-    overflow: "hidden",
   },
   musicText: {
     fontFamily: "Nunito-Black",
-    fontSize: 25,
+    fontSize: width * 0.06,
     color: "#fff",
   },
   musicArtist: {
     fontFamily: "Nunito-Regular",
-    fontSize: 18,
+    fontSize: width * 0.045,
     color: "#fff",
   },
   downloadButton: {
@@ -401,33 +484,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  progressBar: {
-    marginTop: 15,
-  },
-  iconsSize: {
-    width: 30,
-    height: 30,
-  },
-  PlaySize: {
-    width: 20,
-    height: 20,
-  },
   downloadSize: {
     width: 20,
     height: 20,
   },
-  disabledButton: {
-    opacity: 0.3,
+  timeRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 5,
   },
-  activeButton: {
-    tintColor: "#fff",
-  },
-  backBtn: {
-    width: 20,
-    height: 20,
-    position: "absolute",
-    top: -25,
-    left: 15,
+  controlsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: height * 0.05,
   },
   controlButton: {
     width: 35,
@@ -443,9 +513,26 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
   },
+  disabledButton: {
+    opacity: 0.3,
+  },
+  middleControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: width * 0.09,
+  },
+  playPauseButton: {
+    width: width * 0.19,
+    height: width * 0.16,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 12,
+    marginBottom: 10,
+    backgroundColor: "#2C2C2C",
+  },
   playPauseIcon: {
-    width: 20,
-    height: 20,
+    width: 25,
+    height: 25,
   },
   activeIcon: {
     tintColor: "#fff",

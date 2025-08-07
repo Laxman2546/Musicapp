@@ -15,7 +15,7 @@ import WelcomeComponent from "@/components/welcomeComponent";
 import musicPlay from "@/assets/images/playing.gif";
 import defaultMusicImage from "@/assets/images/musicImage.png";
 import "@/global.css";
-
+import he from "he";
 const RootLayout = () => {
   const router = useRouter();
   const pathname = usePathname();
@@ -35,6 +35,13 @@ const RootLayout = () => {
     "Poppins-SemiBold": require("@/assets/fonts/Poppins-SemiBold.ttf"),
     "Audiowide-Regular": require("@/assets/fonts/Audiowide-Regular.ttf"),
   });
+  const cleanSongName = (name) => {
+    if (!name) return "Unknown";
+
+    const decodedName = he.decode(name);
+    const songName = decodedName.replace(/_/g, " ").replace(/\s+/g, " ").trim();
+    return songName;
+  };
 
   useEffect(() => {
     if (error) throw error;
@@ -46,10 +53,8 @@ const RootLayout = () => {
   }, []);
 
   const getImageSource = (image) => {
-    // If no image provided, use default
     if (!image) return defaultMusicImage;
 
-    // If image is a string URL (http, file, or content)
     if (typeof image === "string") {
       if (
         image.startsWith("http") ||
@@ -61,13 +66,10 @@ const RootLayout = () => {
       }
     }
 
-    // If image is an array from the search API
     if (Array.isArray(image)) {
-      // Try to get highest quality image (usually at index 2)
       if (image[2] && image[2].url) {
         return { uri: image[2].url };
       }
-      // Fallback to any available image in the array
       for (let i = 0; i < image.length; i++) {
         if (image[i] && image[i].url) {
           return { uri: image[i].url };
@@ -75,7 +77,6 @@ const RootLayout = () => {
       }
     }
 
-    // Last resort - use default image
     return defaultMusicImage;
   };
   const navigatePlayer = () => {
@@ -106,116 +107,117 @@ const RootLayout = () => {
 
   return (
     <>
-      {loading ? (
+      {/* {loading ? (
         <WelcomeComponent />
       ) : (
-        <View style={{ flex: 1 }}>
-          <Tabs
-            initialRouteName="search"
-            screenOptions={{
-              headerShown: false,
-              tabBarShowLabel: false,
-              tabBarActiveTintColor: "#000",
-              tabBarHideOnKeyboard: true,
-              tabBarStyle: {
-                backgroundColor: "#fff",
-                borderTopWidth: 1,
-                borderTopLeftRadius: 28,
-                borderTopRightRadius: 28,
-                height: 60,
-                paddingBottom: 5,
-                borderColor: "transparent",
-                shadowColor: "#000",
-                shadowOpacity: 0.1,
-                shadowOffset: { width: 0, height: -2 },
-                shadowRadius: 5,
-              },
+      )} */}
+      <View style={{ flex: 1 }}>
+        <Tabs
+          initialRouteName="index"
+          screenOptions={{
+            headerShown: false,
+            tabBarShowLabel: false,
+            tabBarActiveTintColor: "#000",
+            tabBarHideOnKeyboard: true,
+            tabBarStyle: {
+              backgroundColor: "#fff",
+              borderTopWidth: 1,
+              borderTopLeftRadius: 28,
+              borderTopRightRadius: 28,
+              height: 60,
+              paddingBottom: 5,
+              borderColor: "transparent",
+              shadowColor: "#000",
+              shadowOpacity: 0.1,
+              shadowOffset: { width: 0, height: -2 },
+              shadowRadius: 5,
+            },
+          }}
+        >
+          <Tabs.Screen
+            name="index"
+            options={{
+              title: "Home",
+              tabBarIcon: ({ color, focused }) => (
+                <TabIcon icon={home} color={color} />
+              ),
             }}
-          >
-            <Tabs.Screen
-              name="index"
-              options={{
-                title: "Home",
-                tabBarIcon: ({ color, focused }) => (
-                  <TabIcon icon={home} color={color} />
-                ),
-              }}
-            />
-            <Tabs.Screen
-              name="search"
-              options={{
-                title: "Search",
-                tabBarIcon: ({ color, focused }) => (
-                  <TabIcon icon={search} color={color} />
-                ),
-              }}
-            />
-            <Tabs.Screen
-              name="playlists"
-              options={{
-                title: "Playlists",
-                tabBarIcon: ({ color, focused }) => (
-                  <TabIcon icon={playlistIcon} color={color} />
-                ),
-              }}
-            />
-            <Tabs.Screen
-              name="downloads"
-              options={{
-                title: "Downloads",
-                tabBarIcon: ({ color, focused }) => (
-                  <TabIcon icon={downloads} color={color} />
-                ),
-              }}
-            />
-          </Tabs>
+          />
+          <Tabs.Screen
+            name="search"
+            options={{
+              title: "Search",
+              tabBarIcon: ({ color, focused }) => (
+                <TabIcon icon={search} color={color} />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="playlists"
+            options={{
+              title: "Playlists",
+              tabBarIcon: ({ color, focused }) => (
+                <TabIcon icon={playlistIcon} color={color} />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="downloads"
+            options={{
+              title: "Downloads",
+              tabBarIcon: ({ color, focused }) => (
+                <TabIcon icon={downloads} color={color} />
+              ),
+            }}
+          />
+        </Tabs>
 
-          {!isPlayerScreen && currentSong && (
-            <View style={styles.miniPlayerContainer}>
-              <TouchableOpacity
-                onPress={navigatePlayer}
-                style={styles.songInfo}
-                hitSlop={10}
-                android_ripple={{ color: "#444" }}
-              >
-                <Image
-                  source={getImageSource(currentSong.image)}
-                  style={styles.songImage}
-                />
-                {isPlaying && (
-                  <Image source={musicPlay} style={styles.gifAnimation} />
-                )}
+        {!isPlayerScreen && currentSong && (
+          <View style={styles.miniPlayerContainer}>
+            <TouchableOpacity
+              onPress={navigatePlayer}
+              style={styles.songInfo}
+              hitSlop={10}
+              android_ripple={{ color: "#444" }}
+            >
+              <Image
+                source={getImageSource(currentSong.image)}
+                style={styles.songImage}
+              />
+              {isPlaying && (
+                <Image source={musicPlay} style={styles.gifAnimation} />
+              )}
 
-                <View style={styles.songTextContainer}>
-                  <Text numberOfLines={1} style={styles.songTitle}>
-                    {currentSong.song || currentSong.title || "Unkown Name"}
-                  </Text>
-                  <Text numberOfLines={1} style={styles.songArtist}>
-                    {currentSong.primary_artists ||
-                      currentSong.music ||
-                      currentSong.artists.primary.map((a) => a.name)}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-
-              <View style={styles.controlsContainer}>
-                <TouchableOpacity onPress={playPrevious} hitSlop={10}>
-                  <Image source={playpreviousSong} style={styles.controlIcon} />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handlePlayPause} hitSlop={10}>
-                  <Image
-                    source={isPlaying ? pauseSong : playSong}
-                    style={styles.controlIcon}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={playNext} hitSlop={10}>
-                  <Image source={playnextSong} style={styles.controlIcon} />
-                </TouchableOpacity>
+              <View style={styles.songTextContainer}>
+                <Text numberOfLines={1} style={styles.songTitle}>
+                  {cleanSongName(currentSong.song || currentSong.title) ||
+                    "Unkown Name"}
+                </Text>
+                <Text numberOfLines={1} style={styles.songArtist}>
+                  {currentSong.primary_artists ||
+                    currentSong.music ||
+                    currentSong.artists.primary.map((a) => a.name)}
+                </Text>
               </View>
+            </TouchableOpacity>
+
+            <View style={styles.controlsContainer}>
+              <TouchableOpacity onPress={playPrevious} hitSlop={10}>
+                <Image source={playpreviousSong} style={styles.controlIcon} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handlePlayPause} hitSlop={10}>
+                <Image
+                  source={isPlaying ? pauseSong : playSong}
+                  style={styles.controlIcon}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={playNext} hitSlop={10}>
+                <Image source={playnextSong} style={styles.controlIcon} />
+              </TouchableOpacity>
             </View>
-          )}
-        </View>
-      )}
+          </View>
+        )}
+      </View>
     </>
   );
 };

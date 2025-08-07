@@ -16,7 +16,7 @@ import TrackPlayer, {
   useProgress,
   useTrackPlayerEvents,
 } from "react-native-track-player";
-
+import he from "he";
 const PlayerContext = createContext();
 
 // Generate a unique ID for each song
@@ -37,6 +37,15 @@ const generateUniqueId = (song, artists, duration) => {
     .replace(/\s+/g, "_")}_${duration || 0}`;
 };
 
+const cleanSongName = (name) => {
+  if (!name) return "Unknown";
+
+  const decodedName = he.decode(name);
+  const songName = decodedName.replace(/_/g, " ").replace(/\s+/g, " ").trim();
+  console.log(songName);
+  return songName;
+};
+
 export const PlayerProvider = ({ children }) => {
   const [playlist, setPlaylist] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -46,6 +55,7 @@ export const PlayerProvider = ({ children }) => {
   const [currentSong, setCurrentSong] = useState(null);
   const [duration, setDuration] = useState(0);
   const [position, setPosition] = useState(0);
+  const [loading, setLoading] = useState(false);
   const playbackState = usePlaybackState();
   const progress = useProgress();
   const [trackIndexMap, setTrackIndexMap] = useState({}); // Map track IDs to their queue index
@@ -69,7 +79,12 @@ export const PlayerProvider = ({ children }) => {
             android: {
               alwaysPauseOnInterruption: true,
             },
-            compactCapabilities: [Capability.Play, Capability.Pause],
+            compactCapabilities: [
+              Capability.Play,
+              Capability.Pause,
+              Capability.SkipToNext,
+              Capability.SkipToPrevious,
+            ],
           });
         }
       } catch (error) {
@@ -124,6 +139,9 @@ export const PlayerProvider = ({ children }) => {
   const playSong = useCallback(
     async (song, allSongs, index) => {
       try {
+        // Set loading ONLY when starting to play a new song
+        setLoading(true);
+
         const tracks = allSongs
           .map((songItem) => {
             // Generate a unique ID for this song if it doesn't already have one
@@ -175,7 +193,9 @@ export const PlayerProvider = ({ children }) => {
                 songItem.downloadUrl[4].url ||
                 songItem.downloadUrl[3].url ||
                 "",
-              title: songItem.name || songItem.song || "Unknown Title",
+              title:
+                cleanSongName(songItem.name || songItem.song) ||
+                "Unknown Title",
               artist:
                 songItem.primary_artists ||
                 (songItem.artists && songItem.artists.primary
@@ -194,13 +214,14 @@ export const PlayerProvider = ({ children }) => {
           })
           .filter((track) => track.url);
 
-        // If attempting to play the exact same song that's already loaded, just navigate to player
+        // Check if same song is already playing - if so, just navigate to player
         if (
           currentSong &&
           currentSong.id &&
           song.id &&
           currentSong.id === song.id
         ) {
+          setLoading(false); // Clear loading since we're not actually loading
           router.push("/player");
           return;
         }
@@ -208,34 +229,44 @@ export const PlayerProvider = ({ children }) => {
           currentSong &&
           !currentSong.id &&
           !song.id &&
-          currentSong.title === (song.song || song.name) &&
+          currentSong.title === cleanSongName(song.song || song.name) &&
           currentSong.artist === (song.primary_artists || song.artist)
         ) {
+          setLoading(false); // Clear loading since we're not actually loading
           router.push("/player");
           return;
         }
 
         if (tracks.length === 0) {
           console.error("No valid tracks to play");
+          setLoading(false);
           return;
         }
 
         // Create a mapping of track IDs to their indices
         updateTrackIndexMap(tracks);
 
-        // Update local state
-        setCurrentSong(tracks[index]);
+        // Update local state BEFORE TrackPlayer operations
+        const selectedTrack = tracks[index];
+        setCurrentSong(selectedTrack);
         setPlaylist(tracks);
         setCurrentIndex(index);
 
-        // Reset player and load new tracks
+        // Reset and setup TrackPlayer queue
         await TrackPlayer.reset();
         await TrackPlayer.add(tracks);
+
+        // Skip to the correct track (this is crucial!)
         await TrackPlayer.skip(index);
         await TrackPlayer.play();
+
         setIsPlaying(true);
+
+        // Clear loading after everything is set up
+        setLoading(false);
       } catch (error) {
         console.error("Error playing song:", error);
+        setLoading(false); // Always clear loading on error
       }
     },
     [currentSong, updateTrackIndexMap]
@@ -263,6 +294,8 @@ export const PlayerProvider = ({ children }) => {
         ) {
           // Track changed - update current track info
           const nextTrackIndex = event.nextTrack;
+
+          // Update current index to match the actual playing track
           setCurrentIndex(nextTrackIndex);
 
           const track = await TrackPlayer.getTrack(nextTrackIndex);
@@ -278,41 +311,19 @@ export const PlayerProvider = ({ children }) => {
             setIsPlaying(false);
           }
         } else if (event.type === Event.RemotePlay) {
-          // Remote play button pressed
+          // Remote play button pressed - just play, don't restart
+          await TrackPlayer.play();
           setIsPlaying(true);
         } else if (event.type === Event.RemotePause) {
           // Remote pause button pressed
+          await TrackPlayer.pause();
           setIsPlaying(false);
         } else if (event.type === Event.RemoteNext) {
-          // Fix for notification next button skipping incorrectly
-          // Get current track index and properly move to next
-          const currentTrackIndex = await TrackPlayer.getCurrentTrack();
-          if (currentTrackIndex !== null) {
-            const queue = await TrackPlayer.getQueue();
-            const nextIndex = currentTrackIndex + 1;
-
-            if (nextIndex < queue.length) {
-              // Skip to next track
-              await TrackPlayer.skip(nextIndex);
-              const track = await TrackPlayer.getTrack(nextIndex);
-              if (track) {
-                setCurrentSong(track);
-                setCurrentIndex(nextIndex);
-              }
-            }
-          }
+          // Handle remote next button
+          await playNext();
         } else if (event.type === Event.RemotePrevious) {
-          // Ensure proper previous track handling
-          const currentTrackIndex = await TrackPlayer.getCurrentTrack();
-          if (currentTrackIndex !== null && currentTrackIndex > 0) {
-            const prevIndex = currentTrackIndex - 1;
-            await TrackPlayer.skip(prevIndex);
-            const track = await TrackPlayer.getTrack(prevIndex);
-            if (track) {
-              setCurrentSong(track);
-              setCurrentIndex(prevIndex);
-            }
-          }
+          // Handle remote previous button
+          await playPrevious();
         }
       } catch (error) {
         console.error("Error handling TrackPlayer event:", error);
@@ -331,28 +342,13 @@ export const PlayerProvider = ({ children }) => {
         } while (nextIndex === currentIndex);
 
         await TrackPlayer.skip(nextIndex);
-        setCurrentIndex(nextIndex);
-        const track = await TrackPlayer.getTrack(nextIndex);
-        setCurrentSong(track);
         await TrackPlayer.play();
       } else {
         // Normal next track logic
         const queue = await TrackPlayer.getQueue();
-        const currentTrackIndex = await TrackPlayer.getCurrentTrack();
-
-        if (
-          currentTrackIndex !== null &&
-          currentTrackIndex < queue.length - 1
-        ) {
-          const nextIndex = currentTrackIndex + 1;
-          await TrackPlayer.skip(nextIndex);
-          const track = await TrackPlayer.getTrack(nextIndex);
-          if (track) {
-            setCurrentSong(track);
-            setCurrentIndex(nextIndex);
-          }
-          await TrackPlayer.play();
-        }
+        const nextIndex = (currentIndex + 1) % queue.length;
+        await TrackPlayer.skip(nextIndex);
+        await TrackPlayer.play();
       }
     } catch (error) {
       console.error("Error playing next song:", error);
@@ -362,25 +358,23 @@ export const PlayerProvider = ({ children }) => {
   // Play previous song
   const playPrevious = useCallback(async () => {
     try {
-      const currentTrackIndex = await TrackPlayer.getCurrentTrack();
+      const currentPosition = await TrackPlayer.getPosition();
+      const queue = await TrackPlayer.getQueue();
 
-      if (currentTrackIndex !== null && currentTrackIndex > 0) {
-        const prevIndex = currentTrackIndex - 1;
-        await TrackPlayer.skip(prevIndex);
-        const track = await TrackPlayer.getTrack(prevIndex);
-        if (track) {
-          setCurrentSong(track);
-          setCurrentIndex(prevIndex);
-        }
-        await TrackPlayer.play();
-      } else {
-        // At the beginning of queue, restart current track
+      // If more than 3 seconds into the song, restart current song
+      if (currentPosition > 3) {
         await TrackPlayer.seekTo(0);
+      } else {
+        // Calculate previous index with wrap-around
+        const previousIndex =
+          currentIndex > 0 ? currentIndex - 1 : queue.length - 1;
+        await TrackPlayer.skip(previousIndex);
+        await TrackPlayer.play();
       }
     } catch (error) {
       console.error("Error playing previous song:", error);
     }
-  }, []);
+  }, [currentIndex]);
 
   // Toggle play/pause
   const togglePlayPause = useCallback(async () => {
@@ -398,8 +392,6 @@ export const PlayerProvider = ({ children }) => {
     }
   }, []);
 
-  // Also modify the useEffect that monitors playback state
-
   // Seek to a specific position
   const seekTo = useCallback(async (value) => {
     try {
@@ -411,6 +403,7 @@ export const PlayerProvider = ({ children }) => {
 
   // Toggle shuffle
   const toggleShuffle = useCallback(async () => {
+    setLoading(true);
     try {
       setShuffleActive((prev) => !prev);
       const currentTrack = await TrackPlayer.getCurrentTrack();
@@ -419,12 +412,10 @@ export const PlayerProvider = ({ children }) => {
       const wasPlaying = (await TrackPlayer.getState()) === State.Playing;
 
       if (!shuffleActive && queue.length > 1) {
-        // Save current track
         const currentSong = queue[currentTrack];
         let shuffledQueue = [...queue];
         shuffledQueue.splice(currentTrack, 1);
 
-        // Fisher-Yates shuffle
         for (let i = shuffledQueue.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
           [shuffledQueue[i], shuffledQueue[j]] = [
@@ -432,14 +423,8 @@ export const PlayerProvider = ({ children }) => {
             shuffledQueue[i],
           ];
         }
-
-        // Put current song back at current position
         shuffledQueue.splice(currentTrack, 0, currentSong);
-
-        // Update track index mapping with new order
         updateTrackIndexMap(shuffledQueue);
-
-        // Update the queue while maintaining position
         await TrackPlayer.reset();
         await TrackPlayer.add(shuffledQueue);
         await TrackPlayer.skip(currentTrack);
@@ -448,7 +433,6 @@ export const PlayerProvider = ({ children }) => {
           await TrackPlayer.play();
         }
       } else if (shuffleActive) {
-        // Restore original playlist order
         updateTrackIndexMap(playlist);
         await TrackPlayer.reset();
         await TrackPlayer.add(playlist);
@@ -460,10 +444,11 @@ export const PlayerProvider = ({ children }) => {
       }
     } catch (error) {
       console.error("Error toggling shuffle:", error);
+    } finally {
+      setLoading(false);
     }
   }, [playlist, shuffleActive, updateTrackIndexMap]);
 
-  // Toggle loop mode
   const toggleLoopMode = useCallback(() => {
     setLoopMode((prev) => {
       const nextMode =
@@ -500,7 +485,6 @@ export const PlayerProvider = ({ children }) => {
       return song1.id === song2.id;
     }
 
-    // Fallback to name and artist comparison
     const song1Name = song1.song || song1.title || song1.name;
     const song2Name = song2.song || song2.title || song2.name;
     const song1Artist = song1.primary_artists || song1.artist;
@@ -509,7 +493,6 @@ export const PlayerProvider = ({ children }) => {
     return song1Name === song2Name && song1Artist === song2Artist;
   }, []);
 
-  // Context value
   const contextValue = useMemo(
     () => ({
       playlist,
@@ -518,6 +501,7 @@ export const PlayerProvider = ({ children }) => {
       isPlaying,
       setIsPlaying,
       shuffleActive,
+      loading,
       loopMode,
       playSong,
       playNext,
@@ -537,6 +521,7 @@ export const PlayerProvider = ({ children }) => {
       currentIndex,
       currentSong,
       isPlaying,
+      loading,
       shuffleActive,
       loopMode,
       playSong,

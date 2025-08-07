@@ -6,28 +6,26 @@ import backIcon from "@/assets/images/backImg.png";
 export default function NotFoundScreen() {
   useEffect(() => {
     const redirectTimer = setTimeout(() => {
-      router.replace("/");
+      router.replace("/player");
     }, 1000); // 3 seconds delay
-
 
     return () => clearTimeout(redirectTimer);
   }, []);
 
-  // Manual navigation function (if user wants to go back immediately)
   const handleBack = () => {
-    router.replace("/");
+    router.replace("/player");
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.content}>
         <Text style={styles.message}>
-          Wait we Redirecting you to the home page...
+          Wait we Redirecting you to the Player...
         </Text>
         <Pressable onPress={handleBack} style={styles.button}>
           <View style={styles.buttonContainer}>
             <Image source={backIcon} style={styles.backImg} />
-            <Text style={styles.buttonText}>Go Back Home</Text>
+            <Text style={styles.buttonText}>Go Back Player</Text>
           </View>
         </Pressable>
       </View>

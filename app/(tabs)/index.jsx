@@ -146,7 +146,6 @@ const Home = () => {
           }
         } catch (error) {
           console.error("Error handling notification:", error);
-          // On error, redirect to home
           router.replace("/");
         }
       }
@@ -223,44 +222,46 @@ const Home = () => {
         </ScrollView>
 
         {active === "All" ? (
-          <ScrollView
-            contentContainerStyle={styles.scrollContainer}
-            showsVerticalScrollIndicator={false}
-          >
-            <>
-              <View className="pl-5">
-                {loading || (!data && !error) ? (
-                  <ActivityIndicator
-                    size="large"
-                    color="#000"
-                    style={styles.loader}
-                  />
-                ) : error ? (
-                  <View className="w-full flex flex-col gap-3 items-center justify-center">
-                    <Text style={styles.errorText}>
-                      Something went wrong😥: {error.message}
-                    </Text>
-                    <Pressable onPress={refetch}>
-                      <View className=" p-3 pl-5 pr-5 bg-black color-white rounded-xl">
-                        <Text
-                          style={styles.loadingText}
-                          className="color-white"
-                        >
-                          Retry
-                        </Text>
-                      </View>
-                    </Pressable>
-                  </View>
-                ) : (
-                  <>
-                    <View style={styles.section}>
-                      <PlaylistComponent data={data} />
+          <>
+            <ScrollView
+              contentContainerStyle={styles.scrollContainer}
+              showsVerticalScrollIndicator={false}
+            >
+              <>
+                <View className="pl-5">
+                  {loading || (!data && !error) ? (
+                    <ActivityIndicator
+                      size="large"
+                      color="#000"
+                      style={styles.loader}
+                    />
+                  ) : error ? (
+                    <View className="w-full flex flex-col gap-3 items-center justify-center">
+                      <Text style={styles.errorText}>
+                        Something went wrong😥: {error.message}
+                      </Text>
+                      <Pressable onPress={refetch}>
+                        <View className=" p-3 pl-5 pr-5 bg-black color-white rounded-xl">
+                          <Text
+                            style={styles.loadingText}
+                            className="color-white"
+                          >
+                            Retry
+                          </Text>
+                        </View>
+                      </Pressable>
                     </View>
-                  </>
-                )}
-              </View>
-            </>
-          </ScrollView>
+                  ) : (
+                    <>
+                      <View style={styles.section}>
+                        <PlaylistComponent data={data} />
+                      </View>
+                    </>
+                  )}
+                </View>
+              </>
+            </ScrollView>
+          </>
         ) : (
           <>
             <View className="w-full flex flex-row pt-5 pl-5 items-center justify-between pr-8">

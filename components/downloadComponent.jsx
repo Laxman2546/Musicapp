@@ -10,6 +10,7 @@ import musicPlay from "@/assets/images/playing.gif";
 
 const downloadsDir = `${FileSystem.documentDirectory}downloads/`;
 
+
 const DownloadComponent = ({
   type,
   song,
@@ -33,9 +34,9 @@ const DownloadComponent = ({
     console.log(allSongs);
     const formattedList = allSongs
       .map((item) => ({
-        id: item.id, // Make sure ID is included
+        id: item.id, 
         song: item.song || item.name,
-        name: item.song || item.name, // Include name for compatibility
+        name: item.song || item.name, 
         image:
           Array.isArray(item.image) && item.image[2]?.url
             ? item.image[2].url
@@ -48,7 +49,7 @@ const DownloadComponent = ({
         duration: item.duration,
         primary_artists:
           item.primary_artists ||
-          item.artist || // Include artist as fallback
+          item.artist || 
           (item.artists?.primary
             ? item.artists.primary.map((a) => a.name)
             : "Unknown"),

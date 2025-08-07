@@ -16,7 +16,6 @@ import { fetchMusic } from "@/services/api";
 import useFetch from "@/services/useFetch";
 import Trending from "@/components/trending";
 
-// Helper function to generate a unique ID for each song
 const generateUniqueId = (song, artists, duration) => {
   const artistString = Array.isArray(artists)
     ? artists.join("_")

@@ -20,7 +20,16 @@ const downloads = () => {
   const [username, setUsername] = useState("user");
   const [editName, setEditname] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [isClicked, setIsClicked] = useState(false);
 
+  useEffect(() => {
+    checkForUpdates();
+  }, []);
+
+  const handleClick = () => {
+    setIsClicked(!isClicked);
+    checkForUpdates();
+  };
   const checkForUpdates = async () => {
     try {
       setChecking(true);
@@ -63,14 +72,16 @@ const downloads = () => {
           ]
         );
       } else {
-        Alert.alert("No Updates", "You're running the latest version!");
+        if (isClicked)
+          Alert.alert("No Updates", "You're running the latest version!");
       }
     } catch (error) {
       console.error("Error checking for updates:", error);
-      Alert.alert(
-        "Error",
-        "Failed to check for updates. Please try again later."
-      );
+      if (isClicked)
+        Alert.alert(
+          "Error",
+          "Failed to check for updates. Please try again later."
+        );
     } finally {
       setChecking(false);
     }
@@ -172,7 +183,7 @@ const downloads = () => {
             <Text style={styles.textFont}>Liked songs</Text>
           </View>
         </Pressable>
-        <Pressable onPress={checkForUpdates}>
+        <Pressable onPress={handleClick}>
           <View className="w-full flex flex-row gap-6 p-5 rounded-2xl bg-[#D3D3D3]">
             <Image
               source={fileIcon}
