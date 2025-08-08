@@ -65,8 +65,6 @@ const likedSongComponent = ({
       console.error("No valid songs to play");
       return;
     }
-
-    // Find the correct index in the filtered list
     const newIndex = formattedAllSongs.findIndex(
       (s) =>
         s.song === songObject.song &&

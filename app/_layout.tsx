@@ -9,10 +9,9 @@ import TrackPlayer, {
 } from "react-native-track-player";
 import * as SplashScreen from "expo-splash-screen";
 
-// Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
-// First, register the playback service
+
 TrackPlayer.registerPlaybackService(() => require("@/context/service.js"));
 const linking = {
   prefixes: ["myapp://"],
