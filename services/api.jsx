@@ -241,7 +241,7 @@ const playlistIndices = {
 // Direct JioSaavn API implementation
 export const fetchMusic = async ({
   query = "",
-  active = "Trending",
+  active = "Recent",
   premaUrl = "",
   nextPlaylist = false,
 }) => {
@@ -270,11 +270,11 @@ export const fetchMusic = async ({
       return await getPlaylistFromUrl(playlistUrl);
     }
     const defaultPlaylistUrl =
-      MUSIC_CONFIG.PLAYLISTS.Trending[playlistIndices.Trending];
+      MUSIC_CONFIG.PLAYLISTS.Recent[playlistIndices.Recent];
     return await getPlaylistFromUrl(defaultPlaylistUrl);
   } catch (error) {
     console.error("Error fetching music:", error);
-    return { songs: [] }; // Return empty songs array instead of throwing
+    return { songs: [] };
   }
 };
 

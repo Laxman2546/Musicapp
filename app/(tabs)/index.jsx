@@ -23,6 +23,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import * as Notifications from "expo-notifications";
 import data from "@/constants/all";
 import PlaylistComponent from "@/components/playlistComponent";
+import Recentrelease from "@/components/Recentrelease";
 const Home = () => {
   const [active, setActive] = useState("All");
   const [bhakthiActive, setbhakthiActive] = useState("VenkateshwaraSwamy");
@@ -254,6 +255,7 @@ const Home = () => {
                   ) : (
                     <>
                       <View style={styles.section}>
+                        <Recentrelease />
                         <PlaylistComponent data={data} />
                       </View>
                     </>

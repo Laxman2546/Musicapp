@@ -59,7 +59,7 @@ const likedSongComponent = ({
         song_url:
           song.media_url || song.music || song.filePath || song.song_url || "",
       }))
-      .filter((song) => song.song_url); // Filter out songs with no URL
+      .filter((song) => song.song_url);
     console.log(allSongs);
     if (formattedAllSongs.length === 0) {
       console.error("No valid songs to play");

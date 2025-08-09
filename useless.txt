@@ -94,4 +94,4 @@ build command
 
 eas build --platform android --profile development
 
-npm install @react-native-masked-view/masked-view react-native-linear-gradient --save
+eas update --branch production 

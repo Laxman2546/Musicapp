@@ -92,13 +92,15 @@ const MusicPlayer = () => {
     setLocalIsPlaying(isPlaying);
   }, [isPlaying]);
 
-  // useEffect(() => {
-  //   if (currentSong) {
-  //     setShowLyrics(false);
-  //     setRawLyrics("");
-  //     setLyricsError(false);
-  //   }
-  // }, [currentSong?.song, currentSong?.title]);
+  useEffect(() => {
+    if (currentSong) {
+      setShowLyrics(false);
+      setRawLyrics("");
+      setLyricsError(false);
+      setShowLyricsData(false);
+      setShowMore(false);
+    }
+  }, [currentSong?.song, currentSong?.title]);
 
   useEffect(() => {
     if (currentIndex >= 0) {
@@ -267,7 +269,6 @@ const MusicPlayer = () => {
     await togglePlayPause();
   };
   const handleMore = () => {
-    console.log("Clicked");
     setShowMore(!showMore);
   };
   const showMoreLyrics = () => {
@@ -299,7 +300,6 @@ const MusicPlayer = () => {
   };
 
   const handelenewLyrics = (lyrics) => {
-    console.log("added");
     setRawLyrics(lyrics);
     setShowLyricsData(false);
     setShowLyrics(true);
@@ -320,7 +320,6 @@ const MusicPlayer = () => {
         if (data && data.length > 0 && data[0].syncedLyrics) {
           setRawLyrics(data[0].syncedLyrics);
           setlyricsData(data);
-          console.log("this is data", data);
           setLyricsError(false);
         } else {
           setLyricsError(true);
@@ -459,6 +458,7 @@ const MusicPlayer = () => {
                       onPress={(e) => {
                         e.stopPropagation();
                         setShowLyrics(false);
+                        setShowLyricsData(false);
                         setShowMore(false);
                       }}
                       hitSlop={10}
@@ -506,9 +506,9 @@ const MusicPlayer = () => {
                     >
                       {lyricsLoading ? (
                         <View style={styles.loadingContainer}>
-                          <ActivityIndicator size="large" color="#4A90E2" />
+                          <ActivityIndicator size="large" color="#fff" />
                           <Text style={styles.loadingText}>
-                            Loading lyrics...
+                            Fetching lyrics...
                           </Text>
                         </View>
                       ) : lyricsError || !hasLyrics ? (
@@ -517,8 +517,15 @@ const MusicPlayer = () => {
                             No synchronized lyrics available
                           </Text>
                           <Text style={styles.errorSubText}>
-                            Enjoy the music! 🎵
+                            Enjoy the Song! 🎵
                           </Text>
+                          <Pressable onPress={() => showMoreLyrics()}>
+                            <View style={styles.checkMore}>
+                              <Text style={styles.checkText}>
+                                Check more Lyrics
+                              </Text>
+                            </View>
+                          </Pressable>
                         </View>
                       ) : (
                         <FlatList
@@ -557,36 +564,49 @@ const MusicPlayer = () => {
                 </>
               ) : (
                 <>
-                  <FlatList
-                    data={lyricsData}
-                    keyExtractor={(item, index) => index.toString()}
-                    initialNumToRender={15}
-                    maxToRenderPerBatch={10}
-                    windowSize={21}
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={styles.lyricsListContainer}
-                    decelerationRate="fast"
-                    scrollEventThrottle={16}
-                    renderItem={({ item, index }) => (
-                      <View style={styles.lyricsData}>
-                        {item.syncedLyrics && (
-                          <Pressable
-                            onPress={() => handelenewLyrics(item.syncedLyrics)}
-                            hitSlop={10}
-                          >
-                            <View style={styles.lyricsDataText}>
-                              <Text style={styles.lyricsDataAlbum}>
-                                {item?.albumName || "Unknown Album"}
-                              </Text>
-                              <Text style={styles.lyricsDataTitle}>
-                                {item?.name || "Unknown Song"}
-                              </Text>
-                            </View>
-                          </Pressable>
-                        )}
-                      </View>
-                    )}
-                  />
+                  {lyricsData.length === 0 ? (
+                    <View style={styles.errorContainer}>
+                      <Text style={styles.errorText}>No lyrics Found</Text>
+                      <Text style={styles.errorSubText}>
+                        Enjoy the Song! 🎵
+                      </Text>
+                    </View>
+                  ) : (
+                    <FlatList
+                      data={lyricsData}
+                      keyExtractor={(item, index) => index.toString()}
+                      initialNumToRender={15}
+                      maxToRenderPerBatch={10}
+                      windowSize={21}
+                      showsVerticalScrollIndicator={false}
+                      contentContainerStyle={styles.lyricsListContainer}
+                      decelerationRate="fast"
+                      scrollEventThrottle={16}
+                      renderItem={({ item, index }) => (
+                        <View style={styles.lyricsData}>
+                          <>
+                            {item.syncedLyrics && (
+                              <Pressable
+                                onPress={() =>
+                                  handelenewLyrics(item.syncedLyrics)
+                                }
+                                hitSlop={10}
+                              >
+                                <View style={styles.lyricsDataText}>
+                                  <Text style={styles.lyricsDataAlbum}>
+                                    {item?.albumName || "Unknown Album"}
+                                  </Text>
+                                  <Text style={styles.lyricsDataTitle}>
+                                    {item?.name || "Unknown Song"}
+                                  </Text>
+                                </View>
+                              </Pressable>
+                            )}
+                          </>
+                        </View>
+                      )}
+                    />
+                  )}
                 </>
               )}
             </View>
@@ -767,6 +787,23 @@ const styles = StyleSheet.create({
     overflowY: "Scroll",
     gap: 8,
   },
+  noLyrics: {
+    fontSize: 15,
+    fontFamily: "Poppins-SemiBold",
+    color: "#fff",
+  },
+  checkMore: {
+    padding: 12,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    marginTop: 10,
+  },
+  checkText: {
+    fontSize: 15,
+    fontFamily: "Poppins-SemiBold",
+    color: "#000",
+  },
+
   lyricsDataText: {
     minWidth: "90%",
     color: "#fff",
