@@ -196,38 +196,114 @@ const Trending = ({
       if (image && typeof image === "string" && image.startsWith("http")) {
         const imageExt = image.split(".").pop().split("?")[0] || "jpg";
         const imageFilename = `${songId}_artwork.${imageExt}`;
-        const imageFilePath = `${downloadsPath}${imageFilename}`;
 
         try {
+          // Download image to temp location first
+          const tempImagePath = `${FileSystem.cacheDirectory}${imageFilename}`;
           const imageDownload = await FileSystem.downloadAsync(
             image,
-            imageFilePath
+            tempImagePath
           );
+
           if (imageDownload.status === 200) {
-            localImagePath = imageDownload.uri;
+            if (
+              Platform.OS === "android" &&
+              downloadsPath.startsWith("content://")
+            ) {
+              // For Android, use SAF to store the image
+              const imageContent = await FileSystem.readAsStringAsync(
+                tempImagePath,
+                {
+                  encoding: "base64",
+                }
+              );
+              const imageUri =
+                await FileSystem.StorageAccessFramework.createFileAsync(
+                  downloadsPath,
+                  imageFilename,
+                  "image/jpeg"
+                );
+              await FileSystem.StorageAccessFramework.writeAsStringAsync(
+                imageUri,
+                imageContent,
+                { encoding: "base64" }
+              );
+              localImagePath = imageUri;
+            } else {
+              // For iOS, move to downloads directory
+              const finalImagePath = `${downloadsPath}${imageFilename}`;
+              await FileSystem.moveAsync({
+                from: tempImagePath,
+                to: finalImagePath,
+              });
+              localImagePath = finalImagePath;
+            }
+          }
+          // Clean up temp file if it exists
+          if (await FileSystem.getInfoAsync(tempImagePath).exists) {
+            await FileSystem.deleteAsync(tempImagePath);
           }
         } catch (error) {
-          console.log("Error downloading image:", error);
+          console.log("Error handling image:", error);
         }
       }
 
-      const downloadResumable = FileSystem.createDownloadResumable(
-        song_url,
-        filePath,
-        {},
-        (progress) => {
-          if (progress.totalBytesExpectedToWrite > 0) {
-            const percent =
-              progress.totalBytesWritten / progress.totalBytesExpectedToWrite;
-            setDownloadProgress(percent);
+      // Handle download based on platform
+      let result;
+      if (Platform.OS === "android" && downloadsPath.startsWith("content://")) {
+        // For Android using Storage Access Framework
+        const tempFile = FileSystem.cacheDirectory + filename;
+        const downloadResumable = FileSystem.createDownloadResumable(
+          song_url,
+          tempFile,
+          {},
+          (progress) => {
+            if (progress.totalBytesExpectedToWrite > 0) {
+              const percent =
+                progress.totalBytesWritten / progress.totalBytesExpectedToWrite;
+              setDownloadProgress(percent);
+            }
           }
-        }
-      );
+        );
 
-      const result = await downloadResumable.downloadAsync();
-      if (!result?.uri) throw new Error("Download failed");
-      if (Platform.OS === "android") {
-        await MediaLibrary.createAssetAsync(result.uri);
+        const tempResult = await downloadResumable.downloadAsync();
+        if (!tempResult?.uri) throw new Error("Download failed");
+
+        // Create file in SAF directory
+        const fileContent = await FileSystem.readAsStringAsync(tempResult.uri, {
+          encoding: "base64",
+        });
+        const newUri = await FileSystem.StorageAccessFramework.createFileAsync(
+          downloadsPath,
+          filename,
+          "audio/mpeg"
+        );
+        await FileSystem.StorageAccessFramework.writeAsStringAsync(
+          newUri,
+          fileContent,
+          { encoding: "base64" }
+        );
+        result = { uri: newUri };
+
+        // Clean up temp file
+        await FileSystem.deleteAsync(tempResult.uri);
+      } else {
+        // For iOS or fallback storage
+        const downloadResumable = FileSystem.createDownloadResumable(
+          song_url,
+          filePath,
+          {},
+          (progress) => {
+            if (progress.totalBytesExpectedToWrite > 0) {
+              const percent =
+                progress.totalBytesWritten / progress.totalBytesExpectedToWrite;
+              setDownloadProgress(percent);
+            }
+          }
+        );
+
+        result = await downloadResumable.downloadAsync();
+        if (!result?.uri) throw new Error("Download failed");
       }
 
       const metadata = {
@@ -242,16 +318,57 @@ const Trending = ({
         downloadedAt: new Date().toISOString(),
       };
 
-      const metaFile = `${downloadsPath}${songId}.json`;
-      await FileSystem.writeAsStringAsync(metaFile, JSON.stringify(metadata));
+      // Save metadata based on platform
+      if (Platform.OS === "android" && downloadsPath.startsWith("content://")) {
+        const metadataUri =
+          await FileSystem.StorageAccessFramework.createFileAsync(
+            downloadsPath,
+            `${songId}.json`,
+            "application/json"
+          );
+        await FileSystem.StorageAccessFramework.writeAsStringAsync(
+          metadataUri,
+          JSON.stringify(metadata)
+        );
+      } else {
+        const metaFile = `${downloadsPath}${songId}.json`;
+        await FileSystem.writeAsStringAsync(metaFile, JSON.stringify(metadata));
+      }
 
       setIsDownloaded(true);
     } catch (err) {
       console.log("Download Error:", err.message);
+      // Clean up any partial downloads
+      try {
+        if (localImagePath) {
+          if (
+            Platform.OS === "android" &&
+            localImagePath.startsWith("content://")
+          ) {
+            await FileSystem.StorageAccessFramework.deleteAsync(localImagePath);
+          } else {
+            await FileSystem.deleteAsync(localImagePath);
+          }
+        }
+
+        // Clean up the MP3 file if it exists
+        if (result?.uri) {
+          if (
+            Platform.OS === "android" &&
+            result.uri.startsWith("content://")
+          ) {
+            await FileSystem.StorageAccessFramework.deleteAsync(result.uri);
+          } else {
+            await FileSystem.deleteAsync(result.uri);
+          }
+        }
+      } catch (cleanupError) {
+        console.log("Error cleaning up failed download:", cleanupError);
+      }
+
       Alert.alert(
         "Download Failed",
-        "Could not download song. Please try again.",
-        err.message
+        "Could not download song. Please try again."
       );
     } finally {
       setIsDownloading(false);

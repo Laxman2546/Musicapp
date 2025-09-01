@@ -7,6 +7,7 @@ import {
   FlatList,
   TextInput,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import * as FileSystem from "expo-file-system";
@@ -41,24 +42,48 @@ const DownloadsFolder = () => {
       const NEW_DOWNLOAD_DIR = await getDownloadsDirectory();
       const OLD_DOWNLOAD_DIR = FileSystem.documentDirectory + "downloads/";
 
-      // First try to read the new directory
+      // Read files based on storage type
       let allFiles = [];
-      try {
-        const newFiles = await FileSystem.readDirectoryAsync(NEW_DOWNLOAD_DIR);
-        allFiles = newFiles.map((file) => ({ file, dir: NEW_DOWNLOAD_DIR }));
-      } catch (error) {
-        console.log("New directory not available:", error);
-      }
-
-      // Only check old directory if new directory is empty
-      if (allFiles.length === 0) {
+      if (
+        Platform.OS === "android" &&
+        NEW_DOWNLOAD_DIR.startsWith("content://")
+      ) {
         try {
-          const oldFiles = await FileSystem.readDirectoryAsync(
-            OLD_DOWNLOAD_DIR
-          );
-          allFiles = oldFiles.map((file) => ({ file, dir: OLD_DOWNLOAD_DIR }));
+          // Read files using SAF
+          const newFiles =
+            await FileSystem.StorageAccessFramework.readDirectoryAsync(
+              NEW_DOWNLOAD_DIR
+            );
+          allFiles = newFiles.map((uri) => ({
+            file: uri.split("/").pop(), // Get filename from URI
+            dir: NEW_DOWNLOAD_DIR,
+            uri: uri, // Keep full URI for SAF operations
+          }));
         } catch (error) {
-          console.log("Old directory not available:", error);
+          console.log("Error reading SAF directory:", error);
+        }
+      } else {
+        // Regular filesystem
+        try {
+          const newFiles = await FileSystem.readDirectoryAsync(
+            NEW_DOWNLOAD_DIR
+          );
+          allFiles = newFiles.map((file) => ({ file, dir: NEW_DOWNLOAD_DIR }));
+        } catch (error) {
+          console.log("New directory not available:", error);
+
+          // Only check old directory if new directory is empty
+          try {
+            const oldFiles = await FileSystem.readDirectoryAsync(
+              OLD_DOWNLOAD_DIR
+            );
+            allFiles = oldFiles.map((file) => ({
+              file,
+              dir: OLD_DOWNLOAD_DIR,
+            }));
+          } catch (error) {
+            console.log("Old directory not available:", error);
+          }
         }
       }
 
@@ -115,17 +140,51 @@ const DownloadsFolder = () => {
 
       // Create song objects with complete metadata from JSON files
       const songData = await Promise.all(
-        jsonFiles.map(async ({ file, dir }) => {
+        jsonFiles.map(async ({ file, dir, uri }) => {
           try {
-            const jsonPath = dir + file;
-            const jsonContent = await FileSystem.readAsStringAsync(jsonPath);
+            let jsonContent;
+            if (
+              Platform.OS === "android" &&
+              dir.startsWith("content://") &&
+              uri
+            ) {
+              // Read using SAF
+              jsonContent =
+                await FileSystem.StorageAccessFramework.readAsStringAsync(uri);
+            } else {
+              // Regular filesystem
+              const jsonPath = dir + file;
+              jsonContent = await FileSystem.readAsStringAsync(jsonPath);
+            }
             const metadata = JSON.parse(jsonContent);
 
             // First check the path stored in metadata
             if (metadata.filePath) {
               try {
-                const exists = await FileSystem.getInfoAsync(metadata.filePath);
-                if (exists.exists) {
+                let exists = false;
+                if (
+                  Platform.OS === "android" &&
+                  metadata.filePath.startsWith("content://")
+                ) {
+                  // For SAF paths, try to read the file to check existence
+                  try {
+                    await FileSystem.StorageAccessFramework.readAsStringAsync(
+                      metadata.filePath,
+                      { length: 1 }
+                    );
+                    exists = true;
+                  } catch (e) {
+                    exists = false;
+                  }
+                } else {
+                  // Regular filesystem
+                  const fileInfo = await FileSystem.getInfoAsync(
+                    metadata.filePath
+                  );
+                  exists = fileInfo.exists;
+                }
+
+                if (exists) {
                   return {
                     id: metadata.id || file.replace(".json", ""),
                     song:
