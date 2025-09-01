@@ -1,11 +1,4 @@
-import {
-  Image,
-  Platform,
-  Pressable,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Image, Pressable, Text, TouchableOpacity, View } from "react-native";
 import React, { memo, useEffect, useState } from "react";
 import { usePlayer } from "@/context/playerContext";
 import { router } from "expo-router";
@@ -14,7 +7,8 @@ import trash from "@/assets/images/trash.png";
 import * as FileSystem from "expo-file-system";
 import defaultMusicImage from "@/assets/images/musicImage.png";
 import musicPlay from "@/assets/images/playing.gif";
-import { getDownloadsDirectory } from "@/utils/storage";
+
+const downloadsDir = `${FileSystem.documentDirectory}downloads/`;
 
 const DownloadComponent = ({
   type,
@@ -97,58 +91,34 @@ const DownloadComponent = ({
     try {
       // Get the file ID from the song_url path
       const fileId = song_url.split("/").pop().split(".")[0];
-      const downloadsDir = await getDownloadsDirectory();
 
-      if (Platform.OS === "android" && downloadsDir.startsWith("content://")) {
-        // For Android using Storage Access Framework
-        const files =
-          await FileSystem.StorageAccessFramework.readDirectoryAsync(
-            downloadsDir
-          );
-        const mp3File = files.find((uri) => uri.includes(`${fileId}.mp3`));
-        const jsonFile = files.find((uri) => uri.includes(`${fileId}.json`));
-        const imageFile = files.find((uri) =>
-          uri.includes(`${fileId}_artwork`)
-        );
+      // Delete the MP3 file
+      await FileSystem.deleteAsync(song_url);
 
-        if (mp3File) {
-          await FileSystem.StorageAccessFramework.deleteAsync(mp3File);
-        }
-        if (jsonFile) {
-          await FileSystem.StorageAccessFramework.deleteAsync(jsonFile);
-        }
-        if (imageFile) {
-          await FileSystem.StorageAccessFramework.deleteAsync(imageFile);
-        }
-      } else {
-        // For iOS or fallback storage
-        // Delete the MP3 file
-        await FileSystem.deleteAsync(song_url);
-
-        // Delete the JSON metadata file
-        try {
-          const jsonFile = `${downloadsDir}${fileId}.json`;
-          await FileSystem.deleteAsync(jsonFile);
-        } catch (error) {
-          console.log("Error deleting JSON file:", error);
-        }
-
-        // Delete any associated image files
-        try {
-          const files = await FileSystem.readDirectoryAsync(downloadsDir);
-          const imageFiles = files.filter((file) =>
-            file.startsWith(`${fileId}_artwork`)
-          );
-          for (const imageFile of imageFiles) {
-            await FileSystem.deleteAsync(`${downloadsDir}${imageFile}`);
-          }
-        } catch (error) {
-          console.log("Error deleting image files:", error);
-        }
+      // Delete the JSON metadata file
+      try {
+        const jsonFile = `${downloadsDir}${fileId}.json`;
+        await FileSystem.deleteAsync(jsonFile);
+      } catch (error) {
+        console.log("Error deleting JSON file:", error);
       }
+
+      // Delete any associated image files
+      try {
+        const files = await FileSystem.readDirectoryAsync(downloadsDir);
+        const imageFiles = files.filter((file) =>
+          file.startsWith(`${fileId}_artwork`)
+        );
+        for (const imageFile of imageFiles) {
+          await FileSystem.deleteAsync(`${downloadsDir}${imageFile}`);
+        }
+      } catch (error) {
+        console.log("Error deleting image files:", error);
+      }
+
       onDelete();
     } catch (error) {
-      console.log("Error deleting files:", error);
+      console.log("Error deleting file:", error);
     }
   };
 

@@ -1,5 +1,6 @@
 import * as FileSystem from "expo-file-system";
 import { Platform } from "react-native";
+import * as MediaLibrary from "expo-media-library";
 
 let cachedDownloadsDir = null;
 
@@ -12,46 +13,36 @@ export const getDownloadsDirectory = async () => {
 
   if (Platform.OS === "android") {
     try {
-      // For Android, always try to get persistent storage access
-      const permissions =
-        await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+      // Request media library permissions instead of SAF
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== "granted") {
+        throw new Error("Media library permission not granted");
+      }
 
-      if (permissions.granted) {
-        // Store the granted URI for future use
-        downloadsDir = permissions.directoryUri;
+      // Use app-specific external directory
+      downloadsDir = `${FileSystem.documentDirectory}nanimusic/`;
 
-        try {
-          // Try to find existing NaniMusic directory
-          const existingDirs =
-            await FileSystem.StorageAccessFramework.readDirectoryAsync(
-              downloadsDir
-            );
-          const naniMusicDir = existingDirs.find((uri) =>
-            uri.includes("NaniMusic")
-          );
-
-          if (naniMusicDir) {
-            downloadsDir = naniMusicDir;
-          } else {
-            // Create new NaniMusic directory if it doesn't exist
-            const newDir =
-              await FileSystem.StorageAccessFramework.createDirectoryAsync(
-                downloadsDir,
-                "NaniMusic",
-                false
-              );
-            downloadsDir = newDir;
-          }
-        } catch (error) {
-          console.log("Error with NaniMusic directory:", error);
-          throw new Error("Failed to access or create NaniMusic directory");
+      try {
+        const dirInfo = await FileSystem.getInfoAsync(downloadsDir);
+        if (!dirInfo.exists) {
+          await FileSystem.makeDirectoryAsync(downloadsDir, {
+            intermediates: true,
+          });
         }
-      } else {
-        throw new Error("Storage permission not granted");
+
+        // Ensure the .nomedia file exists to prevent media scanning
+        const noMediaPath = `${downloadsDir}.nomedia`;
+        const noMediaInfo = await FileSystem.getInfoAsync(noMediaPath);
+        if (!noMediaInfo.exists) {
+          await FileSystem.writeAsStringAsync(noMediaPath, "");
+        }
+      } catch (error) {
+        console.log("Error creating NaniMusic directory:", error);
+        throw new Error("Failed to create music directory");
       }
     } catch (error) {
       console.log("Error accessing storage:", error);
-      // Fallback to documents directory if permission not granted
+      // Fallback to internal storage
       downloadsDir = `${FileSystem.documentDirectory}downloads/`;
       const dirInfo = await FileSystem.getInfoAsync(downloadsDir);
       if (!dirInfo.exists) {
