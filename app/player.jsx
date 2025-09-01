@@ -8,7 +8,7 @@ import {
   Dimensions,
   FlatList,
   Animated,
-  TouchableWithoutFeedback,
+  Easing,
 } from "react-native";
 import { useEffect, useRef, useState } from "react";
 import { usePlayer } from "@/context/playerContext";
@@ -64,6 +64,7 @@ const MusicPlayer = () => {
     seekTo,
     formatTime,
     togglePlayPause,
+    // Add this to track if current song is radio
   } = usePlayer();
 
   const [favouriteClick, setfavouriteClick] = useState(false);
@@ -81,7 +82,6 @@ const MusicPlayer = () => {
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const lyricsOpacity = useRef(new Animated.Value(0)).current;
   const scrollAnimation = useRef(null);
-
   const {
     lyrics,
     currentIndex: syncedIndex,
@@ -192,6 +192,8 @@ const MusicPlayer = () => {
       setIsPlaying(false);
     }
   }, [playbackState, setIsPlaying]);
+
+  const isRadioStream = currentSong?.isRadio || false;
 
   useEffect(() => {
     const checkFavoriteStatus = async () => {
@@ -378,6 +380,27 @@ const MusicPlayer = () => {
       </SafeAreaView>
     );
   }
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (isRadioStream && localIsPlaying) {
+      Animated.loop(
+        Animated.timing(rotateAnim, {
+          toValue: 1,
+          duration: 15000, // one full rotation in 6 seconds
+          useNativeDriver: true,
+          easing: Easing.linear,
+        })
+      ).start();
+    } else {
+      rotateAnim.stopAnimation(); // stop rotation when not streaming
+      rotateAnim.setValue(0); // reset
+    }
+  }, [isRadioStream, localIsPlaying]);
+  const spin = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "360deg"],
+  });
 
   return (
     <GestureRecognizer
@@ -389,88 +412,91 @@ const MusicPlayer = () => {
       <View style={styles.mainBg}>
         <View style={styles.topContainer}>
           <View style={styles.header}>
-            <Text style={styles.textFont}>Now Playing</Text>
-            {!showLyrics ? (
-              <Pressable
-                onPress={() =>
-                  handleLyrics(
-                    cleanSongName(currentSong.song || currentSong.title)
-                  )
-                }
-                hitSlop={10}
-              >
-                <Animated.View
-                  style={[
-                    styles.Lyrics,
-                    showLyrics && styles.activeLyricsButton,
-                    {
-                      transform: [{ scale: showLyrics ? 1.05 : 1 }],
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.textFontLyric,
-                      showLyrics && styles.activeLyricsText,
-                    ]}
-                  >
-                    {lyricsLoading ? "Fetching.." : "Lyrics"}
-                  </Text>
-                </Animated.View>
-              </Pressable>
-            ) : (
-              <>
+            <Text style={styles.textFont}>
+              {isRadioStream ? "Live Radio" : "Now Playing"}
+            </Text>
+            {!isRadioStream &&
+              (!showLyrics ? (
                 <Pressable
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    handleMore();
-                  }}
+                  onPress={() =>
+                    handleLyrics(
+                      cleanSongName(currentSong.song || currentSong.title)
+                    )
+                  }
                   hitSlop={10}
                 >
-                  <View style={styles.moreSize}>
-                    <EllipsisVerticalIcon color="#fff" />
-                  </View>
+                  <Animated.View
+                    style={[
+                      styles.Lyrics,
+                      showLyrics && styles.activeLyricsButton,
+                      {
+                        transform: [{ scale: showLyrics ? 1.05 : 1 }],
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.textFontLyric,
+                        showLyrics && styles.activeLyricsText,
+                      ]}
+                    >
+                      {lyricsLoading ? "Fetching.." : "Lyrics"}
+                    </Text>
+                  </Animated.View>
                 </Pressable>
+              ) : (
+                <>
+                  <Pressable
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleMore();
+                    }}
+                    hitSlop={10}
+                  >
+                    <View style={styles.moreSize}>
+                      <EllipsisVerticalIcon color="#fff" />
+                    </View>
+                  </Pressable>
 
-                {showMore && (
-                  <View style={styles.moreBg}>
-                    <Pressable
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        setShowMore(false);
-                        showMoreLyrics();
-                      }}
-                    >
-                      <View>
-                        <Text style={styles.moreText}>Select Lyrics</Text>
-                      </View>
-                    </Pressable>
+                  {showMore && (
+                    <View style={styles.moreBg}>
+                      <Pressable
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          setShowMore(false);
+                          showMoreLyrics();
+                        }}
+                      >
+                        <View>
+                          <Text style={styles.moreText}>Select Lyrics</Text>
+                        </View>
+                      </Pressable>
 
-                    <View
-                      style={{
-                        width: 100,
-                        borderWidth: 1,
-                        borderColor: "#ccc",
-                      }}
-                    />
+                      <View
+                        style={{
+                          width: 100,
+                          borderWidth: 1,
+                          borderColor: "#ccc",
+                        }}
+                      />
 
-                    <Pressable
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        setShowLyrics(false);
-                        setShowLyricsData(false);
-                        setShowMore(false);
-                      }}
-                      hitSlop={10}
-                    >
-                      <View>
-                        <Text style={styles.moreText}>Close Lyrics</Text>
-                      </View>
-                    </Pressable>
-                  </View>
-                )}
-              </>
-            )}
+                      <Pressable
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          setShowLyrics(false);
+                          setShowLyricsData(false);
+                          setShowMore(false);
+                        }}
+                        hitSlop={10}
+                      >
+                        <View>
+                          <Text style={styles.moreText}>Close Lyrics</Text>
+                        </View>
+                      </Pressable>
+                    </View>
+                  )}
+                </>
+              ))}
 
             <Pressable onPress={handlePress} hitSlop={10}>
               <Image source={backIcon} style={styles.backBtn} />
@@ -490,9 +516,21 @@ const MusicPlayer = () => {
                         </>
                       ) : (
                         <Animated.View style={{ opacity: fadeAnim }}>
-                          <Image
+                          <Animated.Image
                             source={imageSource(currentSong.image)}
-                            style={styles.musicImg}
+                            style={[
+                              styles.musicImg,
+                              {
+                                borderRadius: isRadioStream ? 200 : 20,
+                                borderWidth: isRadioStream ? 3 : 0,
+                                borderColor: isRadioStream
+                                  ? "#fff"
+                                  : "transparent",
+                                transform: isRadioStream
+                                  ? [{ rotate: spin }]
+                                  : [],
+                              },
+                            ]}
                           />
                         </Animated.View>
                       )}
@@ -623,14 +661,19 @@ const MusicPlayer = () => {
                   <Text style={styles.musicText} numberOfLines={1}>
                     {cleanSongName(currentSong.song || currentSong.title)}
                   </Text>
-                  <Text style={styles.musicArtist} numberOfLines={1}>
-                    {currentSong.primary_artists ||
-                      currentSong.music ||
-                      currentSong.artists?.primary
-                        ?.map((a) => a.name)
-                        .join(", ") ||
-                      "Unknown Artist"}
-                  </Text>
+                  <View className="flex flex-row gap-2 items-center">
+                    <Text style={styles.musicArtist} numberOfLines={1}>
+                      {currentSong.primary_artists ||
+                        currentSong.music ||
+                        currentSong.artists?.primary
+                          ?.map((a) => a.name)
+                          .join(", ") ||
+                        "Unknown Artist"}
+                    </Text>
+                    {isRadioStream && (
+                      <View style={styles.liveIndicator}></View>
+                    )}
+                  </View>
                 </>
               )}
             </View>
@@ -872,8 +915,8 @@ const styles = StyleSheet.create({
   musicImg: {
     width: width * 0.8,
     height: width * 0.8,
-    borderRadius: 20,
     backgroundColor: "#d7d7d7",
+    objectFit: "cover",
   },
   lyricsContainer: {
     width: width * 0.9,
@@ -1054,5 +1097,27 @@ const styles = StyleSheet.create({
   },
   activeIcon: {
     tintColor: "#fff",
+  },
+  radioInfoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 20,
+    gap: 10,
+  },
+  radioLiveText: {
+    color: "#fff",
+    fontSize: 16,
+    fontFamily: "Nunito-Bold",
+  },
+  liveIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#ff0000",
+    marginTop: 5,
+    animationName: "pulse",
+    animationDuration: "2s",
+    animationIterationCount: "infinite",
   },
 });

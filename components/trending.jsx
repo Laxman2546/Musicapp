@@ -17,13 +17,14 @@ import checkedIcon from "@/assets/images/checked.png";
 import defaultMusicImage from "@/assets/images/musicImage.png";
 import musicPlay from "@/assets/images/playing.gif";
 import he from "he";
+import { getDownloadsDirectory, ensureDirExists } from "@/utils/storage";
 
-const downloadsDir = `${FileSystem.documentDirectory}downloads/`;
-
-const ensureDirExists = async () => {
-  const dir = await FileSystem.getInfoAsync(downloadsDir);
-  if (!dir.exists) {
-    await FileSystem.makeDirectoryAsync(downloadsDir, { intermediates: true });
+const getDownloadsDirAsync = async () => {
+  try {
+    return await getDownloadsDirectory();
+  } catch (error) {
+    console.error("Error getting downloads directory:", error);
+    throw error;
   }
 };
 
@@ -145,10 +146,9 @@ const Trending = ({
   };
 
   const checkIfAlreadyDownloaded = async () => {
-    await ensureDirExists();
-
     try {
-      const files = await FileSystem.readDirectoryAsync(downloadsDir);
+      const dir = await getDownloadsDirAsync();
+      const files = await FileSystem.readDirectoryAsync(dir);
 
       const metadataExists = files.some(
         (file) => file === `${songId}.json` || file.startsWith(`${songId}_`)
@@ -188,14 +188,15 @@ const Trending = ({
         }
       }
 
+      const downloadsPath = await getDownloadsDirAsync();
       const filename = `${songId}.mp3`;
-      const filePath = `${downloadsDir}${filename}`;
+      const filePath = `${downloadsPath}${filename}`;
 
       let localImagePath = null;
       if (image && typeof image === "string" && image.startsWith("http")) {
         const imageExt = image.split(".").pop().split("?")[0] || "jpg";
         const imageFilename = `${songId}_artwork.${imageExt}`;
-        const imageFilePath = `${downloadsDir}${imageFilename}`;
+        const imageFilePath = `${downloadsPath}${imageFilename}`;
 
         try {
           const imageDownload = await FileSystem.downloadAsync(
@@ -241,7 +242,7 @@ const Trending = ({
         downloadedAt: new Date().toISOString(),
       };
 
-      const metaFile = `${downloadsDir}${songId}.json`;
+      const metaFile = `${downloadsPath}${songId}.json`;
       await FileSystem.writeAsStringAsync(metaFile, JSON.stringify(metadata));
 
       setIsDownloaded(true);

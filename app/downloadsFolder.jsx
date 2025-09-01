@@ -15,8 +15,9 @@ import backIcon from "@/assets/images/backImg.png";
 import DownloadComponent from "@/components/downloadComponent";
 import searchImg from "@/assets/images/search.png";
 import closeImg from "@/assets/images/close.png";
+import { getDownloadsDirectory } from "@/utils/storage";
 
-const DOWNLOAD_DIR = FileSystem.documentDirectory + "downloads/";
+const PAGE_SIZE = 20; // Number of songs to load at once
 
 const DownloadsFolder = () => {
   const [songs, setSongs] = useState([]);
@@ -24,6 +25,8 @@ const DownloadsFolder = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadedAll, setLoadedAll] = useState(false);
+  const [page, setPage] = useState(0);
 
   // Clean song name for display
   const cleanSongName = (name) => {
@@ -34,26 +37,53 @@ const DownloadsFolder = () => {
   const loadSongs = async () => {
     setLoading(true);
     try {
-      // Ensure downloads directory exists
-      const dirInfo = await FileSystem.getInfoAsync(DOWNLOAD_DIR);
-      if (!dirInfo.exists) {
-        await FileSystem.makeDirectoryAsync(DOWNLOAD_DIR, {
-          intermediates: true,
-        });
+      // Get the new directory path first
+      const NEW_DOWNLOAD_DIR = await getDownloadsDirectory();
+      const OLD_DOWNLOAD_DIR = FileSystem.documentDirectory + "downloads/";
+
+      // First try to read the new directory
+      let allFiles = [];
+      try {
+        const newFiles = await FileSystem.readDirectoryAsync(NEW_DOWNLOAD_DIR);
+        allFiles = newFiles.map((file) => ({ file, dir: NEW_DOWNLOAD_DIR }));
+      } catch (error) {
+        console.log("New directory not available:", error);
+      }
+
+      // Only check old directory if new directory is empty
+      if (allFiles.length === 0) {
+        try {
+          const oldFiles = await FileSystem.readDirectoryAsync(
+            OLD_DOWNLOAD_DIR
+          );
+          allFiles = oldFiles.map((file) => ({ file, dir: OLD_DOWNLOAD_DIR }));
+        } catch (error) {
+          console.log("Old directory not available:", error);
+        }
+      }
+
+      if (allFiles.length === 0) {
         setSongs([]);
         setFilteredSongs([]);
         setLoading(false);
         return;
       }
 
-      const files = await FileSystem.readDirectoryAsync(DOWNLOAD_DIR);
+      // Create a Map for faster duplicate checking
+      const uniqueFiles = Array.from(
+        new Map(allFiles.map((item) => [item.file, item])).values()
+      );
 
       // Prefer JSON files for metadata reading
-      const jsonFiles = files.filter((file) => file.endsWith(".json"));
+      const jsonFiles = uniqueFiles.filter(({ file }) =>
+        file.endsWith(".json")
+      );
 
       if (jsonFiles.length === 0) {
         // Fallback to MP3 files if no JSON metadata
-        const mp3Files = files.filter((file) => file.endsWith(".mp3"));
+        const mp3Files = uniqueFiles.filter(({ file }) =>
+          file.endsWith(".mp3")
+        );
         if (mp3Files.length === 0) {
           setSongs([]);
           setFilteredSongs([]);
@@ -63,12 +93,12 @@ const DownloadsFolder = () => {
 
         // Create song objects from MP3 files (less metadata)
         const songData = await Promise.all(
-          mp3Files.map(async (fileName) => {
-            const baseName = fileName.replace(".mp3", "");
+          mp3Files.map(async ({ file, dir }) => {
+            const baseName = file.replace(".mp3", "");
             return {
               id: baseName,
               song: cleanSongName(baseName),
-              filePath: `${DOWNLOAD_DIR}${fileName}`,
+              filePath: dir + file,
               image: null,
               primary_artists: "Unknown Artist",
               duration: 0,
@@ -85,28 +115,80 @@ const DownloadsFolder = () => {
 
       // Create song objects with complete metadata from JSON files
       const songData = await Promise.all(
-        jsonFiles.map(async (jsonFile) => {
+        jsonFiles.map(async ({ file, dir }) => {
           try {
-            const jsonPath = `${DOWNLOAD_DIR}${jsonFile}`;
+            const jsonPath = dir + file;
             const jsonContent = await FileSystem.readAsStringAsync(jsonPath);
             const metadata = JSON.parse(jsonContent);
 
-            // Check if the MP3 file exists
-            const mp3Path =
-              metadata.filePath || `${DOWNLOAD_DIR}${metadata.id}.mp3`;
-            const mp3Exists = await FileSystem.getInfoAsync(mp3Path);
+            // First check the path stored in metadata
+            if (metadata.filePath) {
+              try {
+                const exists = await FileSystem.getInfoAsync(metadata.filePath);
+                if (exists.exists) {
+                  return {
+                    id: metadata.id || file.replace(".json", ""),
+                    song:
+                      metadata.song ||
+                      metadata.name ||
+                      cleanSongName(metadata.id),
+                    filePath: metadata.filePath,
+                    image: metadata.image || null,
+                    primary_artists:
+                      metadata.primary_artists ||
+                      metadata.artist ||
+                      metadata.music ||
+                      "Unknown Artist",
+                    duration: metadata.duration || 0,
+                    downloadedAt:
+                      metadata.downloadedAt || new Date().toISOString(),
+                  };
+                }
+              } catch (error) {
+                console.log("Error checking metadata path:", error);
+              }
+            }
 
-            if (!mp3Exists.exists) {
-              console.log(`MP3 file not found for ${jsonFile}`);
+            // If metadata path fails, check the same directory as the JSON
+            const mp3FileName = `${metadata.id}.mp3`;
+            const mp3Path = dir + mp3FileName;
+            const exists = await FileSystem.getInfoAsync(mp3Path);
+
+            if (!mp3Exists || !mp3Path) {
+              console.log(`MP3 file not found for ${file}`);
               return null;
             }
 
+            // If the file was found in the old location, try to migrate it
+            if (mp3Path.startsWith(OLD_DOWNLOAD_DIR)) {
+              try {
+                const newMp3Path = NEW_DOWNLOAD_DIR + mp3FileName;
+                await FileSystem.copyAsync({
+                  from: mp3Path,
+                  to: newMp3Path,
+                });
+                // Also migrate the JSON file if it's in the old location
+                if (jsonPath.startsWith(OLD_DOWNLOAD_DIR)) {
+                  await FileSystem.copyAsync({
+                    from: jsonPath,
+                    to: NEW_DOWNLOAD_DIR + file,
+                  });
+                }
+                mp3Path = newMp3Path;
+              } catch (migrationError) {
+                console.log(
+                  "Migration failed, using original path:",
+                  migrationError
+                );
+              }
+            }
+
             return {
-              id: metadata.id || jsonFile.replace(".json", ""),
+              id: metadata.id || file.replace(".json", ""),
               song:
                 metadata.song ||
                 metadata.name ||
-                cleanSongName(metadata.id || jsonFile.replace(".json", "")),
+                cleanSongName(metadata.id || file.replace(".json", "")),
               filePath: mp3Path,
               image: metadata.image || null,
               primary_artists:
@@ -235,7 +317,7 @@ const DownloadsFolder = () => {
           )}
 
           <FlatList
-            data={filteredSongs}
+            data={filteredSongs.slice(0, (page + 1) * PAGE_SIZE)}
             keyExtractor={(item) => item.id || item.filePath}
             renderItem={({ item, index }) => (
               <DownloadComponent
@@ -250,6 +332,16 @@ const DownloadsFolder = () => {
               />
             )}
             showsVerticalScrollIndicator={false}
+            onEndReached={() => {
+              if (!loadedAll && filteredSongs.length > (page + 1) * PAGE_SIZE) {
+                setPage(page + 1);
+              }
+            }}
+            onEndReachedThreshold={0.5}
+            initialNumToRender={PAGE_SIZE}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            removeClippedSubviews={true}
             ListFooterComponent={
               <View className="w-full items-center mb-[90px]">
                 {searchQuery ? (

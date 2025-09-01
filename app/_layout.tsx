@@ -11,22 +11,7 @@ import * as SplashScreen from "expo-splash-screen";
 
 SplashScreen.preventAutoHideAsync();
 
-
 TrackPlayer.registerPlaybackService(() => require("@/context/service.js"));
-const linking = {
-  prefixes: ["myapp://"],
-  config: {
-    screens: {
-      "(tabs)": "",
-      player: "player",
-      localFiles: "localFiles",
-      downloadsFolder: "downloadsFolder",
-      likedSongs: "likedSongs",
-      premlist: "premlist",
-      "[...unmatched]": "*",
-    },
-  },
-};
 
 export default function RootLayout() {
   useEffect(() => {
@@ -70,36 +55,8 @@ export default function RootLayout() {
   return (
     <PlayerProvider>
       <View style={{ flex: 1 }}>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-          }}
-        >
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="player"
-            options={{
-              headerShown: false,
-              presentation: "card",
-              gestureEnabled: true,
-              gestureDirection: "vertical",
-              animationDuration: 400,
-            }}
-          />
-          <Stack.Screen name="localFiles" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="downloadsFolder"
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen name="likedSongs" options={{ headerShown: false }} />
-          <Stack.Screen name="premlist" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="[...unmatched]"
-            options={{
-              title: "Not Found",
-              headerShown: false,
-            }}
-          />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
         </Stack>
       </View>
     </PlayerProvider>

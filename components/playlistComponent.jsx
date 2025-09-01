@@ -8,7 +8,9 @@ const PlaylistComponent = ({ data }) => {
       <View className="mt-5 mb-[200px]">
         {data.map((items, index) => (
           <View key={index}>
-            <Text style={styles.activeText}>{items.category}</Text>
+            <Text style={styles.activeText} className="text-xl">
+              {items.category}
+            </Text>
             <FlatList
               data={items.playlists || []}
               contentContainerStyle={styles.flatListContent}
@@ -42,7 +44,6 @@ export default PlaylistComponent;
 const styles = StyleSheet.create({
   activeText: {
     fontFamily: "Poppins-SemiBold",
-    fontSize: 16,
   },
   flatListContent: {
     paddingRight: 15,

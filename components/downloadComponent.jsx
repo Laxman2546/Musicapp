@@ -7,9 +7,7 @@ import trash from "@/assets/images/trash.png";
 import * as FileSystem from "expo-file-system";
 import defaultMusicImage from "@/assets/images/musicImage.png";
 import musicPlay from "@/assets/images/playing.gif";
-
-const downloadsDir = `${FileSystem.documentDirectory}downloads/`;
-
+import { getDownloadsDirectory } from "@/utils/storage";
 
 const DownloadComponent = ({
   type,
@@ -34,9 +32,9 @@ const DownloadComponent = ({
     console.log(allSongs);
     const formattedList = allSongs
       .map((item) => ({
-        id: item.id, 
+        id: item.id,
         song: item.song || item.name,
-        name: item.song || item.name, 
+        name: item.song || item.name,
         image:
           Array.isArray(item.image) && item.image[2]?.url
             ? item.image[2].url
@@ -49,7 +47,7 @@ const DownloadComponent = ({
         duration: item.duration,
         primary_artists:
           item.primary_artists ||
-          item.artist || 
+          item.artist ||
           (item.artists?.primary
             ? item.artists.primary.map((a) => a.name)
             : "Unknown"),
@@ -92,6 +90,7 @@ const DownloadComponent = ({
     try {
       // Get the file ID from the song_url path
       const fileId = song_url.split("/").pop().split(".")[0];
+      const downloadsDir = await getDownloadsDirectory();
 
       // Delete the MP3 file
       await FileSystem.deleteAsync(song_url);
