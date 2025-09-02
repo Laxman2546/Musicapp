@@ -30,7 +30,6 @@ const DownloadComponent = ({
   };
 
   const handleSong = () => {
-    console.log(allSongs);
     const formattedList = allSongs
       .map((item) => ({
         id: item.id,
@@ -163,13 +162,12 @@ const DownloadComponent = ({
     <Pressable
       onPress={() => {
         setShowmore(false);
-        gotoPlayer();
       }}
     >
       <View
         className={`w-full flex flex-row gap-6 ${
           currentSong?.song === song ? `bg-gray-300` : `bg-gray-100`
-        } bg-gray-100 rounded-2xl p-3 mb-2`}
+        }  rounded-2xl p-3 mb-2`}
       >
         <View>
           <Image

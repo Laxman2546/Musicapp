@@ -17,29 +17,50 @@ const ITEMS_PER_PAGE = 9; // Show 3 sets of 3 songs initially
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const COLUMN_WIDTH = SCREEN_WIDTH * 0.85; // 85% of screen width for better visibility
 
-const RecentColumn = memo(({ songs, startIndex, onPress }) => {
+const RecentColumn = memo(({ songs, startIndex, onPress, allSongs }) => {
   return (
     <View style={styles.column}>
-      {songs.map((item, idx) => (
-        <TouchableOpacity
-          key={item.id || `song-${startIndex + idx}`}
-          style={styles.songItem}
-          activeOpacity={0.7}
-          onPress={() => onPress(item, startIndex + idx)}
-        >
-          <Trending
-            type="Recent"
-            song={item.song || item.name}
-            image={item.image}
-            music={item.music}
-            duration={item.duration}
-            primary_artists={item.primary_artists}
-            song_url={item.media_url}
-            index={startIndex + idx}
-            allSongs={[]}
-          />
-        </TouchableOpacity>
-      ))}
+      {songs
+        .map((item, idx) => {
+          // Ensure the song has all required properties
+          const songData = {
+            ...item,
+            id: item.id || `recent-${startIndex + idx}`,
+            song: item.song || item.name,
+            media_url:
+              item.media_url ||
+              item.song_url ||
+              (item.downloadUrl && item.downloadUrl[4]?.url),
+            primary_artists: item.primary_artists || item.artist || item.music,
+          };
+
+          if (!songData.media_url) {
+            console.warn(`No media URL found for song: ${songData.song}`);
+            return null;
+          }
+
+          return (
+            <TouchableOpacity
+              key={songData.id}
+              style={styles.songItem}
+              activeOpacity={0.7}
+              onPress={() => onPress(songData, startIndex + idx)}
+            >
+              <Trending
+                type="Recent"
+                song={songData.song}
+                image={item.image}
+                music={item.music}
+                duration={item.duration}
+                primary_artists={songData.primary_artists}
+                song_url={songData.media_url}
+                index={startIndex + idx}
+                allSongs={allSongs || songs}
+              />
+            </TouchableOpacity>
+          );
+        })
+        .filter(Boolean)}
     </View>
   );
 });
@@ -56,15 +77,26 @@ const Recentrelease = () => {
   } = useFetch(() => fetchMusic({ query: "", type: "Recent" }), []);
 
   const handleSongPress = useCallback(
-    (item, index) => {
+    async (item, index) => {
+      if (!music?.songs || music.songs.length === 0) {
+        console.warn("No songs available to play");
+        return;
+      }
+
       const songWithId = {
         ...item,
         id: item.id || `recent-${index}`,
         name: item.song || item.name,
         artist: item.primary_artists,
+        url: item.media_url, // Ensure the URL is included
       };
-      playSong(songWithId, music?.songs || [], index);
-      router.push("/player");
+
+      try {
+        await playSong(songWithId, music.songs, index);
+        router.push("/player");
+      } catch (error) {
+        console.error("Error playing song:", error);
+      }
     },
     [music?.songs, playSong]
   );
@@ -93,9 +125,10 @@ const Recentrelease = () => {
         songs={songs}
         startIndex={columnIndex * 3}
         onPress={handleSongPress}
+        allSongs={music?.songs || []}
       />
     ),
-    [handleSongPress]
+    [handleSongPress, music?.songs]
   );
 
   if (loading && page === 0) {

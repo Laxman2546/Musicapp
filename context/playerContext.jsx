@@ -19,6 +19,18 @@ import TrackPlayer, {
 import he from "he";
 const PlayerContext = createContext();
 
+// Navigation lock to prevent multiple rapid navigations
+let isNavigating = false;
+const navigateToPlayer = () => {
+  if (isNavigating) return;
+  isNavigating = true;
+  router.push("/player");
+  // Reset the lock after a short delay
+  setTimeout(() => {
+    isNavigating = false;
+  }, 1000); // 1 second cooldown
+};
+
 // Generate a unique ID for each song
 const generateUniqueId = (song, artists, duration) => {
   const artistStr =
@@ -222,7 +234,7 @@ export const PlayerProvider = ({ children }) => {
           currentSong.id === song.id
         ) {
           setLoading(false); // Clear loading since we're not actually loading
-          router.push("/player");
+          navigateToPlayer();
           return;
         }
         if (
@@ -233,7 +245,7 @@ export const PlayerProvider = ({ children }) => {
           currentSong.artist === (song.primary_artists || song.artist)
         ) {
           setLoading(false); // Clear loading since we're not actually loading
-          router.push("/player");
+          navigateToPlayer();
           return;
         }
 
@@ -515,6 +527,7 @@ export const PlayerProvider = ({ children }) => {
       position,
       isSameSong,
       generateUniqueId,
+      navigateToPlayer,
     }),
     [
       playlist,
@@ -536,6 +549,7 @@ export const PlayerProvider = ({ children }) => {
       position,
       isSameSong,
       generateUniqueId,
+      navigateToPlayer,
     ]
   );
 

@@ -56,8 +56,14 @@ const Trending = ({
   isdownloadedSongs,
   id,
 }) => {
-  const { playSong, currentSong, isPlaying, isSameSong, generateUniqueId } =
-    usePlayer();
+  const {
+    playSong,
+    currentSong,
+    isPlaying,
+    isSameSong,
+    generateUniqueId,
+    navigateToPlayer,
+  } = usePlayer();
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [isDownloaded, setIsDownloaded] = useState(false);
@@ -141,7 +147,7 @@ const Trending = ({
     };
 
     playSong(songWithId, allSongs, index);
-    router.push("/player");
+    navigateToPlayer();
   };
 
   const checkIfAlreadyDownloaded = async () => {
@@ -168,7 +174,7 @@ const Trending = ({
   const handleDownload = async () => {
     if (isDownloaded || !song_url) return;
     if (isDownloading) {
-      Alert.alert("Please wait", "One song is already downloading...");
+      Alert.alert("Please wait", "song is already in download state");
       return;
     }
 
