@@ -1,50 +1,73 @@
-# Welcome to your Expo app 👋
+🎵 React Native Music App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A modern and lightweight Music Streaming App built using React Native.
+This application fetches song, playlist, and album data from the JioSaavn Unofficial API and provides a clean music-player experience.
 
-## Get started
+✨ Features
 
-1. Install dependencies
+🎧 Music Streaming & Playback Controls
 
-   ```bash
-   npm install
-   ```
+🔍 Search Songs, Albums, Artists, and Playlists
 
-2. Start the app
+🖼 Display Album & Playlist Artwork
 
-   ```bash
-    npx expo start
-   ```
+⏯ Play / Pause / Next / Previous Controls
 
-In the output, you'll find options to open the app in a
+📍 Seekbar / Track progress indicator
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+🔁 Shuffle & Loop modes
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+🔊 Volume & playback speed control (optional)
 
-## Get a fresh project
+📱 Fully responsive UI for Android
 
-When you're ready, run:
+🗂 Local storage support for favourites (AsyncStorage)
 
-```bash
-npm run reset-project
-```
+⚙ Built with modern React Native architecture
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+🛠 Tech Stack
+Technology	Usage
+React Native	App development
+TypeScript / JavaScript	Core language
+react-native-track-player	Audio playback
+React Navigation	Screen routing
+Axios / Fetch API	API requests
+Tailwind / Nativewind / StyleSheet	UI styling
+AsyncStorage	Save local favourites
+📦 Installation
+git clone https://github.com/Laxman2546/Musicapp
+npm install
+npx pod-install ios
+npx react-native run-android
 
-## Learn more
 
-To learn more about developing your project with Expo, look at the following resources:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+🎯 Learning Objectives
 
-## Join the community
+Handling streaming APIs in React Native
 
-Join our community of developers creating universal apps.
+Building custom audio players
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Managing global playback context
+
+Using external public APIs with error handling
+
+UI layout for music apps
+
+⚠️ Disclaimer
+
+This project uses the JioSaavn Unofficial API purely for educational and personal learning purposes.
+All songs, album covers, audio clips, and trademarks belong to their respective owners.
+This project is not affiliated with or endorsed by JioSaavn.
+No copyrighted material is stored, distributed, or used commercially.
+If you are a content owner and want any resource removed, please contact me — and it will be removed immediately.
+
+📬 Contact
+
+👤 Ella Lakshman
+📧 Email: laxmannani960@gmail.com 
+🔗 LinkedIn: https://www.linkedin.com/in/lakshman-25l46/
+
+⭐ Support
+
+If you like this project, don’t forget to star ⭐ the repo and share feedback!
