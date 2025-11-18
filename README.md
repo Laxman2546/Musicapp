@@ -1,62 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>React Native Music App README</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Apply Inter font */
+        body {
+            font-family: "Inter", sans-serif;
+        }
+        /* Custom styles for GitHub-like table */
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        th, td {
+            border: 1px solid #d0d7de;
+            padding: 0.75rem 1rem;
+            text-align: left;
+        }
+        th {
+            background-color: #f6f8fa;
+            font-weight: 600;
+        }
+        tr:nth-child(even) {
+            background-color: #f6f8fa;
+        }
+        /* Custom styles for code block */
+        pre {
+            background-color: #161b22;
+            color: #e6edf3;
+            padding: 1rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: "Courier New", Courier, monospace;
+        }
+        code .comment {
+            color: #8b949e;
+        }
+        code .command {
+            color: #c9d1d9;
+        }
+        /* Custom style for blockquote */
+        blockquote {
+            border-left: 4px solid #d0d7de;
+            padding-left: 1rem;
+            color: #57606a;
+            margin-left: 0;
+            margin-right: 0;
+        }
+    </style>
+    <!-- Load Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen py-8 md:py-12">
 
-<h1>🎵 <strong>React Native Music App</strong></h1>
+    <!-- Main Content Container -->
+    <main class="max-w-4xl mx-auto bg-white border border-gray-300 rounded-lg shadow-sm p-6 md:p-10">
+        
+        <!-- Header -->
+        <h1 class="text-3xl md:text-4xl font-bold border-b border-gray-200 pb-4 mb-6">
+            🎵 React Native Music App
+        </h1>
+        
+        <p class="text-lg text-gray-700 mb-6">
+            A modern, elegant, and lightweight Music Streaming Application built using React Native.
+        </p>
+        
+        <p class="text-base text-gray-700 mb-8">
+            The app fetches real-time music data such as songs, playlists, albums, and artists using the JioSaavn Unofficial API, delivering a smooth and intuitive listening experience.
+        </p>
 
-<p>
-A modern, elegant, and lightweight <strong>Music Streaming Application</strong> built using <strong>React Native</strong>.
-The app fetches real-time music data such as songs, playlists, albums, and artists using the 
-<strong>JioSaavn Unofficial API</strong>, delivering a smooth and intuitive listening experience.
-</p>
+        <!-- Features Section -->
+        <h2 class="text-2xl md:text-3xl font-semibold border-b border-gray-200 pb-3 mb-5">
+            ✨ Features
+        </h2>
+        <ul class="list-none space-y-3 mb-8">
+            <li class="flex items-center text-gray-800">
+                <span class="mr-3 text-xl">🎧</span> Music streaming with seamless playback
+            </li>
+            <li class="flex items-center text-gray-800">
+                <span class="mr-3 text-xl">⏯</span> Play / Pause / Next / Previous controls
+            </li>
+            <li class="flex items-center text-gray-800">
+                <span class="mr-3 text-xl">📍</span> Interactive seekbar & live track progress
+            </li>
+            <li class="flex items-center text-gray-800">
+                <span class="mr-3 text-xl">🔍</span> Search for Songs, Albums, Artists & Playlists
+            </li>
+            <li class="flex items-center text-gray-800">
+                <span class="mr-3 text-xl">🖼</span> Display album and playlist artwork
+            </li>
+            <li class="flex items-center text-gray-800">
+                <span class="mr-3 text-xl">🔁</span> Shuffle & Loop modes
+            </li>
+            <li class="flex items-center text-gray-800">
+                <span class="mr-3 text-xl">🔊</span> Volume control & playback speed (optional)
+            </li>
+            <li class="flex items-center text-gray-800">
+                <span class="mr-3 text-xl">❤️</span> Local Favourites with AsyncStorage
+            </li>
+            <li class="flex items-center text-gray-800">
+                <span class="mr-3 text-xl">📱</span> Fully responsive UI optimized for Android
+            </li>
+            <li class="flex items-center text-gray-800">
+                <span class="mr-3 text-xl">⚙</span> Built with scalable React Native architecture
+            </li>
+        </ul>
 
-<hr />
+        <!-- Tech Stack Section -->
+        <h2 class="text-2xl md:text-3xl font-semibold border-b border-gray-200 pb-3 mb-5">
+            🛠 Tech Stack
+        </h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Technology</th>
+                    <th>Purpose</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>React Native</strong></td>
+                    <td>Core app framework</td>
+                </tr>
+                <tr>
+                    <td><strong>TypeScript / JavaScript</strong></td>
+                    <td>Strong typing & development</td>
+                </tr>
+                <tr>
+                    <td><strong>react-native-track-player</strong></td>
+                    <td>Audio streaming & background playback</td>
+                </tr>
+                <tr>
+                    <td><strong>React Navigation</strong></td>
+                    <td>Navigation & routing</td>
+                </tr>
+                <tr>
+                    <td><strong>Axios / Fetch API</strong></td>
+                    <td>API handling</td>
+                </tr>
+                <tr>
+                    <td><strong>Tailwind / NativeWind / StyleSheet</strong></td>
+                    <td>UI styling</td>
+                </tr>
+                <tr>
+                    <td><strong>AsyncStorage</strong></td>
+                    <td>Local storage for favourites</td>
+                </tr>
+            </tbody>
+        </table>
 
-<h2>✨ Features</h2>
-<ul>
-  <li>🎧 Music streaming with seamless playback</li>
-  <li>⏯ Play / Pause / Next / Previous controls</li>
-  <li>📍 Interactive seekbar & live track progress</li>
-  <li>🔍 Search Songs, Albums, Artists & Playlists</li>
-  <li>🖼 Display album and playlist artwork</li>
-  <li>🔁 Shuffle & Loop modes</li>
-  <li>🔊 Volume & playback speed control (optional)</li>
-  <li>❤️ Local Favourites using AsyncStorage</li>
-  <li>📱 Fully responsive UI (Android supported)</li>
-  <li>⚙ Built with scalable React Native architecture</li>
-</ul>
+        <!-- Installation Section -->
+        <h2 class="text-2xl md:text-3xl font-semibold border-b border-gray-200 pb-3 mb-5">
+            📦 Installation & Setup
+        </h2>
+        <pre><code><span class="comment"># 1. Clone the repository</span>
+<span class="command">git clone https://github.com/Laxman2546/Musicapp</span>
 
-<hr />
+<span class="comment"># 2. Navigate to the project directory</span>
+<span class="command">cd Musicapp</span>
 
-<h2>🛠 Tech Stack</h2>
-<table>
-<tr><th>Technology</th><th>Purpose</th></tr>
-<tr><td>React Native</td><td>Core app framework</td></tr>
-<tr><td>TypeScript / JavaScript</td><td>Strong typing & development</td></tr>
-<tr><td>react-native-track-player</td><td>Audio streaming & background playback</td></tr>
-<tr><td>React Navigation</td><td>Navigation & routing</td></tr>
-<tr><td>Axios / Fetch API</td><td>API handling</td></tr>
-<tr><td>Tailwind / NativeWind / StyleSheet</td><td>UI styling</td></tr>
-<tr><td>AsyncStorage</td><td>Local storage for favourites</td></tr>
-</table>
+<span class="comment"># 3. Install dependencies</span>
+<span class="command">npm install</span>
 
-<hr />
+<span class="comment"># 4. Install iOS pods (if you are working on iOS)</span>
+<span class="command">npx pod-install ios</span>
 
-<h2>📦 Installation & Setup</h2>
+<span class="comment"># 5. Run the app (Android)</span>
+<span class="command">npx react-native run-android</span>
 
-```bash
-<!-- Clone the repository -->
-git clone https://github.com/Laxman2546/Musicapp
+<span class="comment"># 6. Run the app (iOS)</span>
+<span class="comment"># npx react-native run-ios</span>
+</code></pre>
 
-<!-- Navigate into the project -->
-cd Musicapp
+        <!-- What I Learned Section -->
+        <h2 class="text-2xl md:text-3xl font-semibold border-b border-gray-200 pb-3 mb-5 mt-8">
+            🎯 What I Learned
+        </h2>
+        <ul class="list-disc list-inside space-y-2 mb-8 text-gray-800">
+            <li>Working with external streaming APIs in React Native</li>
+            <li>Building a custom audio player with advanced controls</li>
+            <li>Managing global playback state using Context</li>
+            <li>Handling API data efficiently with Axios</li>
+            <li>Designing optimized UI/UX for mobile applications</li>
+        </ul>
 
-<!-- Install dependencies -->
-npm install
+        <!-- Disclaimer Section -->
+        <h2 class="text-2xl md:text-3xl font-semibold border-b border-gray-200 pb-3 mb-5">
+            ⚠️ Disclaimer
+        </h2>
+        <blockquote class="mb-8 p-4 bg-gray-50 rounded-lg">
+            <p class="italic">This project uses the JioSaavn Unofficial API solely for educational and personal learning purposes.</p>
+            <p class="italic mt-2">All music, lyrics, album artwork, and trademarks belong to their respective copyright owners.</p>
+            <p class="italic mt-2">This project is not affiliated with or endorsed by JioSaavn in any way.</p>
+            <p class="italic mt-2">No copyrighted content is stored or used for commercial purposes.</p>
+            <p class="italic mt-2">If you own any rights to content displayed and would like it removed, please contact me and updates will be made immediately.</p>
+        </blockquote>
 
-<!-- (iOS only) install pods -->
-npx pod-install ios
+        <!-- Contact Section -->
+        <h2 class="text-2xl md:text-3xl font-semibold border-b border-gray-200 pb-3 mb-5">
+            📬 Contact
+        </h2>
+        <p class="text-lg text-gray-800 mb-2">
+            👤 <strong>Ella Lakshman</strong>
+        </p>
+        <ul class="list-none space-y-2 mb-8">
+            <li class="text-gray-800">
+                📧 <strong>Email</strong>: <a href="mailto:laxmannani960@gmail.com" class="text-blue-600 hover:underline">laxmannani960@gmail.com</a>
+            </li>
+            <li class="text-gray-800">
+                🔗 <strong>LinkedIn</strong>: <a href="https://www.linkedin.com/in/lakshman-25l46/" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">https://www.linkedin.com/in/lakshman-25l46/</a>
+            </li>
+        </ul>
 
-<!-- Run the app on Android -->
-npx react-native run-android
+        <!-- Support Section -->
+        <h2 class="text-2xl md:text-3xl font-semibold border-b border-gray-200 pb-3 mb-5">
+            ⭐ Support
+        </h2>
+        <p class="text-base text-gray-700 mb-2">
+            If you like this project, please consider giving it a star ⭐ on GitHub.
+        </p>
+        <p class="text-base text-gray-700">
+            Your support motivates further development! 🚀
+        p>
 
-<!-- Or run on iOS -->
-npx react-native run-ios
-<hr /> <h2>🎯 Learning Objectives</h2> <ul> <li>Handling streaming APIs in React Native</li> <li>Building custom audio players with advanced controls</li> <li>Managing global playback context</li> <li>Using external APIs with efficient data handling</li> <li>Designing an optimized UI/UX for mobile apps</li> </ul> <hr /> <h2>⚠️ Disclaimer</h2> <p> This project uses the <strong>JioSaavn Unofficial API</strong> solely for <strong>educational and personal learning</strong> purposes. All music, album artwork, audio clips, and trademarks belong to their respective owners.<br /> This project is <strong>not affiliated with or endorsed by JioSaavn</strong> in any way.<br /> No copyrighted content is stored, redistributed, or used commercially.<br /><br /> If you are a content owner and want any resource removed, please contact me and it will be updated immediately. </p> <hr /> <h2>📬 Contact</h2> <p> 👤 <strong>Ella Lakshman</strong><br /> 📧 Email: <a href="mailto:laxmannani960@gmail.com">laxmannani960@gmail.com</a><br /> 🔗 LinkedIn: <a href="https://www.linkedin.com/in/lakshman-25l46/" target="_blank">https://www.linkedin.com/in/lakshman-25l46/</a> </p> <hr /> <h2>⭐ Support</h2> <p>If you like this project, please consider giving it a <strong>star ⭐</strong> on GitHub. Your support motivates further development! 🚀</p> ```
+    </main>
+
+</body>
+</html>
