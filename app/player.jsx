@@ -64,7 +64,6 @@ const MusicPlayer = () => {
     seekTo,
     formatTime,
     togglePlayPause,
-    // Add this to track if current song is radio
   } = usePlayer();
 
   const [favouriteClick, setfavouriteClick] = useState(false);
@@ -511,7 +510,6 @@ const MusicPlayer = () => {
                     <>
                       {musicLaoding ? (
                         <>
-                          <FloatingParticles count={4} />
                           <MusicImageSkeleton />
                         </>
                       ) : (

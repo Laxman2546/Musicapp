@@ -1,11 +1,7 @@
-import { Image, Text, View, StyleSheet, TouchableOpacity } from "react-native";
+import { Image, Text, View, StyleSheet, Pressable } from "react-native";
 import React, { useEffect, useState } from "react";
 import { Tabs, useNavigation, usePathname, useRouter } from "expo-router";
 import { useFonts } from "expo-font";
-import home from "@/assets/images/home.png";
-import search from "@/assets/images/search.png";
-import playlistIcon from "@/assets/images/playlist.png";
-import downloads from "@/assets/images/user.png";
 import playSong from "@/assets/images/playIcon.png";
 import pauseSong from "@/assets/images/pauseIcon.png";
 import playnextSong from "@/assets/images/nextIcon.png";
@@ -13,6 +9,10 @@ import playpreviousSong from "@/assets/images/previousIcon.png";
 import { usePlayer } from "@/context/playerContext";
 import WelcomeComponent from "@/components/welcomeComponent";
 import musicPlay from "@/assets/images/playing.gif";
+import { StatusBar } from "expo-status-bar";
+import Octicons from "@expo/vector-icons/Octicons";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import defaultMusicImage from "@/assets/images/musicImage.png";
 import "@/global.css";
 import he from "he";
@@ -34,6 +34,7 @@ const RootLayout = () => {
     "Poppins-Regular": require("@/assets/fonts/Poppins-Regular.ttf"),
     "Poppins-SemiBold": require("@/assets/fonts/Poppins-SemiBold.ttf"),
     "Audiowide-Regular": require("@/assets/fonts/Audiowide-Regular.ttf"),
+    Octicons: require("@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Octicons.ttf"),
   });
   const cleanSongName = (name) => {
     if (!name) return "Unknown";
@@ -87,16 +88,6 @@ const RootLayout = () => {
     togglePlayPause();
   };
 
-  const TabIcon = ({ icon, color }) => (
-    <View style={{ alignItems: "center", justifyContent: "center", width: 50 }}>
-      <Image
-        source={icon}
-        resizeMode="contain"
-        style={{ tintColor: color, width: 25, height: 25 }}
-      />
-    </View>
-  );
-
   if (!fontsLoaded) {
     return (
       <View style={styles.loadingContainer}>
@@ -112,25 +103,48 @@ const RootLayout = () => {
       ) : (
       )} */}
       <View style={{ flex: 1 }}>
+        <StatusBar backgroundColor="#000" style="light" />
         <Tabs
           initialRouteName="index"
           screenOptions={{
             headerShown: false,
             tabBarShowLabel: false,
-            tabBarActiveTintColor: "#000",
+            tabBarActiveTintColor: "#333",
             tabBarHideOnKeyboard: true,
             tabBarStyle: {
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
               backgroundColor: "#fff",
               borderTopWidth: 1,
-              borderTopLeftRadius: 28,
-              borderTopRightRadius: 28,
-              height: 60,
-              paddingBottom: 5,
+              paddingLeft: 45,
+              borderTopLeftRadius: 15,
+              borderTopRightRadius: 15,
+              width: "100%",
+              height: 70,
               borderColor: "transparent",
               shadowColor: "#000",
               shadowOpacity: 0.1,
               shadowOffset: { width: 0, height: -2 },
               shadowRadius: 5,
+            },
+            tabBarButton: (props) => {
+              return (
+                <Pressable
+                  {...props}
+                  android_ripple={{ color: "transparent" }}
+                  android_disableSound={false}
+                  style={(state) => [
+                    props.style,
+                    {
+                      backgroundColor: state.pressed
+                        ? "transparent"
+                        : "transparent",
+                    },
+                  ]}
+                />
+              );
             },
           }}
         >
@@ -139,7 +153,11 @@ const RootLayout = () => {
             options={{
               title: "Home",
               tabBarIcon: ({ color, focused }) => (
-                <TabIcon icon={home} color={color} />
+                <MaterialCommunityIcons
+                  name={focused ? "home-variant" : "home-variant-outline"}
+                  size={27}
+                  color={color}
+                />
               ),
             }}
           />
@@ -148,7 +166,11 @@ const RootLayout = () => {
             options={{
               title: "Search",
               tabBarIcon: ({ color, focused }) => (
-                <TabIcon icon={search} color={color} />
+                <Ionicons
+                  name={focused ? "search-sharp" : "search-outline"}
+                  size={27}
+                  color={color}
+                />
               ),
             }}
           />
@@ -157,7 +179,11 @@ const RootLayout = () => {
             options={{
               title: "Playlists",
               tabBarIcon: ({ color, focused }) => (
-                <TabIcon icon={playlistIcon} color={color} />
+                <Ionicons
+                  name={focused ? "heart" : "heart-outline"}
+                  size={27}
+                  color={color}
+                />
               ),
             }}
           />
@@ -166,7 +192,7 @@ const RootLayout = () => {
             options={{
               title: "Downloads",
               tabBarIcon: ({ color, focused }) => (
-                <TabIcon icon={downloads} color={color} />
+                <Octicons name="download" size={27} color={color} />
               ),
             }}
           />
@@ -174,7 +200,7 @@ const RootLayout = () => {
 
         {!isPlayerScreen && currentSong && (
           <View style={styles.miniPlayerContainer}>
-            <TouchableOpacity
+            <Pressable
               onPress={navigatePlayer}
               style={styles.songInfo}
               hitSlop={10}
@@ -199,21 +225,21 @@ const RootLayout = () => {
                     currentSong.artists.primary.map((a) => a.name)}
                 </Text>
               </View>
-            </TouchableOpacity>
+            </Pressable>
 
             <View style={styles.controlsContainer}>
-              <TouchableOpacity onPress={playPrevious} hitSlop={10}>
+              <Pressable onPress={playPrevious} hitSlop={10}>
                 <Image source={playpreviousSong} style={styles.controlIcon} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handlePlayPause} hitSlop={10}>
+              </Pressable>
+              <Pressable onPress={handlePlayPause} hitSlop={10}>
                 <Image
                   source={isPlaying ? pauseSong : playSong}
                   style={styles.controlIcon}
                 />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={playNext} hitSlop={10}>
+              </Pressable>
+              <Pressable onPress={playNext} hitSlop={10}>
                 <Image source={playnextSong} style={styles.controlIcon} />
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
         )}

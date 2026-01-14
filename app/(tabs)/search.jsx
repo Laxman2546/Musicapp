@@ -16,74 +16,41 @@ import { fetchMusic } from "@/services/api";
 import useFetch from "@/services/useFetch";
 import Trending from "@/components/trending";
 
-const generateUniqueId = (song, artists, duration) => {
-  const artistString = Array.isArray(artists)
-    ? artists.join("_")
-    : typeof artists === "string"
-    ? artists
-    : "unknown";
 
-  return `${song
-    .replace(/[^a-z0-9\-_ ]/gi, "")
-    .replace(/\s+/g, "_")}_${artistString
-    .replace(/[^a-z0-9\-_ ]/gi, "")
-    .replace(/\s+/g, "_")}_${duration}`;
-};
 
 const Search = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [debounceTimeout, setDebounceTimeout] = useState(null);
 
   const {
     data: searchResults,
     loading,
     error,
-    refetch,
     reset,
-  } = useFetch(() => fetchMusic({ query: debouncedQuery }), [debouncedQuery]);
+  } = useFetch(
+    () => (debouncedQuery ? fetchMusic({ query: debouncedQuery }) : Promise.resolve([])),
+    [debouncedQuery]
+  );
 
-  const handleClearSearch = () => {
-    setSearchQuery("");
-    setDebouncedQuery("");
-    if (debounceTimeout) {
-      clearTimeout(debounceTimeout);
-    }
-    reset();
-  };
-
-  const handleSearchQuery = (searchQuery) => {
-    // Clear any existing timeout
-    if (debounceTimeout) {
-      clearTimeout(debounceTimeout);
-    }
-
-    if (!searchQuery) {
+  useEffect(() => {
+    if (searchQuery === "") {
       setDebouncedQuery("");
       reset();
       return;
     }
 
-    // Set a new timeout
-    const timeout = setTimeout(() => {
+    const handler = setTimeout(() => {
       setDebouncedQuery(searchQuery);
-    }, 500); // 500ms debounce time
-
-    // Save the timeout ID so we can clear it if needed
-    setDebounceTimeout(timeout);
-  };
-
-  // Clean up timeout on component unmount
-  useEffect(() => {
+    }, 500); 
     return () => {
-      if (debounceTimeout) {
-        clearTimeout(debounceTimeout);
-      }
+      clearTimeout(handler);
     };
-  }, [debounceTimeout]);
+  }, [searchQuery, reset]);
 
-  console.log("Search results:", searchResults);
-
+  const handleClearSearch = () => {
+    setSearchQuery("");
+  };
+  console.log(searchResults);
   return (
     <SafeAreaView>
       <View className="pt-10 pl-5">
@@ -91,7 +58,6 @@ const Search = () => {
         <View className="pr-5 relative">
           <Pressable
             style={styles.searchImg}
-            onPress={() => handleSearchQuery(searchQuery)}
             hitSlop={10}
           >
             <Image source={searchImg} style={styles.img} />
@@ -105,10 +71,7 @@ const Search = () => {
             style={styles.SearchtextFont}
             className="bg-gray-200 w-full mt-3 p-4 pl-10 rounded-md"
             placeholder="Search for a song"
-            onChangeText={(text) => {
-              setSearchQuery(text);
-              handleSearchQuery(text);
-            }}
+            onChangeText={setSearchQuery}
             value={searchQuery}
             enterKeyHint="search"
             returnKeyType="search"
@@ -116,7 +79,7 @@ const Search = () => {
         </View>
         <View className="pr-5 mt-3">
           {searchQuery === "" ? (
-            <Text style={styles.SearchtextFont}>Search for music...</Text>
+            <Text style={styles.SearchtextFont}></Text>
           ) : loading ? (
             <View className="items-center mt-10">
               <Text className="text-black" style={styles.textFont}>
@@ -140,8 +103,6 @@ const Search = () => {
                 className="mb-[500px]"
                 renderItem={({ item, index }) => {
                   if (!searchQuery) return null;
-
-                  // Add null checks for item
                   if (!item) return null;
 
                   return (

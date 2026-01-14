@@ -8,10 +8,9 @@ import {
   TextInput,
   ActivityIndicator,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import * as FileSystem from "expo-file-system";
-import { router } from "expo-router";
-import backIcon from "@/assets/images/backImg.png";
+import { useFocusEffect } from "@react-navigation/native";
 import DownloadComponent from "@/components/downloadComponent";
 import searchImg from "@/assets/images/search.png";
 import closeImg from "@/assets/images/close.png";
@@ -143,13 +142,12 @@ const DownloadsFolder = () => {
     }
   };
 
-  useEffect(() => {
-    loadSongs();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadSongs();
+    }, [])
+  );
 
-  const handleBack = () => {
-    router.back();
-  };
 
   const handleSearch = () => {
     setShowSearch(!showSearch);
@@ -178,16 +176,7 @@ const DownloadsFolder = () => {
   };
 
   return (
-    <View style={{ flex: 1 }} className="p-5">
-      <View className="flex flex-row gap-3 items-center">
-        <Pressable onPress={handleBack}>
-          <View className="p-3 rounded-full bg-[#222]">
-            <Image source={backIcon} style={styles.backImg} />
-          </View>
-        </Pressable>
-        <Text style={styles.textStyle}>Downloads</Text>
-      </View>
-
+    <View style={{ flex: 1 }}>
       {loading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#000" />

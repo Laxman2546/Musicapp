@@ -7,11 +7,9 @@ import {
   FlatList,
   TextInput,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useState, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { goBack } from "expo-router/build/global-state/routing";
-import backIcon from "@/assets/images/backImg.png";
-import { router } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import searchImg from "@/assets/images/search.png";
 import closeImg from "@/assets/images/close.png";
 import LikedSongComponent from "@/components/likedSongComponent";
@@ -25,12 +23,11 @@ const likedSongs = () => {
     const songsList = favoSongs ? JSON.parse(favoSongs) : [];
     setSong(songsList);
   };
-  useEffect(() => {
-    getLikedSongs();
-  }, []);
-  const handleBack = () => {
-    router.push(goBack);
-  };
+  useFocusEffect(
+    useCallback(() => {
+      getLikedSongs();
+    }, [])
+  );
   const handleSearch = () => {
     setShowSearch(!showSearch);
     handleClearSearch();
@@ -55,15 +52,7 @@ const likedSongs = () => {
   };
   return (
     <>
-      <View className="p-5">
-        <View className="flex flex-row gap-3 items-center">
-          <Pressable onPress={handleBack}>
-            <View className="p-3 rounded-full bg-[#222]">
-              <Image source={backIcon} style={styles.backImg} />
-            </View>
-          </Pressable>
-          <Text style={styles.textStyle}>Liked songs</Text>
-        </View>
+      <View>
         {song.length < 1 ? (
           <>
             <View className="w-full h-screen flex items-center justify-center">

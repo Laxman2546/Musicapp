@@ -173,5 +173,4 @@ dependencies {
     } else {
         implementation jscFlavor
     }
-
-} 
+}

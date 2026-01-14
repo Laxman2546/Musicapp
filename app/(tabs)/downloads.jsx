@@ -15,6 +15,8 @@ import saveIcon from "@/assets/images/save.png";
 import { router } from "expo-router";
 import * as Updates from "expo-updates";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { SafeAreaView } from "react-native-safe-area-context";
+import DownloadsFolder from "../downloadsFolder";
 
 const downloads = () => {
   const [username, setUsername] = useState("user");
@@ -22,9 +24,9 @@ const downloads = () => {
   const [checking, setChecking] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
 
-  useEffect(() => {
-    checkForUpdates();
-  }, []);
+  // useEffect(() => {
+  //   checkForUpdates();
+  // }, []);
 
   const handleClick = () => {
     setIsClicked(!isClicked);
@@ -122,81 +124,14 @@ const downloads = () => {
     getName();
   }, []);
   return (
-    <View className="w-full flex flex-col p-5">
-      <Text style={styles.text}>Profile</Text>
-      <View className="w-full flex items-center mt-5 gap-4">
-        <View>
-          <Image source={userIcon} style={styles.userImg} />
+    <SafeAreaView>
+      <View className="w-full flex flex-col p-5">
+        <Text style={styles.text}>Downloads</Text>
+        <View className="w-full h-screen">
+          <DownloadsFolder />
         </View>
-        <View className="w-full flex flex-row items-center justify-center gap-2">
-          <Text style={styles.text} className="mt-4">
-            {username}
-          </Text>
-          <Pressable onPress={handleEdit}>
-            <Image source={editIcon} style={styles.editImg} />
-          </Pressable>
-        </View>
-        {editName && (
-          <View className="w-full flex justify-center items-center relative">
-            <TextInput
-              style={styles.SearchtextFont}
-              className="bg-gray-200 w-full mt-3 p-4 pl-5 rounded-md"
-              placeholder="set your new name"
-              onChangeText={setUsername}
-              value={username}
-            />
-
-            <Pressable className="w-full absolute" onPress={handleSave}>
-              <Image source={saveIcon} style={styles.saveImg} />
-            </Pressable>
-          </View>
-        )}
       </View>
-      <View className="pt-8 flex flex-col gap-3">
-        <Pressable onPress={handleLocal}>
-          <View className="w-full flex flex-row gap-6 p-5 rounded-2xl bg-[#D3D3D3] ">
-            <Image
-              source={fileIcon}
-              style={styles.fileSize}
-              resizeMode="contain"
-            />
-            <Text style={styles.textFont}>Local Songs</Text>
-          </View>
-        </Pressable>
-        <Pressable onPress={handleDownload}>
-          <View className="w-full flex flex-row gap-6  p-5 rounded-2xl bg-[#D3D3D3]">
-            <Image
-              source={fileIcon}
-              style={styles.fileSize}
-              resizeMode="contain"
-            />
-            <Text style={styles.textFont}>Downloaded songs</Text>
-          </View>
-        </Pressable>
-        <Pressable onPress={handleLiked}>
-          <View className="w-full flex flex-row gap-6  p-5 rounded-2xl bg-[#D3D3D3]">
-            <Image
-              source={fileIcon}
-              style={styles.fileSize}
-              resizeMode="contain"
-            />
-            <Text style={styles.textFont}>Liked songs</Text>
-          </View>
-        </Pressable>
-        <Pressable onPress={handleClick}>
-          <View className="w-full flex flex-row gap-6 p-5 rounded-2xl bg-[#D3D3D3]">
-            <Image
-              source={fileIcon}
-              style={styles.fileSize}
-              resizeMode="contain"
-            />
-            <Text style={styles.textFont}>
-              {checking ? "Checking for Updates..." : "Check for Updates"}
-            </Text>
-          </View>
-        </Pressable>
-      </View>
-    </View>
+    </SafeAreaView>
   );
 };
 

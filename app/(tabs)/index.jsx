@@ -15,14 +15,15 @@ import HomeBtns from "../../components/homeBtns";
 import Trending from "../../components/trending";
 import useFetch from "@/services/useFetch";
 import { fetchMusic, getNextPlaylist } from "../../services/api";
-import ChartsComponent from "@/components/chartsComponent";
 import searchImg from "@/assets/images/search.png";
 import closeImg from "@/assets/images/close.png";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Notifications from "expo-notifications";
+import { router } from "expo-router";
 import data from "@/constants/all";
 import PlaylistComponent from "@/components/playlistComponent";
+import Feather from "@expo/vector-icons/Feather";
 import Recentrelease from "@/components/Recentrelease";
 import Radios from "@/components/Radios";
 const Home = () => {
@@ -158,13 +159,21 @@ const Home = () => {
 
   return (
     <SafeAreaView className="bg-slate-50 h-full">
-      <View className="w-full">
-        <View className="w-full flex pt-10 pl-5 gap-1">
-          <Text style={styles.greetingText}>
-            Hello,
-            <Text style={styles.activeText}>{userName || "user"}</Text>
-          </Text>
-          <Text style={styles.greetingName}>{greetings}</Text>
+      <View className="w-full relative">
+        <View className="w-[90%] relative flex flex-row items-center justify-between">
+          <View className="w-full flex pt-10 pl-5 gap-1">
+            <Text style={styles.greetingText}>
+              Hello,
+              <Text style={styles.activeText}>{userName || "user"}</Text>
+            </Text>
+            <Text style={styles.greetingName}>{greetings}</Text>
+          </View>
+          <Pressable
+            onPress={() => router.push("/settings")}
+            className="absolute right-0 bottom-0 p-3 rounded-full bg-gray-300"
+          >
+            <Feather name="settings" size={24} color="black" />
+          </Pressable>
         </View>
         <ScrollView
           horizontal
@@ -225,7 +234,7 @@ const Home = () => {
 
         {active === "All" ? (
           <>
-            <ScrollView
+            {/* <ScrollView
               contentContainerStyle={styles.scrollContainer}
               showsVerticalScrollIndicator={false}
             >
@@ -264,7 +273,7 @@ const Home = () => {
                   )}
                 </View>
               </>
-            </ScrollView>
+            </ScrollView> */}
           </>
         ) : (
           <>
