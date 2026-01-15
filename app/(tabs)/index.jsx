@@ -26,12 +26,18 @@ import PlaylistComponent from "@/components/playlistComponent";
 import Feather from "@expo/vector-icons/Feather";
 import Recentrelease from "@/components/Recentrelease";
 import Radios from "@/components/Radios";
+import { SvgUri } from "react-native-svg";
+import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
 const Home = () => {
   const [active, setActive] = useState("All");
   const [bhakthiActive, setbhakthiActive] = useState("VenkateshwaraSwamy");
   const [greetings, setGreetings] = useState("Good Morning");
   const [userName, setuserName] = useState("user");
   const [filteredSongs, setFilteredSongs] = useState([]);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [endReached, setEndReached] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const {
     data: music,
     loading,
@@ -41,11 +47,6 @@ const Home = () => {
     allSongs,
     categoryIndices,
   } = useFetch(() => fetchMusic({ query: "", active }), [active]);
-
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [endReached, setEndReached] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const date = new Date();
@@ -110,7 +111,11 @@ const Home = () => {
   };
   const getUser = async () => {
     const getuserName = await AsyncStorage.getItem("profileName");
-    setuserName(getuserName);
+    if (getuserName === null || !getuserName || getuserName?.length <= 0) {
+      setuserName("user");
+    } else {
+      setuserName(getuserName);
+    }
   };
   useFocusEffect(
     useCallback(() => {
@@ -156,7 +161,6 @@ const Home = () => {
 
     return () => subscription.remove();
   }, []);
-
   return (
     <SafeAreaView className="bg-slate-50 h-full">
       <View className="w-full relative">
@@ -170,9 +174,15 @@ const Home = () => {
           </View>
           <Pressable
             onPress={() => router.push("/settings")}
-            className="absolute right-0 bottom-0 p-3 rounded-full bg-gray-300"
+            className="absolute right-0 bottom-0 p-1 rounded-full bg-black/80"
           >
-            <Feather name="settings" size={24} color="black" />
+            <SvgUri
+              width="45"
+              height="45"
+              uri={`https://api.dicebear.com/9.x/fun-emoji/svg?seed=${
+                userName != "user" ? userName : "user18"
+              }&radius=50&eyes=closed,closed2,cute,glasses,pissed,plain,shades,wink2,wink&mouth=cute,drip,shout,wideSmile,smileTeeth,smileLol`}
+            />
           </Pressable>
         </View>
         <ScrollView
