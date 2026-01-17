@@ -28,17 +28,13 @@ import Recentrelease from "@/components/Recentrelease";
 import Radios from "@/components/Radios";
 import userIcon from "@/assets/images/user.png";
 import { SvgUri } from "react-native-svg";
-import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
+import { useSettings } from "@/context/SettingsContext";
 const Home = () => {
   const [active, setActive] = useState("All");
   const [bhakthiActive, setbhakthiActive] = useState("VenkateshwaraSwamy");
   const [greetings, setGreetings] = useState("Good Morning");
-  const [userName, setuserName] = useState("user");
-  const [avatarName, setAvatarnName] = useState("user18");
   const [filteredSongs, setFilteredSongs] = useState([]);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [showFallback, setShowfallback] = useState(false);
-
   const [endReached, setEndReached] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -51,7 +47,14 @@ const Home = () => {
     allSongs,
     categoryIndices,
   } = useFetch(() => fetchMusic({ query: "", active }), [active]);
-
+  const {
+    userIcon,
+    isInitials,
+    username,
+    avatarnName,
+    setShowfallback,
+    showFallback,
+  } = useSettings();
   useEffect(() => {
     const date = new Date();
     const hrs = date.getHours();
@@ -70,7 +73,7 @@ const Home = () => {
     try {
       setLoadingMore(true);
       const result = await loadMore(
-        active === "Bhakthi" ? bhakthiActive : active
+        active === "Bhakthi" ? bhakthiActive : active,
       );
 
       if (result.success) {
@@ -109,33 +112,11 @@ const Home = () => {
   const searchResults = (searchQuery) => {
     const songsData = music.songs;
     const filteredResults = songsData.filter((item) =>
-      item.song.toLowerCase().includes(searchQuery.toLowerCase())
+      item.song.toLowerCase().includes(searchQuery.toLowerCase()),
     );
     setFilteredSongs(filteredResults);
   };
-  const getUser = async () => {
-    const getuserName = await AsyncStorage.getItem("profileName");
-    const getAvatarName = await AsyncStorage.getItem("avatar");
-    if (
-      getAvatarName === null ||
-      !getAvatarName ||
-      getAvatarName?.length <= 0
-    ) {
-      setAvatarnName("user18");
-    } else {
-      setAvatarnName(getAvatarName);
-    }
-    if (getuserName === null || !getuserName || getuserName?.length <= 0) {
-      setuserName("user");
-    } else {
-      setuserName(getuserName);
-    }
-  };
-  useFocusEffect(
-    useCallback(() => {
-      getUser();
-    }, [])
-  );
+
   useEffect(() => {
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
@@ -170,7 +151,7 @@ const Home = () => {
           console.error("Error handling notification:", error);
           router.replace("/");
         }
-      }
+      },
     );
 
     return () => subscription.remove();
@@ -182,7 +163,7 @@ const Home = () => {
           <View className="w-full flex pt-10 pl-5 gap-1">
             <Text style={styles.greetingText}>
               Hello,
-              <Text style={styles.activeText}>{userName || "user"}</Text>
+              <Text style={styles.activeText}>{username || "user"}</Text>
             </Text>
             <Text style={styles.greetingName}>{greetings}</Text>
           </View>
@@ -202,7 +183,11 @@ const Home = () => {
               <SvgUri
                 width="40"
                 height="40"
-                uri={`https://api.dicebear.com/9.x/fun-emoji/svg?seed=${avatarName}&radius=50&eyes=closed,closed2,cute,glasses,pissed,plain,shades,wink2,wink&mouth=cute,drip,shout,wideSmile,smileTeeth,smileLol`}
+                uri={
+                  isInitials
+                    ? `https://api.dicebear.com/9.x/initials/svg?seed=${username}&radius=50&backgroundType=solid&chars=1`
+                    : `https://api.dicebear.com/9.x/fun-emoji/svg?seed=${avatarnName}&radius=50&eyes=closed,closed2,cute,glasses,pissed,plain,shades,wink2,wink&mouth=cute,drip,shout,wideSmile,smileTeeth,smileLol`
+                }
                 onError={() => setShowfallback(true)}
               />
             )}

@@ -2,6 +2,7 @@ import { PlayerProvider } from "@/context/playerContext";
 import { Stack } from "expo-router";
 import { useEffect } from "react";
 import { View, AppState, Platform } from "react-native";
+import { SettingsProvider } from "@/context/SettingsContext";
 import * as Linking from "expo-linking";
 import TrackPlayer, {
   Capability,
@@ -79,7 +80,7 @@ export default function RootLayout() {
             // Let user decide when to resume
             await TrackPlayer.play();
           }
-        }
+        },
       );
 
       // Handle playback state changes
@@ -90,7 +91,7 @@ export default function RootLayout() {
           if (event.state === State.Stopped) {
             await clearAllNotifications();
           }
-        }
+        },
       );
 
       // Handle playback errors
@@ -100,7 +101,7 @@ export default function RootLayout() {
           console.error("Playback error:", error);
           await TrackPlayer.stop();
           await clearAllNotifications();
-        }
+        },
       );
 
       return () => {
@@ -142,7 +143,7 @@ export default function RootLayout() {
       // Setup app state listener
       const appStateSubscription = AppState.addEventListener(
         "change",
-        handleAppStateChange
+        handleAppStateChange,
       );
 
       return () => {
@@ -185,11 +186,13 @@ export default function RootLayout() {
 
   return (
     <PlayerProvider>
-      <View style={{ flex: 1 }}>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-        </Stack>
-      </View>
+      <SettingsProvider>
+        <View style={{ flex: 1 }}>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+          </Stack>
+        </View>
+      </SettingsProvider>
     </PlayerProvider>
   );
 }

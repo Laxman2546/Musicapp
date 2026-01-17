@@ -5,44 +5,26 @@ import { router, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SvgUri } from "react-native-svg";
 import { ChevronRight } from "lucide-react-native";
+import { useSettings } from "@/context/SettingsContext";
 import ToggleSwitch from "toggle-switch-react-native";
-import userIcon from "@/assets/images/user.png";
 const Settings = () => {
-  const [username, setuserName] = useState("user");
-  const [avatarnName, setAvatarnName] = useState("user18");
   const [shuffleToggle, setShuffleToggle] = useState(false);
   const [showVolume, setShowvolume] = useState(false);
   const [showLyrics, setshowLyrics] = useState(false);
   const [showRadio, setshowRadio] = useState(false);
   const [showRecently, setshowRecently] = useState(false);
-  const [showFallback, setShowfallback] = useState(false);
   const [redirectDownloads, setRedirectDownloads] = useState(false);
   const handleBack = () => {
     router.back();
   };
-  const getUser = async () => {
-    const getuserName = await AsyncStorage.getItem("profileName");
-    const getAvatarName = await AsyncStorage.getItem("avatar");
-    if (
-      getAvatarName === null ||
-      !getAvatarName ||
-      getAvatarName?.length <= 0
-    ) {
-      setAvatarnName("user18");
-    } else {
-      setAvatarnName(getAvatarName);
-    }
-    if (getuserName === null || !getuserName || getuserName?.length <= 0) {
-      setuserName("user");
-    } else {
-      setuserName(getuserName);
-    }
-  };
-  useFocusEffect(
-    useCallback(() => {
-      getUser();
-    }, [])
-  );
+  const {
+    showFallback,
+    setShowfallback,
+    userIcon,
+    isInitials,
+    username,
+    avatarnName,
+  } = useSettings();
 
   return (
     <View style={{ flex: 1 }} className="p-5 pt-16">
@@ -77,7 +59,11 @@ const Settings = () => {
               <SvgUri
                 width="40"
                 height="40"
-                uri={`https://api.dicebear.com/9.x/fun-emoji/svg?seed=${avatarnName}&radius=50&eyes=closed,closed2,cute,glasses,pissed,plain,shades,wink2,wink&mouth=cute,drip,shout,wideSmile,smileTeeth,smileLol`}
+                uri={
+                  isInitials
+                    ? `https://api.dicebear.com/9.x/initials/svg?seed=${username}&radius=50&backgroundType=solid&chars=1`
+                    : `https://api.dicebear.com/9.x/fun-emoji/svg?seed=${avatarnName}&radius=50&eyes=closed,closed2,cute,glasses,pissed,plain,shades,wink2,wink&mouth=cute,drip,shout,wideSmile,smileTeeth,smileLol`
+                }
                 onError={() => setShowfallback(true)}
               />
             )}

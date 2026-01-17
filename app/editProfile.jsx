@@ -7,6 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Image,
   ActivityIndicator,
 } from "react-native";
 import React, { useCallback, useState } from "react";
@@ -14,20 +15,28 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useFocusEffect } from "expo-router";
 import { SvgUri } from "react-native-svg";
-
+import ToggleSwitch from "toggle-switch-react-native";
+import { useSettings } from "@/context/SettingsContext";
 const EditProfile = () => {
-  const [username, setUsername] = useState("");
   const [editName, setEditName] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [avatarName, setAvatarname] = useState("");
   const [editAvatar, setEditAvatar] = useState("");
-
   const generateRandNum = () => {
     const newAvatar = username + Math.floor(Math.random() * 1000);
-    setAvatarname(newAvatar);
+    setAvatarnName(newAvatar);
   };
-
+  const {
+    setisInitials,
+    isInitials,
+    showFallback,
+    setShowfallback,
+    userIcon,
+    username,
+    setuserName,
+    avatarnName,
+    setAvatarnName,
+  } = useSettings();
   const getUsername = async () => {
     try {
       setIsLoading(true);
@@ -41,15 +50,15 @@ const EditProfile = () => {
         userprofileAvatar && userprofileAvatar.length > 0
           ? userprofileAvatar
           : "user18";
-      setAvatarname(avatar);
+      setAvatarnName(avatar);
       setEditAvatar(avatar);
-      setUsername(name);
+      setuserName(name);
       setEditName(name);
     } catch (error) {
       console.error("Error loading username:", error);
-      setUsername("user");
+      setuserName("user");
       setEditName("user");
-      setAvatarname("user18");
+      setAvatarnName("user18");
       setEditAvatar("user18");
     } finally {
       setIsLoading(false);
@@ -75,7 +84,7 @@ const EditProfile = () => {
   useFocusEffect(
     useCallback(() => {
       getUsername();
-    }, [])
+    }, []),
   );
 
   const handleSave = async () => {
@@ -83,10 +92,10 @@ const EditProfile = () => {
 
     const finalUsername = username.trim() || "user";
     await setName(finalUsername);
-    setUsername(finalUsername);
+    setuserName(finalUsername);
     setEditName(finalUsername);
 
-    const finalAvatar = avatarName.trim() || "user18";
+    const finalAvatar = avatarnName.trim() || "user18";
     await setAvatar(finalAvatar);
     setEditAvatar(finalAvatar);
 
@@ -96,13 +105,13 @@ const EditProfile = () => {
   };
 
   const handleCancel = () => {
-    setUsername(editName);
-    setAvatarname(editAvatar);
+    setuserName(editName);
+    setAvatarnName(editAvatar);
     router.back();
   };
 
   const hasChanges =
-    (username.trim() !== editName || avatarName.trim() !== editAvatar) &&
+    (username.trim() !== editName || avatarnName.trim() !== editAvatar) &&
     username.trim() !== "";
 
   if (isLoading) {
@@ -145,38 +154,52 @@ const EditProfile = () => {
                 style={styles.avatarGradient}
               >
                 <View className="bg-white p-2 rounded-full">
-                  <SvgUri
-                    width="100"
-                    height="100"
-                    uri={`https://api.dicebear.com/9.x/fun-emoji/svg?seed=${avatarName}&radius=50&eyes=closed,closed2,cute,glasses,pissed,plain,shades,wink2,wink&mouth=cute,drip,shout,wideSmile,smileTeeth,smileLol`}
-                  />
+                  {showFallback ? (
+                    <Image
+                      source={userIcon}
+                      style={{ width: 40, height: 40, borderRadius: 50 }}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <SvgUri
+                      width="100"
+                      height="100"
+                      uri={
+                        isInitials
+                          ? `https://api.dicebear.com/9.x/initials/svg?seed=${username}&radius=50&backgroundType=solid&chars=1`
+                          : `https://api.dicebear.com/9.x/fun-emoji/svg?seed=${avatarnName}&radius=50&eyes=closed,closed2,cute,glasses,pissed,plain,shades,wink2,wink&mouth=cute,drip,shout,wideSmile,smileTeeth,smileLol`
+                      }
+                      onError={() => setShowfallback(true)}
+                    />
+                  )}
                 </View>
               </View>
-
+              {!isInitials && (
+                <Pressable
+                  onPress={generateRandNum}
+                  className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full border-4 border-white active:bg-blue-700"
+                  style={styles.editBadge}
+                >
+                  <Ionicons name="camera" size={20} color="white" />
+                </Pressable>
+              )}
+            </View>
+            {!isInitials && (
               <Pressable
                 onPress={generateRandNum}
-                className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full border-4 border-white active:bg-blue-700"
-                style={styles.editBadge}
+                className="mt-6 px-6 py-3 bg-gray-100 rounded-xl active:bg-gray-200"
+                style={styles.changeAvatarButton}
               >
-                <Ionicons name="camera" size={20} color="white" />
+                <View className="flex-row items-center gap-2">
+                  <Ionicons name="shuffle-outline" size={18} color="#374151" />
+                  <Text className="text-gray-800 font-semibold text-base">
+                    Change Avatar
+                  </Text>
+                </View>
               </Pressable>
-            </View>
+            )}
 
-            <Pressable
-              onPress={generateRandNum}
-              className="mt-6 px-6 py-3 bg-gray-100 rounded-xl active:bg-gray-200"
-              style={styles.changeAvatarButton}
-            >
-              <View className="flex-row items-center gap-2">
-                <Ionicons name="shuffle-outline" size={18} color="#374151" />
-                <Text className="text-gray-800 font-semibold text-base">
-                  Change Avatar
-                </Text>
-              </View>
-            </Pressable>
-
-            {/* Avatar change indicator */}
-            {avatarName !== editAvatar && (
+            {avatarnName !== editAvatar && (
               <View className="mt-3 px-4 py-2 bg-blue-50 rounded-lg">
                 <Text className="text-blue-600 text-sm font-medium">
                   Avatar updated! Don't forget to save
@@ -184,19 +207,14 @@ const EditProfile = () => {
               </View>
             )}
           </View>
-
-          {/* Name Input Section */}
-          <View className="w-full mt-12 mb-6">
-            <Text style={styles.labelText} className="mb-2">
-              Display Name
-            </Text>
+          <View className="w-full mt-8">
             <View className="relative">
               <TextInput
                 className="bg-gray-50 w-full p-4 pr-12 rounded-xl border-2 border-gray-200 text-base"
                 style={styles.input}
                 placeholder="Enter your name"
                 placeholderTextColor="#9CA3AF"
-                onChangeText={setUsername}
+                onChangeText={setuserName}
                 value={username}
                 maxLength={30}
                 autoCapitalize="words"
@@ -205,8 +223,8 @@ const EditProfile = () => {
               />
               {username.length > 0 && (
                 <Pressable
-                  onPress={() => setUsername("")}
-                  className="absolute right-4 top-4"
+                  onPress={() => setuserName("")}
+                  className="absolute right-4 top-5"
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                   <Ionicons name="close-circle" size={20} color="#9CA3AF" />
@@ -217,8 +235,23 @@ const EditProfile = () => {
               {username.length}/30 characters
             </Text>
           </View>
+          <View className=" flex flex-row items-center bg-white rounded-xl p-5 shadow-md justify-between mt-2">
+            <View className="flex flex-col gap-1">
+              <Text className="font-medium text-md">
+                Change Avatar to Initials
+              </Text>
+            </View>
+            <View>
+              <ToggleSwitch
+                isOn={isInitials}
+                onColor="blue"
+                offColor="gray"
+                size="small"
+                onToggle={() => setisInitials(!isInitials)}
+              />
+            </View>
+          </View>
 
-          {/* Action Buttons */}
           {hasChanges && (
             <View className="w-full flex-row gap-3 mt-4 mb-6">
               <Pressable
