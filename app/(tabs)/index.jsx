@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import HomeBtns from "../../components/homeBtns";
 import Trending from "../../components/trending";
+import RedirectComponent from "@/components/redirectComponent";
 import useFetch from "@/services/useFetch";
 import { fetchMusic, getNextPlaylist } from "../../services/api";
 import searchImg from "@/assets/images/search.png";
@@ -54,6 +55,9 @@ const Home = () => {
     avatarnName,
     setShowfallback,
     showFallback,
+    showRadio,
+    showRecently,
+    redirectDownloads,
   } = useSettings();
   useEffect(() => {
     const date = new Date();
@@ -158,6 +162,7 @@ const Home = () => {
   }, []);
   return (
     <SafeAreaView className="bg-slate-50 h-full">
+      {redirectDownloads && <RedirectComponent />}
       <View className="w-full relative">
         <View className="w-[90%] relative flex flex-row items-center justify-between">
           <View className="w-full flex pt-10 pl-5 gap-1">
@@ -252,7 +257,7 @@ const Home = () => {
 
         {active === "All" ? (
           <>
-            {/* <ScrollView
+            <ScrollView
               contentContainerStyle={styles.scrollContainer}
               showsVerticalScrollIndicator={false}
             >
@@ -283,15 +288,15 @@ const Home = () => {
                   ) : (
                     <>
                       <View style={styles.section}>
-                        <Recentrelease />
-                        <Radios />
+                        {!showRecently && <Recentrelease />}
+                        {!showRadio && <Radios />}
                         <PlaylistComponent data={data} />
                       </View>
                     </>
                   )}
                 </View>
               </>
-            </ScrollView> */}
+            </ScrollView>
           </>
         ) : (
           <>

@@ -41,8 +41,8 @@ const Settings = () => {
     handleShowVolume,
     shuffleToggle,
     toggleShuffle,
-    showLyrics,
-    handleShowLyrics,
+    showSongLyrics,
+    handleShowSongLyrics,
   } = usePlayer();
 
   return (
@@ -154,11 +154,11 @@ const Settings = () => {
               </View>
               <View>
                 <ToggleSwitch
-                  isOn={showLyrics}
+                  isOn={showSongLyrics}
                   onColor="blue"
                   offColor="gray"
                   size="small"
-                  onToggle={handleShowLyrics}
+                  onToggle={handleShowSongLyrics}
                 />
               </View>
             </View>

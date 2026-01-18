@@ -6,25 +6,28 @@ import {
   Pressable,
   FlatList,
   ActivityIndicator,
-  TextInput,
+  Animated,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useRef } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import useFetch from "@/services/useFetch";
 import { fetchMusic } from "@/services/api";
 import backIcon from "@/assets/images/previous.png";
 import Trending from "@/components/trending";
-import searchImg from "@/assets/images/search.png";
-import closeImg from "@/assets/images/close.png";
+
+const HEADER_MAX_HEIGHT = 300;
+const HEADER_MIN_HEIGHT = 100;
+const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
+
 const Premlist = () => {
   const { premaUrl, listname, designImage } = useLocalSearchParams();
   const { data, loading, error, refetch } = useFetch(
     () => fetchMusic({ premaUrl }),
-    [premaUrl]
+    [premaUrl],
   );
-  const [filteredSongs, setFilteredSongs] = useState([]);
-  const [showSearch, setShowSearch] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+
+  const scrollY = useRef(new Animated.Value(0)).current;
+
   const imageSource = (image) => {
     if (typeof image === "string" && image.startsWith("http")) {
       return { uri: image };
@@ -35,161 +38,143 @@ const Premlist = () => {
   const handleBack = () => {
     router.back();
   };
-  const handleSearch = () => {
-    setShowSearch(!showSearch);
-    handleClearSearch();
-  };
-  const handleSearchQuery = (searchQuery) => {
-    setSearchQuery(searchQuery);
-    if (!searchQuery) {
-      return;
-    }
-    searchResults(searchQuery);
-  };
-  const handleClearSearch = () => {
-    setSearchQuery("");
-    setFilteredSongs([]);
-  };
-  const searchResults = (searchQuery) => {
-    const songsData = data.songs;
-    const filteredResults = songsData.filter((item) =>
-      item.song.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-    setFilteredSongs(filteredResults);
-  };
+
+ 
+  const headerHeight = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: [HEADER_MAX_HEIGHT, HEADER_MIN_HEIGHT],
+    extrapolate: "clamp",
+  });
+
+  const imageOpacity = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE / 2, HEADER_SCROLL_DISTANCE],
+    outputRange: [1, 0.5, 0],
+    extrapolate: "clamp",
+  });
+
+  const imageScale = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: [1, 0.4],
+    extrapolate: "clamp",
+  });
+
+  const titleOpacity = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE / 2, HEADER_SCROLL_DISTANCE],
+    outputRange: [0, 0, 1],
+    extrapolate: "clamp",
+  });
+
+  const titleTranslateY = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: [20, 0],
+    extrapolate: "clamp",
+  });
+
   return (
-    <View>
-      <View className="relative">
-        <Pressable onPress={handleBack} className="z-50">
+    <View style={styles.container}>
+      <Animated.View
+        style={[
+          styles.header,
+          {
+            height: headerHeight,
+          },
+        ]}
+      >
+        <Animated.View
+          style={[
+            styles.imageContainer,
+            {
+              opacity: imageOpacity,
+              transform: [{ scale: imageScale }],
+            },
+          ]}
+        >
           <Image
-            className="absolute left-4 top-6"
-            source={backIcon}
-            style={{ width: 35, height: 35 }}
+            source={imageSource(designImage)}
+            resizeMode="cover"
+            style={styles.designImage}
           />
+          <View style={styles.overlay} />
+        </Animated.View>
+
+        <Pressable onPress={handleBack} style={styles.backButton}>
+          <View style={styles.backButtonCircle}>
+            <Image source={backIcon} style={styles.backIcon} />
+          </View>
         </Pressable>
-        <Image
-          source={imageSource(designImage)}
-          resizeMode="contain"
-          style={styles.designImage}
-        />
-      </View>
 
-      <View className="p-3 ml-4">
-        <View className="w-full flex flex-row items-center justify-between p-4">
-          <View>
-            <Text style={styles.fontStyle}>{listname || "Nanimusic"}</Text>
-          </View>
-          <View>
-            <Pressable onPress={handleSearch}>
-              <Image
-                source={showSearch ? closeImg : searchImg}
-                style={styles.searchIcon}
-              />
-            </Pressable>
-          </View>
-        </View>
+        <Animated.View
+          style={[
+            styles.collapsedTitle,
+            {
+              opacity: titleOpacity,
+              transform: [{ translateY: titleTranslateY }],
+            },
+          ]}
+        >
+          <Text style={styles.collapsedTitleText} numberOfLines={1}>
+            {listname || "Nanimusic"}
+          </Text>
+        </Animated.View>
+      </Animated.View>
 
-        <View>
-          <View className="mb-[2px]">
-            {showSearch && (
-              <View className="w-full p-4">
-                <View className="relative">
-                  <Pressable
-                    style={styles.searchImg}
-                    onPress={() => handleSearchQuery(searchQuery)}
-                  >
-                    <Image source={searchImg} style={styles.img} />
-                  </Pressable>
-                  {searchQuery && (
-                    <Pressable
-                      onPress={handleClearSearch}
-                      style={styles.cancel}
-                    >
-                      <Image source={closeImg} style={styles.cancelImg} />
-                    </Pressable>
-                  )}
-                  <TextInput
-                    style={styles.SearchtextFont}
-                    className="bg-gray-200 w-full p-4 pl-10 rounded-md"
-                    placeholder={`Search songs`}
-                    onChangeText={handleSearchQuery}
-                    value={searchQuery}
-                    enterKeyHint="search"
-                    onSubmitEditing={() => handleSearchQuery(searchQuery)}
-                    returnKeyType="search"
-                  />
-                </View>
-              </View>
-            )}
-          </View>
-        </View>
-        {loading || (!data && !error) ? (
+      {loading || (!data && !error) ? (
+        <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#000" />
-        ) : error ? (
-          <View className="w-full flex flex-col gap-3 items-center justify-center">
-            <Text style={styles.errorText}>
-              Something went wrong :😥 {error.message}
-            </Text>
-            <Pressable onPress={refetch}>
-              <View className=" p-3 pl-5 pr-5 bg-black color-white rounded-xl">
-                <Text style={styles.loadingText} className="color-white">
-                  Retry
-                </Text>
-              </View>
-            </Pressable>
-          </View>
-        ) : (
-          <View className="mb-[1000px]">
-            <FlatList
-              data={
-                searchQuery && filteredSongs
-                  ? filteredSongs
-                  : Array.isArray(data?.songs)
-                  ? data.songs
-                  : []
-              }
-              contentContainerStyle={{ paddingBottom: 80 }}
-              windowSize={5}
-              maxToRenderPerBatch={5}
-              updateCellsBatchingPeriod={50}
-              removeClippedSubviews={true}
-              showsVerticalScrollIndicator={false}
-              renderItem={({ item, index }) => (
-                <Trending
-                  song={item.song}
-                  image={item.image}
-                  music={item.music}
-                  duration={item.duration}
-                  primary_artists={item.primary_artists}
-                  song_url={item.media_url}
-                  index={index}
-                  allSongs={data?.songs || []}
-                />
-              )}
-              ListFooterComponent={
-                <View className="w-full items-center mb-[50px]">
-                  {searchQuery ? (
-                    filteredSongs.length > 0 ? (
-                      <View className="mb-[250px]">
-                        <Text style={styles.fontStyle}>{`Found ${
-                          filteredSongs.length
-                        } song${filteredSongs.length > 1 ? "s" : ""} 😊`}</Text>
-                      </View>
-                    ) : (
-                      <Text style={styles.fontStyle}>No songs found 😥</Text>
-                    )
-                  ) : (
-                    <Text style={styles.fontStyle}>
-                      You have reached the end ✨
-                    </Text>
-                  )}
-                </View>
-              }
-              keyExtractor={(item, index) => `${item.song}-${index}`}
+        </View>
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorEmoji}>😥</Text>
+          <Text style={styles.errorText}>Something went wrong</Text>
+          <Text style={styles.errorMessage}>{error.message}</Text>
+          <Pressable onPress={refetch} style={styles.retryButton}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <Animated.FlatList
+          data={Array.isArray(data?.songs) ? data.songs : []}
+          contentContainerStyle={styles.listContent}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: false },
+          )}
+          scrollEventThrottle={16}
+          windowSize={5}
+          maxToRenderPerBatch={10}
+          updateCellsBatchingPeriod={50}
+          removeClippedSubviews={true}
+          showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
+            <View style={styles.listHeader}>
+              <Text style={styles.playlistTitle}>
+                {listname || "Nanimusic"}
+              </Text>
+              <Text style={styles.songCount}>
+                {data?.songs?.length || 0} songs
+              </Text>
+            </View>
+          }
+          renderItem={({ item, index }) => (
+            <Trending
+              song={item.song}
+              image={item.image}
+              music={item.music}
+              duration={item.duration}
+              primary_artists={item.primary_artists}
+              song_url={item.media_url}
+              index={index}
+              allSongs={data?.songs || []}
             />
-          </View>
-        )}
-      </View>
+          )}
+          ListFooterComponent={
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>You've reached the end ✨</Text>
+            </View>
+          }
+          keyExtractor={(item, index) => `${item.song}-${index}`}
+        />
+      )}
     </View>
   );
 };
@@ -197,60 +182,140 @@ const Premlist = () => {
 export default Premlist;
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    overflow: "hidden",
+    backgroundColor: "#000",
+  },
+  imageContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
   designImage: {
     width: "100%",
-    height: 250,
+    height: "100%",
   },
-  fontStyle: {
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+  },
+  backButton: {
+    position: "absolute",
+    top: 50,
+    left: 20,
+    zIndex: 20,
+  },
+  backButtonCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  backIcon: {
+    width: 24,
+    height: 24,
+  },
+  collapsedTitle: {
+    position: "absolute",
+    bottom: 20,
+    left: 70,
+    right: 20,
+  },
+  collapsedTitleText: {
     fontFamily: "Poppins-SemiBold",
-    fontSize: 16,
+    fontSize: 18,
+    color: "#fff",
   },
-  SearchtextFont: {
-    fontFamily: "Poppins-SemiBold",
-    fontSize: 15,
-    height: 60,
-    paddingRight: 100,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 150,
   },
-  img: {
-    width: 18,
-    height: 18,
-    top: 25,
-    zIndex: 50,
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 40,
+    marginTop: 150,
+  },
+  errorEmoji: {
+    fontSize: 60,
+    marginBottom: 16,
   },
   errorText: {
     fontFamily: "Poppins-SemiBold",
-    fontSize: 16,
-    color: "red",
+    fontSize: 20,
+    color: "#000",
+    marginBottom: 8,
   },
-  loadingText: {
+  errorMessage: {
     fontFamily: "Poppins-Regular",
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: "#000",
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 25,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  retryButtonText: {
+    fontFamily: "Poppins-SemiBold",
     fontSize: 16,
+    color: "#fff",
   },
-  cancel: {
-    position: "absolute",
-    top: 25,
-    right: 0,
-    zIndex: 15,
+  listContent: {
+    paddingTop: HEADER_MAX_HEIGHT + 20,
+    paddingBottom: 100,
   },
-  cancelImg: {
-    width: 20,
-    height: 20,
-    position: "absolute",
-    top: -4,
-    right: 80,
-    zIndex: 15,
+  listHeader: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
-  searchImg: {
-    width: 20,
-    height: 20,
-    zIndex: 50,
-    position: "absolute",
-    right: 35,
-    top: -4,
+  playlistTitle: {
+    fontFamily: "Poppins-SemiBold",
+    fontSize: 28,
+    color: "#000",
+    marginBottom: 4,
   },
-  searchIcon: {
-    width: 20,
-    height: 20,
-    zIndex: 50,
+  songCount: {
+    fontFamily: "Poppins-Regular",
+    fontSize: 14,
+    color: "#666",
+  },
+  footer: {
+    paddingVertical: 40,
+    alignItems: "center",
+  },
+  footerText: {
+    fontFamily: "Poppins-Regular",
+    fontSize: 14,
+    color: "#999",
   },
 });

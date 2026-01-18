@@ -68,7 +68,7 @@ export const PlayerProvider = ({ children }) => {
   const [currentSong, setCurrentSong] = useState(null);
   const [shuffleToggle, setShuffleToggle] = useState(false);
   const [showVolume, setShowvolume] = useState(false);
-  const [showLyrics, setshowLyrics] = useState(false);
+  const [showSongLyrics, setshowSongLyrics] = useState(false);
   const [duration, setDuration] = useState(0);
   const [position, setPosition] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -125,8 +125,8 @@ export const PlayerProvider = ({ children }) => {
         const volume = await AsyncStorage.getItem("showVolume");
         if (volume !== null) setShowvolume(JSON.parse(volume));
 
-        const lyrics = await AsyncStorage.getItem("showLyrics");
-        if (lyrics !== null) setshowLyrics(JSON.parse(lyrics));
+        const lyrics = await AsyncStorage.getItem("showSongLyrics");
+        if (lyrics !== null) setshowSongLyrics(JSON.parse(lyrics));
       } catch (e) {
         console.log("Failed to load settings", e);
       }
@@ -149,9 +149,9 @@ export const PlayerProvider = ({ children }) => {
       console.log(e, "error while saving volume");
     }
   };
-  const updateShowLyrics = async (value) => {
+  const updateShowSongLyrics = async (value) => {
     try {
-      await AsyncStorage.setItem("showLyrics", JSON.stringify(value));
+      await AsyncStorage.setItem("showSongLyrics", JSON.stringify(value));
     } catch (e) {
       console.log(e, "error while saving lyrics");
     }
@@ -165,11 +165,11 @@ export const PlayerProvider = ({ children }) => {
     updateShowVolume(newValue);
   }, [showVolume]);
 
-  const handleShowLyrics = useCallback(() => {
-    const newValue = !showLyrics;
-    setshowLyrics(newValue);
-    updateShowLyrics(newValue);
-  }, [showLyrics]);
+  const handleShowSongLyrics = useCallback(() => {
+    const newValue = !showSongLyrics;
+    setshowSongLyrics(newValue);
+    updateShowSongLyrics(newValue);
+  }, [showSongLyrics]);
   useEffect(() => {
     const updatePlaybackState = async () => {
       try {
@@ -608,9 +608,9 @@ export const PlayerProvider = ({ children }) => {
       setIsPlaying,
       shuffleActive,
       shuffleToggle,
-      handleShowLyrics,
+      handleShowSongLyrics,
       showVolume,
-      showLyrics,
+      showSongLyrics,
       handleShowVolume,
       loading,
       loopMode,
@@ -637,9 +637,9 @@ export const PlayerProvider = ({ children }) => {
       shuffleActive,
       shuffleToggle,
       showVolume,
-      showLyrics,
+      showSongLyrics,
       loopMode,
-      handleShowLyrics,
+      handleShowSongLyrics,
       handleShowVolume,
       playSong,
       playNext,

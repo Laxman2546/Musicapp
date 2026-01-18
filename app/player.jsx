@@ -28,6 +28,7 @@ import loopSecond from "@/assets/images/repeatSecond.png";
 import backIcon from "@/assets/images/backImg.png";
 import heart from "@/assets/images/heart.png";
 import heartFill from "@/assets/images/heartfill.png";
+import { getColors } from "react-native-image-colors";
 import More from "@/assets/images/more.png";
 import { EllipsisVerticalIcon } from "lucide-react-native";
 import he from "he";
@@ -63,7 +64,7 @@ const MusicPlayer = () => {
     toggleLoopMode,
     seekTo,
     formatTime,
-    shuffleToggle,
+    showSongLyrics,
     togglePlayPause,
   } = usePlayer();
 
@@ -416,6 +417,7 @@ const MusicPlayer = () => {
               {isRadioStream ? "Live Radio" : "Now Playing"}
             </Text>
             {!isRadioStream &&
+              !showSongLyrics &&
               (!showLyrics ? (
                 <Pressable
                   onPress={() =>

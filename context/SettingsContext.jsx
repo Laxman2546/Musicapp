@@ -109,11 +109,11 @@ export const SettingsProvider = ({ children }) => {
     setshowRecently(newValue);
     updateShowRecently(newValue);
   }, [showRecently]);
-    const handleRedirectDownloads = useCallback(() => {
-      const newValue = !showRecently;
-      setRedirectDownloads(newValue);
-      updateRedirect(newValue);
-    }, [showRecently]);
+  const handleRedirectDownloads = useCallback(() => {
+    const newValue = !redirectDownloads;
+    setRedirectDownloads(newValue);
+    updateRedirect(newValue);
+  }, [redirectDownloads]);
   useFocusEffect(
     useCallback(() => {
       getUser();
