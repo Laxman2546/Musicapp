@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import React, {
   createContext,
   useState,
@@ -17,6 +17,7 @@ import TrackPlayer, {
   useTrackPlayerEvents,
 } from "react-native-track-player";
 import he from "he";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 const PlayerContext = createContext();
 
 // Navigation lock to prevent multiple rapid navigations
@@ -37,8 +38,8 @@ const generateUniqueId = (song, artists, duration) => {
     typeof artists === "string"
       ? artists
       : Array.isArray(artists)
-      ? artists.join("_")
-      : "unknown";
+        ? artists.join("_")
+        : "unknown";
 
   const songName = typeof song === "string" ? song : "unknown";
 
@@ -65,6 +66,9 @@ export const PlayerProvider = ({ children }) => {
   const [shuffleActive, setShuffleActive] = useState(false);
   const [loopMode, setLoopMode] = useState(RepeatMode.Off);
   const [currentSong, setCurrentSong] = useState(null);
+  const [shuffleToggle, setShuffleToggle] = useState(false);
+  const [showVolume, setShowvolume] = useState(false);
+  const [showLyrics, setshowLyrics] = useState(false);
   const [duration, setDuration] = useState(0);
   const [position, setPosition] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -108,7 +112,64 @@ export const PlayerProvider = ({ children }) => {
 
     return () => {};
   }, []);
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const shuffle = await AsyncStorage.getItem("shuffle");
+        if (shuffle !== null) {
+          const shuffleValue = JSON.parse(shuffle);
+          setShuffleToggle(shuffleValue);
+          setShuffleActive(shuffleValue);
+        }
 
+        const volume = await AsyncStorage.getItem("showVolume");
+        if (volume !== null) setShowvolume(JSON.parse(volume));
+
+        const lyrics = await AsyncStorage.getItem("showLyrics");
+        if (lyrics !== null) setshowLyrics(JSON.parse(lyrics));
+      } catch (e) {
+        console.log("Failed to load settings", e);
+      }
+    };
+    loadSettings();
+  }, []);
+
+  const updateShuffle = async (value) => {
+    try {
+      await AsyncStorage.setItem("shuffle", JSON.stringify(value));
+    } catch (e) {
+      console.log(e, "error while saving shuffle");
+    }
+  };
+
+  const updateShowVolume = async (value) => {
+    try {
+      await AsyncStorage.setItem("showVolume", JSON.stringify(value));
+    } catch (e) {
+      console.log(e, "error while saving volume");
+    }
+  };
+  const updateShowLyrics = async (value) => {
+    try {
+      await AsyncStorage.setItem("showLyrics", JSON.stringify(value));
+    } catch (e) {
+      console.log(e, "error while saving lyrics");
+    }
+  };
+
+
+
+  const handleShowVolume = useCallback(() => {
+    const newValue = !showVolume;
+    setShowvolume(newValue);
+    updateShowVolume(newValue);
+  }, [showVolume]);
+
+  const handleShowLyrics = useCallback(() => {
+    const newValue = !showLyrics;
+    setshowLyrics(newValue);
+    updateShowLyrics(newValue);
+  }, [showLyrics]);
   useEffect(() => {
     const updatePlaybackState = async () => {
       try {
@@ -154,7 +215,7 @@ export const PlayerProvider = ({ children }) => {
         // Set loading ONLY when starting to play a new song
         setLoading(true);
 
-        const tracks = allSongs
+        let tracks = allSongs
           .map((songItem) => {
             // Generate a unique ID for this song if it doesn't already have one
             const id =
@@ -162,7 +223,7 @@ export const PlayerProvider = ({ children }) => {
               generateUniqueId(
                 songItem.song || songItem.name || songItem.title,
                 songItem.primary_artists || songItem.artist,
-                songItem.duration
+                songItem.duration,
               );
 
             // Improved image handling logic
@@ -254,7 +315,20 @@ export const PlayerProvider = ({ children }) => {
           setLoading(false);
           return;
         }
-
+        if (shuffleToggle && tracks.length > 1) {
+          const currentTrack = tracks[index];
+          let shuffledTracks = [...tracks];
+          shuffledTracks.splice(index, 1);
+          for (let i = shuffledTracks.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffledTracks[i], shuffledTracks[j]] = [
+              shuffledTracks[j],
+              shuffledTracks[i],
+            ];
+          }
+          shuffledTracks.splice(index, 0, currentTrack);
+          tracks = shuffledTracks;
+        }
         // Create a mapping of track IDs to their indices
         updateTrackIndexMap(tracks);
 
@@ -281,7 +355,7 @@ export const PlayerProvider = ({ children }) => {
         setLoading(false); // Always clear loading on error
       }
     },
-    [currentSong, updateTrackIndexMap]
+    [currentSong, updateTrackIndexMap, shuffleToggle],
   );
 
   // Handle TrackPlayer events
@@ -340,7 +414,7 @@ export const PlayerProvider = ({ children }) => {
       } catch (error) {
         console.error("Error handling TrackPlayer event:", error);
       }
-    }
+    },
   );
 
   // Play next song
@@ -413,20 +487,29 @@ export const PlayerProvider = ({ children }) => {
     }
   }, []);
 
-  // Toggle shuffle
   const toggleShuffle = useCallback(async () => {
     setLoading(true);
     try {
-      setShuffleActive((prev) => !prev);
-      const currentTrack = await TrackPlayer.getCurrentTrack();
+      const newShuffleState = !shuffleActive;
+      setShuffleActive(newShuffleState);
+      setShuffleToggle(newShuffleState);
+      updateShuffle(newShuffleState);
+
+      const currentTrackIndex = await TrackPlayer.getCurrentTrack();
+      if (currentTrackIndex === null) {
+        setLoading(false);
+        return;
+      }
+
       const queue = await TrackPlayer.getQueue();
+      const currentTrackObject = queue[currentTrackIndex];
       const currentPosition = await TrackPlayer.getPosition();
       const wasPlaying = (await TrackPlayer.getState()) === State.Playing;
 
-      if (!shuffleActive && queue.length > 1) {
-        const currentSong = queue[currentTrack];
+      if (newShuffleState && queue.length > 1) {
+        const currentSong = queue[currentTrackIndex];
         let shuffledQueue = [...queue];
-        shuffledQueue.splice(currentTrack, 1);
+        shuffledQueue.splice(currentTrackIndex, 1);
 
         for (let i = shuffledQueue.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
@@ -435,21 +518,32 @@ export const PlayerProvider = ({ children }) => {
             shuffledQueue[i],
           ];
         }
-        shuffledQueue.splice(currentTrack, 0, currentSong);
+        shuffledQueue.splice(currentTrackIndex, 0, currentSong);
         updateTrackIndexMap(shuffledQueue);
         await TrackPlayer.reset();
         await TrackPlayer.add(shuffledQueue);
-        await TrackPlayer.skip(currentTrack);
+        await TrackPlayer.skip(currentTrackIndex);
         await TrackPlayer.seekTo(currentPosition);
         if (wasPlaying) {
           await TrackPlayer.play();
         }
-      } else if (shuffleActive) {
+      } else if (!newShuffleState) {
+        const newIndex = playlist.findIndex(
+          (t) => t.id === currentTrackObject.id,
+        );
+
         updateTrackIndexMap(playlist);
         await TrackPlayer.reset();
         await TrackPlayer.add(playlist);
-        await TrackPlayer.skip(currentTrack);
-        await TrackPlayer.seekTo(currentPosition);
+
+        if (newIndex !== -1) {
+          await TrackPlayer.skip(newIndex);
+          await TrackPlayer.seekTo(currentPosition);
+        } else {
+          await TrackPlayer.skip(0);
+          await TrackPlayer.seekTo(0);
+        }
+
         if (wasPlaying) {
           await TrackPlayer.play();
         }
@@ -467,8 +561,8 @@ export const PlayerProvider = ({ children }) => {
         prev === RepeatMode.Off
           ? RepeatMode.Queue
           : prev === RepeatMode.Queue
-          ? RepeatMode.Track
-          : RepeatMode.Off;
+            ? RepeatMode.Track
+            : RepeatMode.Off;
       TrackPlayer.setRepeatMode(nextMode);
       return nextMode;
     });
@@ -484,7 +578,7 @@ export const PlayerProvider = ({ children }) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = Math.floor(seconds % 60);
     return `${String(minutes).padStart(2, "0")}:${String(
-      remainingSeconds
+      remainingSeconds,
     ).padStart(2, "0")}`;
   }, []);
 
@@ -513,6 +607,11 @@ export const PlayerProvider = ({ children }) => {
       isPlaying,
       setIsPlaying,
       shuffleActive,
+      shuffleToggle,
+      handleShowLyrics,
+      showVolume,
+      showLyrics,
+      handleShowVolume,
       loading,
       loopMode,
       playSong,
@@ -536,7 +635,12 @@ export const PlayerProvider = ({ children }) => {
       isPlaying,
       loading,
       shuffleActive,
+      shuffleToggle,
+      showVolume,
+      showLyrics,
       loopMode,
+      handleShowLyrics,
+      handleShowVolume,
       playSong,
       playNext,
       playPrevious,
@@ -550,7 +654,7 @@ export const PlayerProvider = ({ children }) => {
       isSameSong,
       generateUniqueId,
       navigateToPlayer,
-    ]
+    ],
   );
 
   return (

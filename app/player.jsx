@@ -63,6 +63,7 @@ const MusicPlayer = () => {
     toggleLoopMode,
     seekTo,
     formatTime,
+    shuffleToggle,
     togglePlayPause,
   } = usePlayer();
 
@@ -144,7 +145,7 @@ const MusicPlayer = () => {
 
           const targetOffset = Math.max(
             0,
-            syncedIndex * ITEM_HEIGHT - CENTER_OFFSET + ITEM_HEIGHT * 0.01
+            syncedIndex * ITEM_HEIGHT - CENTER_OFFSET + ITEM_HEIGHT * 0.01,
           );
 
           lyricsRef.current?.scrollToOffset({
@@ -203,7 +204,7 @@ const MusicPlayer = () => {
           (favSong) =>
             favSong.song === currentSong?.song ||
             (currentSong.title &&
-              favSong.primary_artists === currentSong?.primary_artists)
+              favSong.primary_artists === currentSong?.primary_artists),
         );
         setfavouriteClick(isFav);
       } catch (error) {
@@ -227,7 +228,7 @@ const MusicPlayer = () => {
               favSong.song === currentSong?.song ||
               (currentSong.title &&
                 favSong.primary_artists === currentSong?.primary_artists)
-            )
+            ),
         );
       } else {
         favouriteList.push({
@@ -248,7 +249,7 @@ const MusicPlayer = () => {
 
       await AsyncStorage.setItem(
         "favouriteSongs",
-        JSON.stringify(favouriteList)
+        JSON.stringify(favouriteList),
       );
       setfavouriteClick(!favouriteClick);
     } catch (e) {
@@ -314,7 +315,7 @@ const MusicPlayer = () => {
 
       try {
         const response = await fetch(
-          `https://lrclib.net/api/search?track_name=${encodeURIComponent(name)}`
+          `https://lrclib.net/api/search?track_name=${encodeURIComponent(name)}`,
         );
         const data = await response.json();
 
@@ -389,7 +390,7 @@ const MusicPlayer = () => {
           duration: 15000, // one full rotation in 6 seconds
           useNativeDriver: true,
           easing: Easing.linear,
-        })
+        }),
       ).start();
     } else {
       rotateAnim.stopAnimation(); // stop rotation when not streaming
@@ -419,7 +420,7 @@ const MusicPlayer = () => {
                 <Pressable
                   onPress={() =>
                     handleLyrics(
-                      cleanSongName(currentSong.song || currentSong.title)
+                      cleanSongName(currentSong.song || currentSong.title),
                     )
                   }
                   hitSlop={10}
