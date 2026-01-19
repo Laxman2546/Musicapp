@@ -29,6 +29,7 @@ import Recentrelease from "@/components/Recentrelease";
 import Radios from "@/components/Radios";
 import userIcon from "@/assets/images/user.png";
 import { SvgUri } from "react-native-svg";
+import { checkForUpdates } from "@/services/Checkupdates";
 import { useSettings } from "@/context/SettingsContext";
 const Home = () => {
   const [active, setActive] = useState("All");
@@ -71,6 +72,9 @@ const Home = () => {
     }
   }, []);
 
+  // useEffect(() => {
+  //   checkForUpdates();
+  // }, []);
   const handleEndReached = async () => {
     if (loading || loadingMore || endReached) return;
 
@@ -257,7 +261,7 @@ const Home = () => {
 
         {active === "All" ? (
           <>
-            <ScrollView
+            {/* <ScrollView
               contentContainerStyle={styles.scrollContainer}
               showsVerticalScrollIndicator={false}
             >
@@ -296,7 +300,7 @@ const Home = () => {
                   )}
                 </View>
               </>
-            </ScrollView>
+            </ScrollView> */}
           </>
         ) : (
           <>

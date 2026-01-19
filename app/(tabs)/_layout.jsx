@@ -1,6 +1,6 @@
-import { Image, Text, View, StyleSheet, Pressable } from "react-native";
+import { Image, Text, View, Pressable, StyleSheet } from "react-native";
 import React, { useEffect, useState } from "react";
-import { Tabs, useNavigation, usePathname, useRouter } from "expo-router";
+import { Tabs, usePathname, useRouter } from "expo-router";
 import { useFonts } from "expo-font";
 import playSong from "@/assets/images/playIcon.png";
 import pauseSong from "@/assets/images/pauseIcon.png";
@@ -14,19 +14,18 @@ import Octicons from "@expo/vector-icons/Octicons";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import defaultMusicImage from "@/assets/images/musicImage.png";
+import { getColors } from "react-native-image-colors";
 import "@/global.css";
 import he from "he";
 const RootLayout = () => {
   const router = useRouter();
   const pathname = usePathname();
-  const navigation = useNavigation();
 
   const { currentSong, isPlaying, playNext, playPrevious, togglePlayPause } =
     usePlayer();
 
   const isPlayerScreen = pathname === "/player";
-  const [loading, setLoading] = useState(true);
-
+  const [colors, setColors] = useState(null);
   const [fontsLoaded, error] = useFonts({
     "Nunito-Black": require("@/assets/fonts/Nunito-Black.ttf"),
     "Nunito-Regular": require("@/assets/fonts/Nunito-SemiBold.ttf"),
@@ -49,9 +48,32 @@ const RootLayout = () => {
   }, [fontsLoaded, error]);
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 2000);
-    return () => clearTimeout(timer);
-  }, []);
+    const getColorsForImage = async () => {
+      if (!currentSong?.image) {
+        setColors(null);
+        return;
+      }
+      try {
+        const imageSource = getImageSource(currentSong.image);
+        const cacheKey =
+          typeof imageSource === "object" && imageSource.uri
+            ? imageSource.uri
+            : String(imageSource);
+        const result = await getColors(imageSource, {
+          fallback: "#333",
+          cache: true,
+          key: cacheKey,
+        });
+        setColors(result);
+        // console.log(result);
+      } catch (error) {
+        console.log("Color error:", error);
+        setColors(null);
+      }
+    };
+
+    getColorsForImage();
+  }, [currentSong?.image]);
 
   const getImageSource = (image) => {
     if (!image) return defaultMusicImage;
@@ -98,10 +120,6 @@ const RootLayout = () => {
 
   return (
     <>
-      {/* {loading ? (
-        <WelcomeComponent />
-      ) : (
-      )} */}
       <View style={{ flex: 1 }}>
         <StatusBar backgroundColor="#000" style="light" />
         <Tabs
@@ -199,7 +217,17 @@ const RootLayout = () => {
         </Tabs>
 
         {!isPlayerScreen && currentSong && (
-          <View style={styles.miniPlayerContainer}>
+          <View
+            style={[
+              styles.miniPlayerContainer,
+              {
+                backgroundColor:
+                  colors?.darkVibrant == "#333333"
+                    ? colors?.vibrant
+                    : colors?.darkVibrant || "rgba(0,0,0,0.8)",
+              },
+            ]}
+          >
             <Pressable
               onPress={navigatePlayer}
               style={styles.songInfo}
@@ -226,7 +254,6 @@ const RootLayout = () => {
                 </Text>
               </View>
             </Pressable>
-
             <View style={styles.controlsContainer}>
               <Pressable onPress={playPrevious} hitSlop={10}>
                 <Image source={playpreviousSong} style={styles.controlIcon} />
@@ -261,7 +288,6 @@ const styles = StyleSheet.create({
     bottom: 70,
     left: 10,
     right: 10,
-    backgroundColor: "#222",
     padding: 15,
     borderRadius: 15,
     flexDirection: "row",
@@ -293,9 +319,9 @@ const styles = StyleSheet.create({
     fontFamily: "Nunito-Bold",
   },
   songArtist: {
-    color: "white",
+    color: "#D3D3D3",
     fontSize: 12,
-    fontFamily: "Nunito-Regular",
+    fontFamily: "Nunito-Bold",
   },
   controlsContainer: {
     flexDirection: "row",

@@ -17,7 +17,7 @@ import { useSettings } from "@/context/SettingsContext";
 import ToggleSwitch from "toggle-switch-react-native";
 import love from "@/assets/images/madeimg.png";
 import { usePlayer } from "@/context/playerContext";
-
+import { checkForUpdates } from "@/services/Checkupdates";
 const Settings = () => {
   const handleBack = () => {
     router.back();
@@ -224,7 +224,7 @@ const Settings = () => {
           <Text style={styles.textStyle} className="text-lg">
             App Updates
           </Text>
-          <Pressable>
+          <Pressable onPress={checkForUpdates}>
             <View className="p-5 rounded-xl border-2 border-blue-100  bg-blue-50 shadow-md flex flex-col gap-4">
               <View className=" flex flex-row  items-center justify-between">
                 <Text className="font-medium text-md">Check for Updates</Text>

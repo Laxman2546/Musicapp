@@ -151,18 +151,6 @@ export default function RootLayout() {
         appStateSubscription?.remove();
       };
     };
-
-    // Initialize and return cleanup function
-    // let cleanup;
-    // initialize().then((cleanupFn) => {
-    //   cleanup = cleanupFn;
-    // });
-
-    // // Cleanup on unmount
-    // return () => {
-    //   if (cleanup) cleanup();
-    //   handleAppTermination();
-    // };
   }, []);
 
   // Handle when component unmounts (app closes)
