@@ -10,7 +10,6 @@ import {
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import * as MediaLibrary from "expo-media-library";
-import backIcon from "@/assets/images/backImg.png";
 import { router } from "expo-router";
 import Trending from "@/components/trending";
 import searchImg from "@/assets/images/search.png";
@@ -42,7 +41,7 @@ const localFiles = () => {
   const searchResults = (searchQuery) => {
     const songsData = songs;
     const filteredResults = songsData.filter((item) =>
-      item.song.toLowerCase().includes(searchQuery.toLowerCase())
+      item.song.toLowerCase().includes(searchQuery.toLowerCase()),
     );
     setFilteredSongs(filteredResults);
   };
@@ -84,10 +83,10 @@ const localFiles = () => {
             duration: songInfo.duration,
             image: artwork || DefaultImage,
           };
-        })
+        }),
       );
       const sortedSongs = songDetails.sort((a, b) =>
-        a.song.localeCompare(b.song)
+        a.song.localeCompare(b.song),
       );
       setLoading(false);
       setSongs(sortedSongs);
@@ -103,9 +102,7 @@ const localFiles = () => {
       <View className="p-5">
         <View className="flex flex-row gap-3 items-center">
           <Pressable onPress={handleBack}>
-            <View className="p-3 rounded-full bg-[#222]">
-              <Image source={backIcon} style={styles.backImg} />
-            </View>
+            <View className="p-3 rounded-full bg-[#222]"></View>
           </Pressable>
           <Text style={styles.textStyle}>LocalSongs</Text>
         </View>

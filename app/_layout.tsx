@@ -3,7 +3,6 @@ import { Stack } from "expo-router";
 import { useEffect } from "react";
 import { View, AppState, Platform } from "react-native";
 import { SettingsProvider } from "@/context/SettingsContext";
-import * as Linking from "expo-linking";
 import TrackPlayer, {
   Capability,
   AppKilledPlaybackBehavior,
@@ -78,7 +77,6 @@ export default function RootLayout() {
           } else {
             // Interruption ended, but don't auto-resume
             // Let user decide when to resume
-            await TrackPlayer.play();
           }
         },
       );

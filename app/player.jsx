@@ -18,25 +18,20 @@ import { router } from "expo-router";
 import GestureRecognizer from "react-native-swipe-gestures";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Slider from "@react-native-community/slider";
-import prevBtn from "@/assets/images/previousIcon.png";
-import playIcon from "@/assets/images/playIcon.png";
-import pauseIcon from "@/assets/images/pauseIcon.png";
-import nextIcon from "@/assets/images/nextIcon.png";
-import ShuffleIcon from "@/assets/images/shuffle.png";
-import loopFirst from "@/assets/images/repeatFirst.png";
-import loopSecond from "@/assets/images/repeatSecond.png";
-import backIcon from "@/assets/images/backImg.png";
-import heart from "@/assets/images/heart.png";
-import heartFill from "@/assets/images/heartfill.png";
-import { getColors } from "react-native-image-colors";
-import More from "@/assets/images/more.png";
-import { EllipsisVerticalIcon } from "lucide-react-native";
-import he from "he";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import TextTicker from "react-native-text-ticker";
+import { LinearGradient } from "expo-linear-gradient";
+import { getColorsForImage } from "@/services/Colors";
 import {
-  MusicImageSkeleton,
-  SongInfoSkeleton,
-  FloatingParticles,
-} from "../components/SkeletonLoader.jsx";
+  ChevronLeftIcon,
+  EllipsisVerticalIcon,
+  Shuffle,
+  SkipBack,
+  SkipForward,
+} from "lucide-react-native";
+import he from "he";
+import { MusicImageSkeleton } from "../components/SkeletonLoader.jsx";
 import TrackPlayer, {
   State,
   usePlaybackState,
@@ -80,6 +75,7 @@ const MusicPlayer = () => {
   const [showMore, setShowMore] = useState(false);
   const flatListRef = useRef();
   const lyricsRef = useRef();
+  const [colors, setColors] = useState(null);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const lyricsOpacity = useRef(new Animated.Value(0)).current;
   const scrollAnimation = useRef(null);
@@ -301,7 +297,19 @@ const MusicPlayer = () => {
 
     return defaultMusicImage;
   };
+  useEffect(() => {
+    const fetchColors = async () => {
+      if (!currentSong?.image) {
+        setColors(null);
+        return;
+      }
+      const resImageSource = imageSource(currentSong?.image);
+      const result = await getColorsForImage(resImageSource);
+      setColors(result);
+    };
 
+    fetchColors();
+  }, [currentSong?.image]);
   const handelenewLyrics = (lyrics) => {
     setRawLyrics(lyrics);
     setShowLyricsData(false);
@@ -398,183 +406,255 @@ const MusicPlayer = () => {
       rotateAnim.setValue(0); // reset
     }
   }, [isRadioStream, localIsPlaying]);
+
   const spin = rotateAnim.interpolate({
     inputRange: [0, 1],
     outputRange: ["0deg", "360deg"],
   });
 
   return (
-    <GestureRecognizer
-      onSwipeLeft={playNext}
-      onSwipeRight={playPrevious}
-      config={{ velocityThreshold: 0.2, directionalOffsetThreshold: 40 }}
-      style={{ flex: 1 }}
-    >
-      <View style={styles.mainBg}>
-        <View style={styles.topContainer}>
-          <View style={styles.header}>
-            <Text style={styles.textFont}>
-              {isRadioStream ? "Live Radio" : "Now Playing"}
-            </Text>
-            {!isRadioStream &&
-              !showSongLyrics &&
-              (!showLyrics ? (
+    <SafeAreaView SafeAreaView style={{ flex: 1 }}>
+      <GestureRecognizer
+        onSwipeLeft={playNext}
+        onSwipeRight={playPrevious}
+        config={{ velocityThreshold: 0.2, directionalOffsetThreshold: 40 }}
+        style={{ flex: 1 }}
+      >
+        <LinearGradient
+          colors={[colors?.darkVibrant || "#1a1a2e", "#0f0f1e"]}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.mainBg}>
+            <View style={styles.topContainer}>
+              <View style={styles.headerContainer}>
                 <Pressable
-                  onPress={() =>
-                    handleLyrics(
-                      cleanSongName(currentSong.song || currentSong.title),
-                    )
-                  }
+                  onPress={handlePress}
                   hitSlop={10}
+                  style={styles.backButton}
                 >
-                  <Animated.View
-                    style={[
-                      styles.Lyrics,
-                      showLyrics && styles.activeLyricsButton,
-                      {
-                        transform: [{ scale: showLyrics ? 1.05 : 1 }],
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.textFontLyric,
-                        showLyrics && styles.activeLyricsText,
-                      ]}
-                    >
-                      {lyricsLoading ? "Fetching.." : "Lyrics"}
-                    </Text>
-                  </Animated.View>
+                  <ChevronLeftIcon size={34} color={"#fff"} />
                 </Pressable>
-              ) : (
-                <>
-                  <Pressable
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      handleMore();
-                    }}
-                    hitSlop={10}
-                  >
-                    <View style={styles.moreSize}>
-                      <EllipsisVerticalIcon color="#fff" />
-                    </View>
-                  </Pressable>
-
-                  {showMore && (
-                    <View style={styles.moreBg}>
+                <Text style={styles.headerTitle} className="ml-[50px]">
+                  {isRadioStream ? "Live Radio" : "Now Playing"}
+                </Text>
+                <View style={styles.headerButtonsContainer}>
+                  {!isRadioStream &&
+                    !showSongLyrics &&
+                    (!showLyrics ? (
                       <Pressable
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          setShowMore(false);
-                          showMoreLyrics();
-                        }}
-                      >
-                        <View>
-                          <Text style={styles.moreText}>Select Lyrics</Text>
-                        </View>
-                      </Pressable>
-
-                      <View
-                        style={{
-                          width: 100,
-                          borderWidth: 1,
-                          borderColor: "#ccc",
-                        }}
-                      />
-
-                      <Pressable
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          setShowLyrics(false);
-                          setShowLyricsData(false);
-                          setShowMore(false);
-                        }}
+                        onPress={() =>
+                          handleLyrics(
+                            cleanSongName(
+                              currentSong.song || currentSong.title,
+                            ),
+                          )
+                        }
                         hitSlop={10}
                       >
-                        <View>
-                          <Text style={styles.moreText}>Close Lyrics</Text>
-                        </View>
+                        <Animated.View
+                          style={[
+                            styles.lyricsButton,
+                            showLyrics && styles.activeLyricsButton,
+                            {
+                              transform: [{ scale: showLyrics ? 1.05 : 1 }],
+                            },
+                          ]}
+                        >
+                          <Text style={styles.lyricsButtonText}>
+                            {lyricsLoading ? "Fetching.." : "Lyrics"}
+                          </Text>
+                        </Animated.View>
                       </Pressable>
-                    </View>
-                  )}
-                </>
-              ))}
+                    ) : (
+                      <View style={styles.moreButtonContainer}>
+                        <Pressable
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            handleMore();
+                          }}
+                          hitSlop={10}
+                        >
+                          <View style={styles.moreButton}>
+                            <EllipsisVerticalIcon color="#fff" />
+                          </View>
+                        </Pressable>
 
-            <Pressable onPress={handlePress} hitSlop={10}>
-              <Image source={backIcon} style={styles.backBtn} />
-            </Pressable>
-          </View>
+                        {showMore && (
+                          <View style={styles.moreBg}>
+                            <Pressable
+                              onPress={(e) => {
+                                e.stopPropagation();
+                                setShowMore(false);
+                                showMoreLyrics();
+                              }}
+                            >
+                              <Text style={styles.moreText}>Select Lyrics</Text>
+                            </Pressable>
 
-          <Pressable onPress={handlePlayPause}>
-            <View style={styles.imageContainer}>
-              {!showLyricsData ? (
-                <>
-                  {!showLyrics ? (
+                            <View style={styles.divider} />
+
+                            <Pressable
+                              onPress={(e) => {
+                                e.stopPropagation();
+                                setShowLyrics(false);
+                                setShowLyricsData(false);
+                                setShowMore(false);
+                              }}
+                              hitSlop={10}
+                            >
+                              <Text style={styles.moreText}>Close Lyrics</Text>
+                            </Pressable>
+                          </View>
+                        )}
+                      </View>
+                    ))}
+                </View>
+              </View>
+
+              <Pressable onPress={handlePlayPause}>
+                <View style={styles.imageContainer}>
+                  {!showLyricsData ? (
                     <>
-                      {musicLaoding ? (
+                      {!showLyrics ? (
                         <>
-                          <MusicImageSkeleton />
+                          {musicLaoding ? (
+                            <MusicImageSkeleton />
+                          ) : (
+                            <Animated.View style={{ opacity: fadeAnim }}>
+                              <Animated.Image
+                                source={imageSource(currentSong.image)}
+                                style={[
+                                  styles.musicImg,
+                                  {
+                                    borderRadius: isRadioStream ? 200 : 20,
+                                    borderWidth: isRadioStream ? 3 : 0,
+                                    borderColor: isRadioStream
+                                      ? "#fff"
+                                      : "transparent",
+                                    transform: isRadioStream
+                                      ? [{ rotate: spin }]
+                                      : [],
+                                  },
+                                ]}
+                              />
+                            </Animated.View>
+                          )}
+
+                          {!musicLaoding && (
+                            <View style={styles.songInfoBelowImage}>
+                              <TextTicker
+                                duration={20000}
+                                bounce
+                                repeatSpacer={40}
+                                marqueeDelay={3000}
+                                numberOfLines={1}
+                                style={styles.songTitle}
+                              >
+                                {cleanSongName(
+                                  currentSong.song || currentSong.title,
+                                )}
+                              </TextTicker>
+                              <View style={styles.artistRow}>
+                                <TextTicker
+                                  duration={10000}
+                                  bounce
+                                  repeatSpacer={10}
+                                  marqueeDelay={3000}
+                                  style={styles.artistName}
+                                  numberOfLines={1}
+                                >
+                                  {currentSong.primary_artists ||
+                                    currentSong.music ||
+                                    currentSong.artists?.primary
+                                      ?.map((a) => a.name)
+                                      .join(", ") ||
+                                    "Unknown Artist"}
+                                </TextTicker>
+                                {isRadioStream && (
+                                  <View style={styles.liveIndicator}></View>
+                                )}
+                              </View>
+                            </View>
+                          )}
                         </>
                       ) : (
-                        <Animated.View style={{ opacity: fadeAnim }}>
-                          <Animated.Image
-                            source={imageSource(currentSong.image)}
-                            style={[
-                              styles.musicImg,
-                              {
-                                borderRadius: isRadioStream ? 200 : 20,
-                                borderWidth: isRadioStream ? 3 : 0,
-                                borderColor: isRadioStream
-                                  ? "#fff"
-                                  : "transparent",
-                                transform: isRadioStream
-                                  ? [{ rotate: spin }]
-                                  : [],
-                              },
-                            ]}
-                          />
+                        <Animated.View
+                          style={[
+                            styles.lyricsContainer,
+                            { opacity: lyricsOpacity },
+                          ]}
+                        >
+                          {lyricsLoading ? (
+                            <View style={styles.loadingContainer}>
+                              <ActivityIndicator size="large" color="#fff" />
+                              <Text style={styles.loadingText}>
+                                Fetching lyrics...
+                              </Text>
+                            </View>
+                          ) : lyricsError || !hasLyrics ? (
+                            <View style={styles.errorContainer}>
+                              <Text style={styles.errorText}>
+                                No synchronized lyrics available
+                              </Text>
+                              <Text style={styles.errorSubText}>
+                                Enjoy the Song! 🎵
+                              </Text>
+                              <Pressable onPress={() => showMoreLyrics()}>
+                                <View style={styles.checkMore}>
+                                  <Text style={styles.checkText}>
+                                    Check more Lyrics
+                                  </Text>
+                                </View>
+                              </Pressable>
+                            </View>
+                          ) : (
+                            <FlatList
+                              ref={lyricsRef}
+                              data={lyrics}
+                              keyExtractor={(item, index) =>
+                                `${item.time}-${index}`
+                              }
+                              renderItem={renderLyricItem}
+                              getItemLayout={getItemLayout}
+                              initialNumToRender={15}
+                              maxToRenderPerBatch={10}
+                              windowSize={21}
+                              showsVerticalScrollIndicator={false}
+                              contentContainerStyle={styles.lyricsListContainer}
+                              decelerationRate="fast"
+                              scrollEventThrottle={16}
+                              onScrollToIndexFailed={(error) => {
+                                setTimeout(() => {
+                                  try {
+                                    const offset =
+                                      error.averageItemLength * error.index;
+                                    lyricsRef.current?.scrollToOffset({
+                                      offset,
+                                      animated: true,
+                                    });
+                                  } catch (e) {
+                                    console.log("Fallback scroll failed:", e);
+                                  }
+                                }, 100);
+                              }}
+                            />
+                          )}
                         </Animated.View>
                       )}
                     </>
                   ) : (
-                    <Animated.View
-                      style={[
-                        styles.lyricsContainer,
-                        { opacity: lyricsOpacity },
-                      ]}
-                    >
-                      {lyricsLoading ? (
-                        <View style={styles.loadingContainer}>
-                          <ActivityIndicator size="large" color="#fff" />
-                          <Text style={styles.loadingText}>
-                            Fetching lyrics...
-                          </Text>
-                        </View>
-                      ) : lyricsError || !hasLyrics ? (
+                    <>
+                      {lyricsData.length === 0 ? (
                         <View style={styles.errorContainer}>
-                          <Text style={styles.errorText}>
-                            No synchronized lyrics available
-                          </Text>
+                          <Text style={styles.errorText}>No lyrics Found</Text>
                           <Text style={styles.errorSubText}>
                             Enjoy the Song! 🎵
                           </Text>
-                          <Pressable onPress={() => showMoreLyrics()}>
-                            <View style={styles.checkMore}>
-                              <Text style={styles.checkText}>
-                                Check more Lyrics
-                              </Text>
-                            </View>
-                          </Pressable>
                         </View>
                       ) : (
                         <FlatList
-                          ref={lyricsRef}
-                          data={lyrics}
-                          keyExtractor={(item, index) =>
-                            `${item.time}-${index}`
-                          }
-                          renderItem={renderLyricItem}
-                          getItemLayout={getItemLayout}
+                          data={lyricsData}
+                          keyExtractor={(item, index) => index.toString()}
                           initialNumToRender={15}
                           maxToRenderPerBatch={10}
                           windowSize={21}
@@ -582,203 +662,129 @@ const MusicPlayer = () => {
                           contentContainerStyle={styles.lyricsListContainer}
                           decelerationRate="fast"
                           scrollEventThrottle={16}
-                          onScrollToIndexFailed={(error) => {
-                            setTimeout(() => {
-                              try {
-                                const offset =
-                                  error.averageItemLength * error.index;
-                                lyricsRef.current?.scrollToOffset({
-                                  offset,
-                                  animated: true,
-                                });
-                              } catch (e) {
-                                console.log("Fallback scroll failed:", e);
-                              }
-                            }, 100);
-                          }}
+                          renderItem={({ item, index }) => (
+                            <View style={styles.lyricsData}>
+                              {item.syncedLyrics && (
+                                <Pressable
+                                  onPress={() =>
+                                    handelenewLyrics(item.syncedLyrics)
+                                  }
+                                  hitSlop={10}
+                                >
+                                  <View style={styles.lyricsDataText}>
+                                    <Text style={styles.lyricsDataAlbum}>
+                                      {item?.albumName || "Unknown Album"}
+                                    </Text>
+                                    <Text style={styles.lyricsDataTitle}>
+                                      {item?.name || "Unknown Song"}
+                                    </Text>
+                                  </View>
+                                </Pressable>
+                              )}
+                            </View>
+                          )}
                         />
                       )}
-                    </Animated.View>
+                    </>
                   )}
-                </>
-              ) : (
-                <>
-                  {lyricsData.length === 0 ? (
-                    <View style={styles.errorContainer}>
-                      <Text style={styles.errorText}>No lyrics Found</Text>
-                      <Text style={styles.errorSubText}>
-                        Enjoy the Song! 🎵
-                      </Text>
-                    </View>
-                  ) : (
-                    <FlatList
-                      data={lyricsData}
-                      keyExtractor={(item, index) => index.toString()}
-                      initialNumToRender={15}
-                      maxToRenderPerBatch={10}
-                      windowSize={21}
-                      showsVerticalScrollIndicator={false}
-                      contentContainerStyle={styles.lyricsListContainer}
-                      decelerationRate="fast"
-                      scrollEventThrottle={16}
-                      renderItem={({ item, index }) => (
-                        <View style={styles.lyricsData}>
-                          <>
-                            {item.syncedLyrics && (
-                              <Pressable
-                                onPress={() =>
-                                  handelenewLyrics(item.syncedLyrics)
-                                }
-                                hitSlop={10}
-                              >
-                                <View style={styles.lyricsDataText}>
-                                  <Text style={styles.lyricsDataAlbum}>
-                                    {item?.albumName || "Unknown Album"}
-                                  </Text>
-                                  <Text style={styles.lyricsDataTitle}>
-                                    {item?.name || "Unknown Song"}
-                                  </Text>
-                                </View>
-                              </Pressable>
-                            )}
-                          </>
-                        </View>
-                      )}
-                    />
-                  )}
-                </>
-              )}
-            </View>
-          </Pressable>
-        </View>
-
-        <View style={styles.musicBg}>
-          <View style={styles.songRow}>
-            <View style={styles.songInfoContainer}>
-              {musicLaoding ? (
-                <SongInfoSkeleton />
-              ) : (
-                <>
-                  <Text style={styles.musicText} numberOfLines={1}>
-                    {cleanSongName(currentSong.song || currentSong.title)}
-                  </Text>
-                  <View className="flex flex-row gap-2 items-center">
-                    <Text style={styles.musicArtist} numberOfLines={1}>
-                      {currentSong.primary_artists ||
-                        currentSong.music ||
-                        currentSong.artists?.primary
-                          ?.map((a) => a.name)
-                          .join(", ") ||
-                        "Unknown Artist"}
-                    </Text>
-                    {isRadioStream && (
-                      <View style={styles.liveIndicator}></View>
-                    )}
-                  </View>
-                </>
-              )}
-            </View>
-
-            <Pressable
-              onPress={favouriteSongs}
-              hitSlop={10}
-              style={styles.downloadButton}
-            >
-              <Image
-                source={favouriteClick ? heartFill : heart}
-                style={styles.downloadSize}
-              />
-            </Pressable>
-          </View>
-
-          <Slider
-            style={{ width: width * 0.9, height: 40 }}
-            minimumValue={0}
-            maximumValue={duration || 1}
-            value={position || 0}
-            minimumTrackTintColor="#FFFFFF"
-            maximumTrackTintColor="#303030"
-            thumbTintColor="#FFFFFF"
-            onSlidingComplete={seekTo}
-          />
-
-          <View style={styles.timeRow}>
-            <Text style={styles.textFont}>{formatTime(position)}</Text>
-            <Text style={styles.textFont2}>{formatTime(duration)}</Text>
-          </View>
-
-          <View style={styles.controlsRow}>
-            <Pressable
-              onPress={toggleShuffle}
-              hitSlop={10}
-              style={[
-                styles.controlButton,
-                shuffleActive && styles.activeControlButton,
-              ]}
-            >
-              <Image source={ShuffleIcon} style={styles.controlIcon} />
-            </Pressable>
-
-            <View style={styles.middleControls}>
-              <Pressable
-                onPress={playPrevious}
-                disabled={currentIndex <= 0 && !shuffleActive}
-                hitSlop={10}
-              >
-                <Image
-                  source={prevBtn}
-                  style={[
-                    styles.controlIcon,
-                    currentIndex <= 0 &&
-                      !shuffleActive &&
-                      styles.disabledButton,
-                  ]}
-                />
-              </Pressable>
-
-              <Pressable onPress={handlePlayPause}>
-                <View style={styles.playPauseButton}>
-                  <Image
-                    source={localIsPlaying ? pauseIcon : playIcon}
-                    style={styles.playPauseIcon}
-                  />
                 </View>
               </Pressable>
-
-              <Pressable
-                onPress={playNext}
-                disabled={currentIndex >= playlist.length - 1 && !shuffleActive}
-                hitSlop={10}
-              >
-                <Image
-                  source={nextIcon}
-                  style={[
-                    styles.controlIcon,
-                    currentIndex >= playlist.length - 1 &&
-                      !shuffleActive &&
-                      styles.disabledButton,
-                  ]}
-                />
-              </Pressable>
             </View>
 
-            <Pressable
-              onPress={toggleLoopMode}
-              hitSlop={10}
-              style={[
-                styles.controlButton,
-                loopMode > 0 && styles.activeControlButton,
-              ]}
-            >
-              <Image
-                source={loopMode === 0 ? loopFirst : loopSecond}
-                style={[styles.controlIcon, loopMode > 0 && styles.activeIcon]}
+            <View style={styles.controlsSection}>
+              <Slider
+                style={{ width: width * 0.9, height: 40 }}
+                minimumValue={0}
+                maximumValue={duration || 1}
+                value={position || 0}
+                minimumTrackTintColor="#FFFFFF"
+                maximumTrackTintColor="rgba(255, 255, 255, 0.2)"
+                thumbTintColor="#FFFFFF"
+                onSlidingComplete={seekTo}
               />
-            </Pressable>
+
+              <View style={styles.timeRow}>
+                <Text style={styles.timeText}>{formatTime(position)}</Text>
+                <Text style={styles.timeText}>{formatTime(duration)}</Text>
+              </View>
+
+              <View style={styles.controlsRow}>
+                <Pressable
+                  onPress={toggleShuffle}
+                  hitSlop={10}
+                  style={[
+                    styles.controlButton,
+                    shuffleActive && styles.activeControlButton,
+                  ]}
+                >
+                  <Shuffle size={24} color={"#fff"} />
+                </Pressable>
+
+                <View style={styles.middleControls}>
+                  <Pressable
+                    onPress={playPrevious}
+                    disabled={currentIndex <= 0 && !shuffleActive}
+                    hitSlop={10}
+                  >
+                    <SkipBack
+                      size={24}
+                      color={"#fff"}
+                      style={[
+                        styles.controlIcon,
+                        currentIndex <= 0 &&
+                          !shuffleActive &&
+                          styles.disabledButton,
+                      ]}
+                    />
+                  </Pressable>
+
+                  <Pressable onPress={handlePlayPause}>
+                    <View style={styles.playPauseButton}>
+                      {localIsPlaying ? (
+                        <Ionicons name="pause" size={44} color="white" />
+                      ) : (
+                        <Ionicons name="play" size={44} color="white" />
+                      )}
+                    </View>
+                  </Pressable>
+
+                  <Pressable
+                    onPress={playNext}
+                    disabled={
+                      currentIndex >= playlist.length - 1 && !shuffleActive
+                    }
+                    hitSlop={10}
+                  >
+                    <SkipForward
+                      size={24}
+                      color={"#fff"}
+                      style={[
+                        styles.controlIcon,
+                        currentIndex >= playlist.length - 1 &&
+                          !shuffleActive &&
+                          styles.disabledButton,
+                      ]}
+                    />
+                  </Pressable>
+                </View>
+
+                <Pressable
+                  onPress={favouriteSongs}
+                  hitSlop={10}
+                  style={styles.favoriteButton}
+                >
+                  {favouriteClick ? (
+                    <FontAwesome name="heart" size={24} color="red" />
+                  ) : (
+                    <FontAwesome name="heart-o" size={24} color="white" />
+                  )}
+                </Pressable>
+              </View>
+            </View>
           </View>
-        </View>
-      </View>
-    </GestureRecognizer>
+        </LinearGradient>
+      </GestureRecognizer>
+    </SafeAreaView>
   );
 };
 
@@ -789,7 +795,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#2A2A2A",
+    backgroundColor: "#1a1a2e",
   },
   noSongText: {
     color: "#fff",
@@ -798,83 +804,57 @@ const styles = StyleSheet.create({
   },
   mainBg: {
     flex: 1,
-    backgroundColor: "#2A2A2A",
     borderTopLeftRadius: 35,
     borderTopRightRadius: 35,
   },
   topContainer: {
     flex: 1,
     alignItems: "center",
-    paddingTop: height * 0.05,
-  },
-  textFont: {
-    fontFamily: "Poppins-SemiBold",
-    fontSize: width * 0.038,
-    color: "#fff",
-  },
-  textFontLyric: {
-    fontFamily: "Poppins-SemiBold",
-    fontSize: width * 0.038,
-    color: "#fff",
-    paddingLeft: 15,
-    paddingRight: 10,
-    paddingBottom: 2,
-    paddingTop: 3,
-    borderColor: "#696969",
-    borderWidth: 1,
-    borderRadius: 10,
-  },
-  lyricsData: {
-    width: "100%",
-    display: "flex",
-    alignItems: "center",
-    overflowY: "Scroll",
-    gap: 8,
-  },
-  noLyrics: {
-    fontSize: 15,
-    fontFamily: "Poppins-SemiBold",
-    color: "#fff",
-  },
-  checkMore: {
-    padding: 12,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    marginTop: 10,
-  },
-  checkText: {
-    fontSize: 15,
-    fontFamily: "Poppins-SemiBold",
-    color: "#000",
+    paddingTop: height * 0.02,
   },
 
-  lyricsDataText: {
-    minWidth: "90%",
-    color: "#fff",
-    padding: 5,
-    fontSize: 15,
-    fontFamily: "Poppins-SemiBold",
+  headerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: width * 0.05,
+    width: "100%",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 100,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderWidth: 1,
-    borderColor: "#696969",
-    borderRadius: 10,
-    marginTop: 20,
+    borderColor: "rgba(255, 255, 255, 0.2)",
   },
-  lyricsDataTitle: {
-    color: "#fff",
-    padding: 5,
-    fontSize: 12,
-    fontFamily: "Poppins-Regular",
-  },
-  lyricsDataAlbum: {
-    color: "#fff",
-    padding: 5,
-    fontSize: 15,
+  headerTitle: {
     fontFamily: "Poppins-SemiBold",
+    fontSize: width * 0.04,
+
+    color: "white",
+    letterSpacing: 1,
+    flex: 1,
+    textAlign: "center",
+  },
+  headerButtonsContainer: {
+    width: 100,
+    alignItems: "flex-end",
+  },
+  lyricsButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
   },
   activeLyricsButton: {
-    backgroundColor: "#696969",
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     shadowColor: "#fff",
-    color: "#fff",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -883,41 +863,92 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  activeLyricsText: {
-    color: "#fff",
-  },
-  Lyrics: {
-    position: "absolute",
-    textAlign: "center",
-    left: 70,
-    top: -27,
-    borderRadius: 10,
-  },
-  textFont2: {
+  lyricsButtonText: {
     fontFamily: "Poppins-SemiBold",
-    fontSize: width * 0.038,
+    fontSize: width * 0.035,
     color: "#fff",
   },
-  header: {
-    width: "100%",
-    alignItems: "center",
+  moreButtonContainer: {
     position: "relative",
+    width: 50,
+    alignItems: "flex-end",
   },
-  backBtn: {
-    width: 20,
-    height: 20,
+  moreButton: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 20,
+  },
+  moreBg: {
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    padding: 12,
+    borderRadius: 12,
     position: "absolute",
-    top: -25,
-    right: 140,
+    top: 50,
+    right: 0,
+    minWidth: 150,
+    gap: 8,
+    zIndex: 50,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  moreText: {
+    fontFamily: "Poppins-Regular",
+    color: "#000",
+    fontSize: 15,
+  },
+  divider: {
+    width: 100,
+    borderWidth: 1,
+    borderColor: "rgba(0, 0, 0, 0.1)",
   },
   imageContainer: {
-    marginVertical: height * 0.07,
+    marginVertical: height * 0.03,
+    alignItems: "center",
   },
   musicImg: {
     width: width * 0.8,
     height: width * 0.8,
-    backgroundColor: "#d7d7d7",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
     objectFit: "cover",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  songInfoBelowImage: {
+    marginTop: 24,
+    alignItems: "center",
+    width: width * 0.8,
+  },
+  songTitle: {
+    fontFamily: "Nunito-Black",
+    fontSize: width * 0.065,
+    color: "#fff",
+    textAlign: "center",
+    marginBottom: 6,
+  },
+  artistRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  artistName: {
+    fontFamily: "Nunito-Regular",
+    fontSize: width * 0.04,
+    color: "rgba(255, 255, 255, 0.7)",
+    textAlign: "center",
   },
   lyricsContainer: {
     width: width * 0.9,
@@ -938,7 +969,7 @@ const styles = StyleSheet.create({
   },
   lyricText: {
     fontSize: width * 0.04,
-    color: "#ccc",
+    color: "rgba(255, 255, 255, 0.4)",
     textAlign: "center",
     fontFamily: "Nunito-Regular",
     lineHeight: width * 0.05,
@@ -947,13 +978,13 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontFamily: "Nunito-Bold",
     fontSize: width * 0.05,
-    textShadowColor: "rgba(74, 144, 226, 0.5)",
+    textShadowColor: "rgba(255, 255, 255, 0.3)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 8,
     padding: 12,
   },
   nearLyricText: {
-    color: "#e0e0e0",
+    color: "rgba(255, 255, 255, 0.6)",
     fontSize: width * 0.042,
   },
   loadingContainer: {
@@ -973,7 +1004,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   errorText: {
-    color: "#ccc",
+    color: "rgba(255, 255, 255, 0.7)",
     fontFamily: "Poppins-SemiBold",
     fontSize: width * 0.044,
     textAlign: "center",
@@ -981,99 +1012,102 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   errorSubText: {
-    color: "#aaa",
+    color: "rgba(255, 255, 255, 0.5)",
     fontFamily: "Poppins-Regular",
     fontSize: width * 0.038,
     textAlign: "center",
   },
-  musicBg: {
-    backgroundColor: "#000",
+  checkMore: {
+    padding: 12,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    marginTop: 10,
+  },
+  checkText: {
+    fontSize: 15,
+    fontFamily: "Poppins-SemiBold",
+    color: "#000",
+  },
+  lyricsData: {
+    width: "100%",
+    alignItems: "center",
+    gap: 8,
+  },
+  lyricsDataText: {
+    minWidth: "90%",
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 10,
+    marginTop: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+  },
+  lyricsDataTitle: {
+    color: "rgba(255, 255, 255, 0.7)",
+    padding: 5,
+    fontSize: 12,
+    fontFamily: "Poppins-Regular",
+  },
+  lyricsDataAlbum: {
+    color: "#fff",
+    padding: 5,
+    fontSize: 15,
+    fontFamily: "Poppins-SemiBold",
+  },
+  controlsSection: {
     borderTopLeftRadius: 35,
     borderTopRightRadius: 35,
     padding: width * 0.05,
-    paddingBottom: height * 0.05,
-  },
-  songRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    paddingBottom: height * 0.08,
     alignItems: "center",
-    marginBottom: height * 0.02,
-    padding: 5,
   },
-  moreBg: {
-    backgroundColor: "#fff",
-    padding: 15,
-    borderRadius: 15,
-    position: "absolute",
-    right: 45,
-    top: 20,
-    display: "flex",
-    flexDirection: "flex-col",
+  favoriteButton: {
+    width: 48,
+    height: 48,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
-    gap: 8,
-    zIndex: 50,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.15)",
   },
-  moreText: {
-    fontFamily: "Poppins-Regular",
-    color: "#000",
-    fontSize: 15,
-  },
-  songInfoContainer: {
-    flex: 1,
-    marginRight: 10,
-  },
-  musicText: {
-    fontFamily: "Nunito-Black",
-    fontSize: width * 0.06,
-    color: "#fff",
-  },
-  musicArtist: {
-    fontFamily: "Nunito-Regular",
-    fontSize: width * 0.045,
-    color: "#fff",
-  },
-  downloadButton: {
-    width: 44,
-    height: 44,
-    backgroundColor: "#2B2B2B",
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  downloadSize: {
-    width: 20,
-    height: 20,
-  },
-  moreSize: {
-    position: "absolute",
-    left: 130,
-    top: -25,
+  favoriteIcon: {
+    width: 24,
+    height: 24,
   },
   timeRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 5,
+    width: width * 0.9,
+    marginTop: 10,
+  },
+  timeText: {
+    fontFamily: "Poppins-SemiBold",
+    fontSize: width * 0.035,
+    color: "rgba(255, 255, 255, 0.6)",
   },
   controlsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: height * 0.05,
+    marginTop: height * 0.08,
+    width: width * 0.9,
   },
   controlButton: {
-    width: 35,
-    height: 35,
-    borderRadius: 17.5,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
   },
   activeControlButton: {
-    backgroundColor: "#2C2C2C",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.15)",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
   },
   controlIcon: {
-    width: 20,
-    height: 20,
+    width: 22,
+    height: 22,
   },
   disabledButton: {
     opacity: 0.3,
@@ -1084,41 +1118,26 @@ const styles = StyleSheet.create({
     gap: width * 0.09,
   },
   playPauseButton: {
-    width: width * 0.19,
-    height: width * 0.16,
+    width: width * 0.2,
+    height: width * 0.2,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 100,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 12,
-    marginBottom: 10,
-    backgroundColor: "#2C2C2C",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.15)",
   },
   playPauseIcon: {
-    width: 25,
-    height: 25,
+    width: 28,
+    height: 28,
   },
   activeIcon: {
     tintColor: "#fff",
-  },
-  radioInfoContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginVertical: 20,
-    gap: 10,
-  },
-  radioLiveText: {
-    color: "#fff",
-    fontSize: 16,
-    fontFamily: "Nunito-Bold",
   },
   liveIndicator: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: "#ff0000",
-    marginTop: 5,
-    animationName: "pulse",
-    animationDuration: "2s",
-    animationIterationCount: "infinite",
   },
 });

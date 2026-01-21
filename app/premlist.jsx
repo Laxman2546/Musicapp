@@ -12,8 +12,8 @@ import React, { useRef } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import useFetch from "@/services/useFetch";
 import { fetchMusic } from "@/services/api";
-import backIcon from "@/assets/images/previous.png";
 import Trending from "@/components/trending";
+import { ChevronLeft } from "lucide-react-native";
 
 const HEADER_MAX_HEIGHT = 300;
 const HEADER_MIN_HEIGHT = 100;
@@ -39,7 +39,6 @@ const Premlist = () => {
     router.back();
   };
 
- 
   const headerHeight = scrollY.interpolate({
     inputRange: [0, HEADER_SCROLL_DISTANCE],
     outputRange: [HEADER_MAX_HEIGHT, HEADER_MIN_HEIGHT],
@@ -91,7 +90,7 @@ const Premlist = () => {
         >
           <Image
             source={imageSource(designImage)}
-            resizeMode="cover"
+            resizeMode="contain"
             style={styles.designImage}
           />
           <View style={styles.overlay} />
@@ -99,7 +98,7 @@ const Premlist = () => {
 
         <Pressable onPress={handleBack} style={styles.backButton}>
           <View style={styles.backButtonCircle}>
-            <Image source={backIcon} style={styles.backIcon} />
+            <ChevronLeft size={34} color={"#fff"} />
           </View>
         </Pressable>
 
@@ -219,15 +218,13 @@ const styles = StyleSheet.create({
   backButtonCircle: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    justifyContent: "center",
+    borderRadius: 100,
+    display: "flex",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    justifyContent: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
   },
   backIcon: {
     width: 24,

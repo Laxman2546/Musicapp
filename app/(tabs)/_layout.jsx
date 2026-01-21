@@ -2,10 +2,6 @@ import { Image, Text, View, Pressable, StyleSheet } from "react-native";
 import React, { useEffect, useState } from "react";
 import { Tabs, usePathname, useRouter } from "expo-router";
 import { useFonts } from "expo-font";
-import playSong from "@/assets/images/playIcon.png";
-import pauseSong from "@/assets/images/pauseIcon.png";
-import playnextSong from "@/assets/images/nextIcon.png";
-import playpreviousSong from "@/assets/images/previousIcon.png";
 import { usePlayer } from "@/context/playerContext";
 import WelcomeComponent from "@/components/welcomeComponent";
 import musicPlay from "@/assets/images/playing.gif";
@@ -14,9 +10,10 @@ import Octicons from "@expo/vector-icons/Octicons";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import defaultMusicImage from "@/assets/images/musicImage.png";
-import { getColors } from "react-native-image-colors";
 import "@/global.css";
 import he from "he";
+import { getColorsForImage } from "@/services/Colors";
+import TextTicker from "react-native-text-ticker";
 const RootLayout = () => {
   const router = useRouter();
   const pathname = usePathname();
@@ -32,7 +29,6 @@ const RootLayout = () => {
     "Nunito-Bold": require("@/assets/fonts/Nunito-ExtraBold.ttf"),
     "Poppins-Regular": require("@/assets/fonts/Poppins-Regular.ttf"),
     "Poppins-SemiBold": require("@/assets/fonts/Poppins-SemiBold.ttf"),
-    "Audiowide-Regular": require("@/assets/fonts/Audiowide-Regular.ttf"),
     Octicons: require("@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Octicons.ttf"),
   });
   const cleanSongName = (name) => {
@@ -48,31 +44,17 @@ const RootLayout = () => {
   }, [fontsLoaded, error]);
 
   useEffect(() => {
-    const getColorsForImage = async () => {
+    const fetchColors = async () => {
       if (!currentSong?.image) {
         setColors(null);
         return;
       }
-      try {
-        const imageSource = getImageSource(currentSong.image);
-        const cacheKey =
-          typeof imageSource === "object" && imageSource.uri
-            ? imageSource.uri
-            : String(imageSource);
-        const result = await getColors(imageSource, {
-          fallback: "#333",
-          cache: true,
-          key: cacheKey,
-        });
-        setColors(result);
-        // console.log(result);
-      } catch (error) {
-        console.log("Color error:", error);
-        setColors(null);
-      }
+      const imageSource = getImageSource(currentSong?.image);
+      const result = await getColorsForImage(imageSource);
+      setColors(result);
     };
 
-    getColorsForImage();
+    fetchColors();
   }, [currentSong?.image]);
 
   const getImageSource = (image) => {
@@ -221,10 +203,7 @@ const RootLayout = () => {
             style={[
               styles.miniPlayerContainer,
               {
-                backgroundColor:
-                  colors?.darkVibrant == "#333333"
-                    ? colors?.vibrant
-                    : colors?.darkVibrant || "rgba(0,0,0,0.8)",
+                backgroundColor: colors?.darkVibrant || "rgba(0,0,0,0.8)",
               },
             ]}
           >
@@ -243,10 +222,17 @@ const RootLayout = () => {
               )}
 
               <View style={styles.songTextContainer}>
-                <Text numberOfLines={1} style={styles.songTitle}>
+                <TextTicker
+                  duration={15000}
+                  bounce
+                  repeatSpacer={50}
+                  marqueeDelay={3000}
+                  numberOfLines={1}
+                  style={styles.songTitle}
+                >
                   {cleanSongName(currentSong.song || currentSong.title) ||
                     "Unkown Name"}
-                </Text>
+                </TextTicker>
                 <Text numberOfLines={1} style={styles.songArtist}>
                   {currentSong.primary_artists ||
                     currentSong.music ||
@@ -255,17 +241,20 @@ const RootLayout = () => {
               </View>
             </Pressable>
             <View style={styles.controlsContainer}>
-              <Pressable onPress={playPrevious} hitSlop={10}>
-                <Image source={playpreviousSong} style={styles.controlIcon} />
+              <Pressable onPress={playPrevious} hitSlop={10} className="mr-1">
+                <Ionicons name="play-back" size={20} color="white" />
               </Pressable>
               <Pressable onPress={handlePlayPause} hitSlop={10}>
-                <Image
-                  source={isPlaying ? pauseSong : playSong}
-                  style={styles.controlIcon}
-                />
+                <View>
+                  {isPlaying ? (
+                    <Ionicons name="pause" size={24} color="white" />
+                  ) : (
+                    <Ionicons name="play" size={24} color="white" />
+                  )}
+                </View>
               </Pressable>
-              <Pressable onPress={playNext} hitSlop={10}>
-                <Image source={playnextSong} style={styles.controlIcon} />
+              <Pressable onPress={playNext} hitSlop={10} className="ml-1">
+                <Ionicons name="play-forward" size={20} color="white" />
               </Pressable>
             </View>
           </View>

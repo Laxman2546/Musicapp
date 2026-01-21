@@ -2,10 +2,10 @@ import { Image, Pressable, Text, TouchableOpacity, View } from "react-native";
 import React, { memo, useEffect, useState } from "react";
 import { usePlayer } from "@/context/playerContext";
 import { router } from "expo-router";
-import moreIcon from "@/assets/images/more.png";
 import trash from "@/assets/images/removeHeart.png";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import defaultMusicImage from "@/assets/images/musicImage.png";
+import { EllipsisVerticalIcon } from "lucide-react-native";
 
 const likedSongComponent = ({
   type,
@@ -68,7 +68,7 @@ const likedSongComponent = ({
     const newIndex = formattedAllSongs.findIndex(
       (s) =>
         s.song === songObject.song &&
-        s.primary_artists === songObject.primary_artists
+        s.primary_artists === songObject.primary_artists,
     );
 
     if (newIndex === -1) {
@@ -86,7 +86,7 @@ const likedSongComponent = ({
     const seconds = Math.floor(duration % 60);
     return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(
       2,
-      "0"
+      "0",
     )}`;
   };
 
@@ -95,7 +95,7 @@ const likedSongComponent = ({
       const data = await AsyncStorage.getItem("favouriteSongs");
       let songs = data ? JSON.parse(data) : [];
       songs = songs.filter(
-        (s) => !(s.song === song && s.primary_artists === primary_artists)
+        (s) => !(s.song === song && s.primary_artists === primary_artists),
       );
       await AsyncStorage.setItem("favouriteSongs", JSON.stringify(songs));
       if (songs.length === 0) {
@@ -190,7 +190,7 @@ const likedSongComponent = ({
                     </Text>
                   </View>
 
-                  <View className="pr-16">
+                  <View className="pr-7">
                     <Text
                       numberOfLines={1}
                       style={{ fontFamily: "Poppins-Regular" }}
@@ -203,7 +203,7 @@ const likedSongComponent = ({
 
               <View className="flex gap-3 absolute right-1 top-1 items-center">
                 <Pressable onPress={() => setShowmore(!showMore)}>
-                  <Image source={moreIcon} style={{ width: 20, height: 20 }} />
+                  <EllipsisVerticalIcon color="#333" />
                 </Pressable>
                 <Text style={{ fontFamily: "Poppins-Regular" }}>
                   {convertDuration(duration)}

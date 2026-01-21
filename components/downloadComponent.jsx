@@ -2,11 +2,10 @@ import { Image, Pressable, Text, TouchableOpacity, View } from "react-native";
 import React, { memo, useEffect, useState } from "react";
 import { usePlayer } from "@/context/playerContext";
 import { router } from "expo-router";
-import moreIcon from "@/assets/images/more.png";
-import trash from "@/assets/images/trash.png";
 import * as FileSystem from "expo-file-system";
 import defaultMusicImage from "@/assets/images/musicImage.png";
 import musicPlay from "@/assets/images/playing.gif";
+import { EllipsisVerticalIcon, Trash2 } from "lucide-react-native";
 
 const downloadsDir = `${FileSystem.documentDirectory}downloads/`;
 
@@ -82,7 +81,7 @@ const DownloadComponent = ({
     const seconds = Math.floor(duration % 60);
     return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(
       2,
-      "0"
+      "0",
     )}`;
   };
 
@@ -106,7 +105,7 @@ const DownloadComponent = ({
       try {
         const files = await FileSystem.readDirectoryAsync(downloadsDir);
         const imageFiles = files.filter((file) =>
-          file.startsWith(`${fileId}_artwork`)
+          file.startsWith(`${fileId}_artwork`),
         );
         for (const imageFile of imageFiles) {
           await FileSystem.deleteAsync(`${downloadsDir}${imageFile}`);
@@ -213,7 +212,7 @@ const DownloadComponent = ({
 
           <View className="flex gap-3 absolute right-1 items-center">
             <Pressable onPress={() => setShowmore(!showMore)}>
-              <Image source={moreIcon} style={{ width: 20, height: 20 }} />
+              <EllipsisVerticalIcon color="#333" />
             </Pressable>
             <Text style={{ fontFamily: "Poppins-Regular" }}>
               {convertDuration(duration)}
@@ -229,7 +228,7 @@ const DownloadComponent = ({
                 >
                   Delete song
                 </Text>
-                <Image source={trash} style={{ width: 20, height: 20 }} />
+                <Trash2 size={20} color={"#fff"} />
               </View>
             </Pressable>
           )}

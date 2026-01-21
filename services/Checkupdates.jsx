@@ -1,6 +1,8 @@
-export const checkForUpdates = async () => {
+import { Alert } from "react-native";
+import * as Updates from "expo-updates";
+
+export const checkForUpdates = async (isClicked = false) => {
   try {
-    setChecking(true);
     const update = await Updates.checkForUpdateAsync();
 
     if (update.isAvailable) {
@@ -27,30 +29,30 @@ export const checkForUpdates = async () => {
                         await Updates.reloadAsync();
                       },
                     },
-                  ],
+                  ]
                 );
               } catch (error) {
                 Alert.alert(
                   "Error",
-                  "Failed to download the update. Please try again later.",
+                  "Failed to download the update. Please try again later."
                 );
               }
             },
           },
-        ],
+        ]
       );
     } else {
-      if (isClicked)
+      if (isClicked) {
         Alert.alert("No Updates", "You're running the latest version!");
+      }
     }
   } catch (error) {
     console.error("Error checking for updates:", error);
-    if (isClicked)
+    if (isClicked) {
       Alert.alert(
         "Error",
-        "Failed to check for updates. Please try again later.",
+        "Failed to check for updates. Please try again later."
       );
-  } finally {
-    setChecking(false);
+    }
   }
 };

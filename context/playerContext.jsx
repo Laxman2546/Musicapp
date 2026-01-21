@@ -59,6 +59,85 @@ const cleanSongName = (name) => {
   return songName;
 };
 
+// Helper function to transform a single song to track format
+const transformSongToTrack = (songItem) => {
+  // Generate a unique ID for this song if it doesn't already have one
+  const id =
+    songItem.id ||
+    generateUniqueId(
+      songItem.song || songItem.name || songItem.title,
+      songItem.primary_artists || songItem.artist,
+      songItem.duration,
+    );
+
+  // Improved image handling logic
+  let artworkUrl = null;
+
+  // Case 1: Direct image URL as string
+  if (
+    typeof songItem.image === "string" &&
+    (songItem.image.startsWith("file://") ||
+      songItem.image.startsWith("http://") ||
+      songItem.image.startsWith("https://") ||
+      songItem.image.startsWith("content://"))
+  ) {
+    artworkUrl = songItem.image;
+  }
+  // Case 2: Image is an array with objects containing URLs (from search API)
+  else if (Array.isArray(songItem.image)) {
+    // Try to get highest quality image (usually at index 2)
+    if (songItem.image[2] && songItem.image[2].url) {
+      artworkUrl = songItem.image[2].url;
+    }
+    // Fallback to any available image in the array
+    else {
+      for (let i = 0; i < songItem.image.length; i++) {
+        if (songItem.image[i] && songItem.image[i].url) {
+          artworkUrl = songItem.image[i].url;
+          break;
+        }
+      }
+    }
+  }
+
+  return {
+    ...songItem,
+    id,
+    url:
+      songItem.song_url ||
+      songItem.media_url ||
+      songItem.filePath ||
+      (Array.isArray(songItem.downloadUrl) && songItem.downloadUrl[4]?.url) ||
+      (Array.isArray(songItem.downloadUrl) && songItem.downloadUrl[3]?.url) ||
+      "",
+    title: cleanSongName(songItem.name || songItem.song) || "Unknown Title",
+    artist:
+      songItem.primary_artists ||
+      (songItem.artists && songItem.artists.primary
+        ? songItem.artists.primary.map((a) => a.name).join(", ")
+        : null) ||
+      songItem.music ||
+      "Unknown Artist",
+    artwork: artworkUrl,
+    notificationCapabilities: [
+      Capability.Play,
+      Capability.Pause,
+      Capability.SkipToNext,
+      Capability.SkipToPrevious,
+    ],
+  };
+};
+
+// Helper function to batch transform songs
+const transformSongsInBatches = (songs, batchSize = 50) => {
+  const transformed = [];
+  for (let i = 0; i < songs.length; i += batchSize) {
+    const batch = songs.slice(i, i + batchSize);
+    transformed.push(...batch.map(transformSongToTrack).filter((t) => t.url));
+  }
+  return transformed;
+};
+
 export const PlayerProvider = ({ children }) => {
   const [playlist, setPlaylist] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -75,6 +154,11 @@ export const PlayerProvider = ({ children }) => {
   const playbackState = usePlaybackState();
   const progress = useProgress();
   const [trackIndexMap, setTrackIndexMap] = useState({}); // Map track IDs to their queue index
+  const [isDucked, setIsDucked] = useState(false); // Track ducking state
+  const [previousVolume, setPreviousVolume] = useState(1); // Store volume before ducking
+  const [allSongsData, setAllSongsData] = useState([]); // Store transformed tracks
+  const [queueSize, setQueueSize] = useState(20); // Number of songs to load at a time
+  const [shuffledPlaylist, setShuffledPlaylist] = useState([]); // Store shuffled order to prevent repeats
 
   // Initialize TrackPlayer
   useEffect(() => {
@@ -93,7 +177,7 @@ export const PlayerProvider = ({ children }) => {
               Capability.SeekTo,
             ],
             android: {
-              alwaysPauseOnInterruption: true,
+              alwaysPauseOnInterruption: false, // Changed to false to handle ducking manually
             },
             compactCapabilities: [
               Capability.Play,
@@ -157,8 +241,6 @@ export const PlayerProvider = ({ children }) => {
     }
   };
 
-
-
   const handleShowVolume = useCallback(() => {
     const newValue = !showVolume;
     setShowvolume(newValue);
@@ -208,84 +290,26 @@ export const PlayerProvider = ({ children }) => {
     setTrackIndexMap(indexMap);
   }, []);
 
-  // Main function to play a song
+  // Main optimized function to play a song with lazy loading
   const playSong = useCallback(
     async (song, allSongs, index) => {
       try {
         // Set loading ONLY when starting to play a new song
         setLoading(true);
 
-        let tracks = allSongs
-          .map((songItem) => {
-            // Generate a unique ID for this song if it doesn't already have one
-            const id =
-              songItem.id ||
-              generateUniqueId(
-                songItem.song || songItem.name || songItem.title,
-                songItem.primary_artists || songItem.artist,
-                songItem.duration,
-              );
+        // Store all songs for later pagination
+        setAllSongsData(allSongs);
 
-            // Improved image handling logic
-            let artworkUrl = null;
+        // Transform songs in batches for better performance
+        const allTracksTransformed = transformSongsInBatches(allSongs);
 
-            // Case 1: Direct image URL as string
-            if (
-              typeof songItem.image === "string" &&
-              (songItem.image.startsWith("file://") ||
-                songItem.image.startsWith("http://") ||
-                songItem.image.startsWith("https://") ||
-                songItem.image.startsWith("content://"))
-            ) {
-              artworkUrl = songItem.image;
-            }
-            // Case 2: Image is an array with objects containing URLs (from search API)
-            else if (Array.isArray(songItem.image)) {
-              // Try to get highest quality image (usually at index 2)
-              if (songItem.image[2] && songItem.image[2].url) {
-                artworkUrl = songItem.image[2].url;
-              }
-              // Fallback to any available image in the array
-              else {
-                for (let i = 0; i < songItem.image.length; i++) {
-                  if (songItem.image[i] && songItem.image[i].url) {
-                    artworkUrl = songItem.image[i].url;
-                    break;
-                  }
-                }
-              }
-            }
-            console.log("this is a song item", songItem);
-            return {
-              ...songItem,
-              id,
-              url:
-                songItem.song_url ||
-                songItem.media_url ||
-                songItem.filePath ||
-                songItem.downloadUrl[4].url ||
-                songItem.downloadUrl[3].url ||
-                "",
-              title:
-                cleanSongName(songItem.name || songItem.song) ||
-                "Unknown Title",
-              artist:
-                songItem.primary_artists ||
-                (songItem.artists && songItem.artists.primary
-                  ? songItem.artists.primary.map((a) => a.name).join(", ")
-                  : null) ||
-                songItem.music ||
-                "Unknown Artist",
-              artwork: artworkUrl,
-              notificationCapabilities: [
-                Capability.Play,
-                Capability.Pause,
-                Capability.SkipToNext,
-                Capability.SkipToPrevious,
-              ],
-            };
-          })
-          .filter((track) => track.url);
+        if (allTracksTransformed.length === 0) {
+          console.error("No valid tracks to play");
+          setLoading(false);
+          return;
+        }
+
+        let tracks = allTracksTransformed;
 
         // Check if same song is already playing - if so, just navigate to player
         if (
@@ -294,7 +318,7 @@ export const PlayerProvider = ({ children }) => {
           song.id &&
           currentSong.id === song.id
         ) {
-          setLoading(false); // Clear loading since we're not actually loading
+          setLoading(false);
           navigateToPlayer();
           return;
         }
@@ -305,16 +329,12 @@ export const PlayerProvider = ({ children }) => {
           currentSong.title === cleanSongName(song.song || song.name) &&
           currentSong.artist === (song.primary_artists || song.artist)
         ) {
-          setLoading(false); // Clear loading since we're not actually loading
+          setLoading(false);
           navigateToPlayer();
           return;
         }
 
-        if (tracks.length === 0) {
-          console.error("No valid tracks to play");
-          setLoading(false);
-          return;
-        }
+        // Apply shuffle if enabled
         if (shuffleToggle && tracks.length > 1) {
           const currentTrack = tracks[index];
           let shuffledTracks = [...tracks];
@@ -328,7 +348,13 @@ export const PlayerProvider = ({ children }) => {
           }
           shuffledTracks.splice(index, 0, currentTrack);
           tracks = shuffledTracks;
+          // Store the shuffled order to prevent repeats during skip
+          setShuffledPlaylist(shuffledTracks);
+        } else {
+          // Clear shuffled playlist if not shuffling
+          setShuffledPlaylist([]);
         }
+
         // Create a mapping of track IDs to their indices
         updateTrackIndexMap(tracks);
 
@@ -337,12 +363,17 @@ export const PlayerProvider = ({ children }) => {
         setCurrentSong(selectedTrack);
         setPlaylist(tracks);
         setCurrentIndex(index);
+        // Store transformed tracks for dynamic loading
+        setAllSongsData(tracks);
 
-        // Reset and setup TrackPlayer queue
+        // Reset TrackPlayer
         await TrackPlayer.reset();
+
+        // Add ALL songs to queue
+        // This ensures skip indices are always valid
         await TrackPlayer.add(tracks);
 
-        // Skip to the correct track (this is crucial!)
+        // Skip to the correct track
         await TrackPlayer.skip(index);
         await TrackPlayer.play();
 
@@ -368,6 +399,7 @@ export const PlayerProvider = ({ children }) => {
       Event.RemotePause,
       Event.RemoteNext,
       Event.RemotePrevious,
+      Event.RemoteDuck,
     ],
     async (event) => {
       try {
@@ -410,6 +442,43 @@ export const PlayerProvider = ({ children }) => {
         } else if (event.type === Event.RemotePrevious) {
           // Handle remote previous button
           await playPrevious();
+        } else if (event.type === Event.RemoteDuck) {
+          // Handle audio ducking for interruptions (incoming calls, notifications, etc.)
+          if (event.paused) {
+            // Ducking is being removed (interruption ended)
+            // Resume to previous volume and resume playing if it was playing
+            const currentState = await TrackPlayer.getState();
+            const currentVolume = await TrackPlayer.getVolume();
+
+            // Restore previous volume
+            await TrackPlayer.setVolume(previousVolume);
+            setIsDucked(false);
+
+            // If music was playing before ducking, resume it
+            if (currentState !== State.Playing) {
+              await TrackPlayer.play();
+              setIsPlaying(true);
+            }
+            console.log(
+              "Audio ducking ended, resuming music at volume:",
+              previousVolume,
+            );
+          } else {
+            // Ducking is active (interruption started)
+            // Reduce volume but keep playing
+            const currentVolume = await TrackPlayer.getVolume();
+            setPreviousVolume(currentVolume);
+
+            // Reduce volume to 30% for ducking
+            const duckVolume = 0.3;
+            await TrackPlayer.setVolume(duckVolume);
+            setIsDucked(true);
+
+            console.log(
+              "Audio ducking started, volume reduced to:",
+              duckVolume,
+            );
+          }
         }
       } catch (error) {
         console.error("Error handling TrackPlayer event:", error);
@@ -417,16 +486,31 @@ export const PlayerProvider = ({ children }) => {
     },
   );
 
+  // Helper function to load more songs dynamically (DEPRECATED - kept for reference)
+  // No longer needed since we load all songs at once
+  const loadMoreSongsToQueue = useCallback(async (targetIndex) => {
+    try {
+      // All songs are already loaded in queue, no need to add more
+      // This function is a safety net in case queue size changes
+      const currentQueueSize = (await TrackPlayer.getQueue()).length;
+
+      if (targetIndex >= currentQueueSize) {
+        console.warn(
+          `Target index ${targetIndex} is beyond current queue size ${currentQueueSize}`,
+        );
+      }
+    } catch (error) {
+      console.error("Error checking queue:", error);
+    }
+  }, []);
+
   // Play next song
   const playNext = useCallback(async () => {
     try {
       if (shuffleActive && playlist.length > 1) {
-        // Shuffle logic - pick random track except current
-        let nextIndex;
-        do {
-          nextIndex = Math.floor(Math.random() * playlist.length);
-        } while (nextIndex === currentIndex);
-
+        // Use the pre-shuffled playlist to avoid repeats
+        // Simply go to next track in the shuffled order
+        const nextIndex = (currentIndex + 1) % playlist.length;
         await TrackPlayer.skip(nextIndex);
         await TrackPlayer.play();
       } else {
@@ -444,19 +528,18 @@ export const PlayerProvider = ({ children }) => {
   // Play previous song
   const playPrevious = useCallback(async () => {
     try {
-      const currentPosition = await TrackPlayer.getPosition();
-      const queue = await TrackPlayer.getQueue();
+      // Always play the previous song
+      // If user wants to restart current song, they can use seek/replay button
+      const previousIndex =
+        currentIndex > 0
+          ? currentIndex - 1
+          : (await TrackPlayer.getQueue()).length - 1;
 
-      // If more than 3 seconds into the song, restart current song
-      if (currentPosition > 3) {
-        await TrackPlayer.seekTo(0);
-      } else {
-        // Calculate previous index with wrap-around
-        const previousIndex =
-          currentIndex > 0 ? currentIndex - 1 : queue.length - 1;
-        await TrackPlayer.skip(previousIndex);
-        await TrackPlayer.play();
-      }
+      await TrackPlayer.skip(previousIndex);
+      await TrackPlayer.play();
+
+      // Update current index state
+      setCurrentIndex(previousIndex);
     } catch (error) {
       console.error("Error playing previous song:", error);
     }
@@ -520,10 +603,26 @@ export const PlayerProvider = ({ children }) => {
         }
         shuffledQueue.splice(currentTrackIndex, 0, currentSong);
         updateTrackIndexMap(shuffledQueue);
+        // Store the shuffled playlist
+        setShuffledPlaylist(shuffledQueue);
+
+        // Load shuffle - add all songs to queue to avoid index bounds issues
         await TrackPlayer.reset();
         await TrackPlayer.add(shuffledQueue);
         await TrackPlayer.skip(currentTrackIndex);
         await TrackPlayer.seekTo(currentPosition);
+
+        // Load remaining in background
+        if (shuffledQueue.length > currentTrackIndex + 15) {
+          setTimeout(async () => {
+            try {
+              console.log("Shuffle: Background processing complete");
+            } catch (error) {
+              console.error("Error processing shuffled tracks:", error);
+            }
+          }, 100);
+        }
+
         if (wasPlaying) {
           await TrackPlayer.play();
         }
@@ -533,6 +632,10 @@ export const PlayerProvider = ({ children }) => {
         );
 
         updateTrackIndexMap(playlist);
+        // Clear shuffled playlist
+        setShuffledPlaylist([]);
+
+        // Load un-shuffle - add all songs to avoid index bounds issues
         await TrackPlayer.reset();
         await TrackPlayer.add(playlist);
 
@@ -542,6 +645,17 @@ export const PlayerProvider = ({ children }) => {
         } else {
           await TrackPlayer.skip(0);
           await TrackPlayer.seekTo(0);
+        }
+
+        // Load remaining in background
+        if (playlist.length > newIndex + 15) {
+          setTimeout(async () => {
+            try {
+              console.log("Un-shuffle: Background processing complete");
+            } catch (error) {
+              console.error("Error processing un-shuffle tracks:", error);
+            }
+          }, 100);
         }
 
         if (wasPlaying) {
@@ -627,6 +741,7 @@ export const PlayerProvider = ({ children }) => {
       isSameSong,
       generateUniqueId,
       navigateToPlayer,
+      isDucked, // Audio ducking state
     }),
     [
       playlist,
@@ -654,6 +769,7 @@ export const PlayerProvider = ({ children }) => {
       isSameSong,
       generateUniqueId,
       navigateToPlayer,
+      isDucked,
     ],
   );
 

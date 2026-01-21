@@ -18,16 +18,12 @@ import useFetch from "@/services/useFetch";
 import { fetchMusic, getNextPlaylist } from "../../services/api";
 import searchImg from "@/assets/images/search.png";
 import closeImg from "@/assets/images/close.png";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useFocusEffect } from "@react-navigation/native";
 import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
 import data from "@/constants/all";
 import PlaylistComponent from "@/components/playlistComponent";
-import Feather from "@expo/vector-icons/Feather";
 import Recentrelease from "@/components/Recentrelease";
 import Radios from "@/components/Radios";
-import userIcon from "@/assets/images/user.png";
 import { SvgUri } from "react-native-svg";
 import { checkForUpdates } from "@/services/Checkupdates";
 import { useSettings } from "@/context/SettingsContext";
@@ -72,9 +68,9 @@ const Home = () => {
     }
   }, []);
 
-  // useEffect(() => {
-  //   checkForUpdates();
-  // }, []);
+  useEffect(() => {
+    checkForUpdates();
+  }, []);
   const handleEndReached = async () => {
     if (loading || loadingMore || endReached) return;
 
@@ -261,13 +257,13 @@ const Home = () => {
 
         {active === "All" ? (
           <>
-            {/* <ScrollView
+            <ScrollView
               contentContainerStyle={styles.scrollContainer}
               showsVerticalScrollIndicator={false}
             >
               <>
                 <View className="pl-5">
-                  {loading || (!data && !error) ? (
+                  {loading || (!data && !showRecently && !error) ? (
                     <ActivityIndicator
                       size="large"
                       color="#000"
@@ -300,7 +296,7 @@ const Home = () => {
                   )}
                 </View>
               </>
-            </ScrollView> */}
+            </ScrollView>
           </>
         ) : (
           <>

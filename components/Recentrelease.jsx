@@ -189,11 +189,8 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-SemiBold",
     fontSize: 20,
     marginBottom: 5,
-    paddingHorizontal: 15,
   },
-  listContent: {
-    paddingHorizontal: 10,
-  },
+
   column: {
     width: COLUMN_WIDTH,
     marginRight: 20,

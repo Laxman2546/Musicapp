@@ -46,15 +46,10 @@ const Settings = () => {
   } = usePlayer();
 
   return (
-    <View style={{ flex: 1 }} className=" pt-16">
+    <View style={{ flex: 1 }} className=" pt-10">
       <View className="w-full  p-5 flex flex-row gap-3 items-center  mt-3">
-        <Pressable onPress={handleBack}>
-          <Ionicons
-            name="arrow-back-outline"
-            size={25}
-            color="black"
-            className="p-2 bg-gray-300 rounded-full"
-          />
+        <Pressable onPress={handleBack} style={styles.backButtonCircle}>
+          <Ionicons name="arrow-back-outline" size={25} color="black" />
         </Pressable>
         <Text style={styles.textStyle} className="text-xl">
           Settings
@@ -224,7 +219,7 @@ const Settings = () => {
           <Text style={styles.textStyle} className="text-lg">
             App Updates
           </Text>
-          <Pressable onPress={checkForUpdates}>
+          <Pressable onPress={() => checkForUpdates(true)}>
             <View className="p-5 rounded-xl border-2 border-blue-100  bg-blue-50 shadow-md flex flex-col gap-4">
               <View className=" flex flex-row  items-center justify-between">
                 <Text className="font-medium text-md">Check for Updates</Text>
@@ -269,5 +264,16 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-SemiBold",
     fontSize: 15,
     color: "#333",
+  },
+  backButtonCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 100,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255, 255, 250, 0.9)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.9)",
   },
 });

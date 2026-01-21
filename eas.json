@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">= 3.0.0"
+    "version": ">= 3.0.0",
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
@@ -11,38 +12,18 @@
       }
     },
     "preview": {
-      "android": {
-        "buildType": "apk"
-      },
+      "distribution": "internal",
       "channel": "preview",
-      "distribution": "internal"
-    },
-    "preview2": {
-      "android": {
-        "gradleCommand": ":app:assembleRelease"
-      },
-      "channel": "preview"
-    },
-    "preview3": {
-      "developmentClient": true,
-      "distribution": "internal",
-      "android": {
-        "buildType": "apk"
-      }
-    },
-    "devbuild": {
-      "developmentClient": true,
-      "distribution": "internal",
       "android": {
         "buildType": "apk"
       }
     },
     "production": {
-      "android": {
-        "buildType": "apk"
-      },
       "distribution": "store",
-      "channel": "production"
+      "channel": "production",
+      "android": {
+        "buildType": "aab"
+      }
     }
   }
 }

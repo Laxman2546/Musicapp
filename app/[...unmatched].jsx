@@ -1,7 +1,6 @@
 import { StyleSheet, Text, View, Pressable, Image } from "react-native";
 import React, { useEffect } from "react";
 import { router } from "expo-router";
-import backIcon from "@/assets/images/backImg.png";
 
 export default function NotFoundScreen() {
   useEffect(() => {
@@ -24,7 +23,6 @@ export default function NotFoundScreen() {
         </Text>
         <Pressable onPress={handleBack} style={styles.button}>
           <View style={styles.buttonContainer}>
-            <Image source={backIcon} style={styles.backImg} />
             <Text style={styles.buttonText}>Go Back Player</Text>
           </View>
         </Pressable>
