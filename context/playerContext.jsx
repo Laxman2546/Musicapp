@@ -100,6 +100,14 @@ const transformSongToTrack = (songItem) => {
     }
   }
 
+  // Convert duration from seconds to milliseconds if it's a number
+  let duration = songItem.duration;
+  if (typeof duration === "string") {
+    duration = parseInt(duration, 10) * 1000;
+  } else if (typeof duration === "number") {
+    duration = duration * 1000;
+  }
+
   return {
     ...songItem,
     id,
@@ -119,6 +127,7 @@ const transformSongToTrack = (songItem) => {
       songItem.music ||
       "Unknown Artist",
     artwork: artworkUrl,
+    duration: duration,
     notificationCapabilities: [
       Capability.Play,
       Capability.Pause,

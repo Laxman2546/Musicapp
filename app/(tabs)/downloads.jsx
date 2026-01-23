@@ -9,19 +9,14 @@ import {
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { router } from "expo-router";
-import * as Updates from "expo-updates";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DownloadsFolder from "../downloadsFolder";
-import { checkForUpdates } from "../../services/Checkupdates";
 
 const downloads = () => {
   const [username, setUsername] = useState("user");
   const [editName, setEditname] = useState(false);
 
-  useEffect(() => {
-    checkForUpdates();
-  }, []);
 
   const handleLocal = () => {
     router.push("/localFiles");

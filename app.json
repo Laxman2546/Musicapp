@@ -3,6 +3,7 @@
   "slug": "nanimusic",
   "version": "1.0.1",
   "runtimeVersion": "1.0.1",
+  "scheme": "nanimusic",
 
   "orientation": "portrait",
   "icon": "./assets/images/appicon.png",
@@ -60,8 +61,6 @@
     ],
     "expo-build-properties"
   ],
-
-
 
   "extra": {
     "eas": {
