@@ -434,7 +434,10 @@ const MusicPlayer = () => {
                 >
                   <ChevronLeftIcon size={34} color={"#fff"} />
                 </Pressable>
-                <Text style={styles.headerTitle} className="ml-[50px]">
+                <Text
+                  style={styles.headerTitle}
+                  className="ml-[50px] text-nowrap"
+                >
                   {isRadioStream ? "Live Radio" : "Now Playing"}
                 </Text>
                 <View style={styles.headerButtonsContainer}>
@@ -1058,7 +1061,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 35,
     borderTopRightRadius: 35,
     padding: width * 0.05,
-    paddingBottom: height * 0.08,
+    paddingBottom: height * 0.06,
     alignItems: "center",
   },
   favoriteButton: {

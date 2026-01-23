@@ -14,12 +14,8 @@ import { useFocusEffect } from "@react-navigation/native";
 import DownloadComponent from "@/components/downloadComponent";
 import searchImg from "@/assets/images/search.png";
 import closeImg from "@/assets/images/close.png";
-import {
-  getDownloadsDirectory,
-  findDownloadsDirectory,
-  diagnoseDownloadsLocation,
-  clearDownloadsDirCache,
-} from "@/utils/storage";
+
+const DOWNLOAD_DIR = FileSystem.documentDirectory + "downloads/";
 
 const DownloadsFolder = () => {
   const [songs, setSongs] = useState([]);
@@ -27,7 +23,6 @@ const DownloadsFolder = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
-  const [downloadDir, setDownloadDir] = useState("");
 
   // Clean song name for display
   const cleanSongName = (name) => {
@@ -38,23 +33,10 @@ const DownloadsFolder = () => {
   const loadSongs = async () => {
     setLoading(true);
     try {
-      // Clear cache to ensure fresh directory lookup
-      clearDownloadsDirCache();
-
-      // Run diagnostic on load
-      await diagnoseDownloadsLocation();
-
-      // Get the downloads directory - checks all possible locations
-      const dir = await findDownloadsDirectory();
-      setDownloadDir(dir);
-
-      console.log("📂 Loading songs from:", dir);
-
       // Ensure downloads directory exists
-      const dirInfo = await FileSystem.getInfoAsync(dir);
+      const dirInfo = await FileSystem.getInfoAsync(DOWNLOAD_DIR);
       if (!dirInfo.exists) {
-        console.log("Directory does not exist, creating...");
-        await FileSystem.makeDirectoryAsync(dir, {
+        await FileSystem.makeDirectoryAsync(DOWNLOAD_DIR, {
           intermediates: true,
         });
         setSongs([]);
@@ -63,20 +45,15 @@ const DownloadsFolder = () => {
         return;
       }
 
-      const files = await FileSystem.readDirectoryAsync(dir);
-      console.log("Files found:", files);
+      const files = await FileSystem.readDirectoryAsync(DOWNLOAD_DIR);
 
       // Prefer JSON files for metadata reading
       const jsonFiles = files.filter((file) => file.endsWith(".json"));
-      console.log(`Found ${jsonFiles.length} JSON metadata files`);
 
       if (jsonFiles.length === 0) {
         // Fallback to MP3 files if no JSON metadata
         const mp3Files = files.filter((file) => file.endsWith(".mp3"));
-        console.log(`Found ${mp3Files.length} MP3 files`);
-
         if (mp3Files.length === 0) {
-          console.log("No downloads found");
           setSongs([]);
           setFilteredSongs([]);
           setLoading(false);
@@ -90,7 +67,7 @@ const DownloadsFolder = () => {
             return {
               id: baseName,
               song: cleanSongName(baseName),
-              filePath: `${dir}${fileName}`,
+              filePath: `${DOWNLOAD_DIR}${fileName}`,
               image: null,
               primary_artists: "Unknown Artist",
               duration: 0,
@@ -109,12 +86,13 @@ const DownloadsFolder = () => {
       const songData = await Promise.all(
         jsonFiles.map(async (jsonFile) => {
           try {
-            const jsonPath = `${dir}${jsonFile}`;
+            const jsonPath = `${DOWNLOAD_DIR}${jsonFile}`;
             const jsonContent = await FileSystem.readAsStringAsync(jsonPath);
             const metadata = JSON.parse(jsonContent);
 
             // Check if the MP3 file exists
-            const mp3Path = metadata.filePath || `${dir}${metadata.id}.mp3`;
+            const mp3Path =
+              metadata.filePath || `${DOWNLOAD_DIR}${metadata.id}.mp3`;
             const mp3Exists = await FileSystem.getInfoAsync(mp3Path);
 
             if (!mp3Exists.exists) {

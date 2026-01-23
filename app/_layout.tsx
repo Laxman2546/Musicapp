@@ -52,7 +52,22 @@ export default function RootLayout() {
       mounted = false;
     };
   }, []);
+  useEffect(() => {
+    return () => {
+      const finalCleanup = async () => {
+        try {
+          await TrackPlayer.stop();
+          await TrackPlayer.reset();
+          await Notifications.dismissAllNotificationsAsync();
+          await Notifications.cancelAllScheduledNotificationsAsync();
+        } catch (error) {
+          console.error("Final cleanup error:", error);
+        }
+      };
 
+      finalCleanup();
+    };
+  }, []);
   return (
     <PlayerProvider>
       <SettingsProvider>

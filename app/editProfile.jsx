@@ -193,7 +193,7 @@ const EditProfile = () => {
                 <View className="flex-row items-center gap-2">
                   <Ionicons name="shuffle-outline" size={18} color="#374151" />
                   <Text className="text-gray-800 font-semibold text-base">
-                    Change Avatar
+                    Change Emoji
                   </Text>
                 </View>
               </Pressable>

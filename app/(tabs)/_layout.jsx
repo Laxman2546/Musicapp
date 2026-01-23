@@ -141,6 +141,7 @@ const RootLayout = () => {
                       backgroundColor: state.pressed
                         ? "transparent"
                         : "transparent",
+                      borderRadius: 50,
                     },
                   ]}
                 />
@@ -225,7 +226,7 @@ const RootLayout = () => {
                 <TextTicker
                   duration={15000}
                   bounce
-                  repeatSpacer={50}
+                  repeatSpacer={30}
                   marqueeDelay={3000}
                   numberOfLines={1}
                   style={styles.songTitle}
@@ -233,11 +234,20 @@ const RootLayout = () => {
                   {cleanSongName(currentSong.song || currentSong.title) ||
                     "Unkown Name"}
                 </TextTicker>
-                <Text numberOfLines={1} style={styles.songArtist}>
-                  {currentSong.primary_artists ||
-                    currentSong.music ||
-                    currentSong.artists.primary.map((a) => a.name)}
-                </Text>
+                <TextTicker
+                  duration={20000}
+                  bounce
+                  repeatSpacer={30}
+                  marqueeDelay={4000}
+                  numberOfLines={1}
+                  style={styles.songTitle}
+                >
+                  <Text numberOfLines={1} style={styles.songArtist}>
+                    {currentSong.primary_artists ||
+                      currentSong.music ||
+                      currentSong.artists.primary.map((a) => a.name)}
+                  </Text>
+                </TextTicker>
               </View>
             </Pressable>
             <View style={styles.controlsContainer}>

@@ -102,10 +102,15 @@ const transformSongToTrack = (songItem) => {
 
   // Convert duration from seconds to milliseconds if it's a number
   let duration = songItem.duration;
-  if (typeof duration === "string") {
-    duration = parseInt(duration, 10) * 1000;
+  if (songItem.isRadio) {
+    duration = 0;
+  } else if (typeof duration === "string") {
+    const parsedDuration = parseInt(duration, 10);
+    duration = isNaN(parsedDuration) ? 0 : parsedDuration * 1000;
   } else if (typeof duration === "number") {
     duration = duration * 1000;
+  } else {
+    duration = 0;
   }
 
   return {
@@ -193,6 +198,7 @@ export const PlayerProvider = ({ children }) => {
               Capability.Pause,
               Capability.SkipToNext,
               Capability.SkipToPrevious,
+              Capability.SeekTo,
             ],
           });
         }
@@ -408,6 +414,7 @@ export const PlayerProvider = ({ children }) => {
       Event.RemotePause,
       Event.RemoteNext,
       Event.RemotePrevious,
+      Event.RemoteSeek,
       Event.RemoteDuck,
     ],
     async (event) => {
@@ -451,6 +458,9 @@ export const PlayerProvider = ({ children }) => {
         } else if (event.type === Event.RemotePrevious) {
           // Handle remote previous button
           await playPrevious();
+        } else if (event.type === Event.RemoteSeek) {
+          await TrackPlayer.seekTo(event.position);
+          setPosition(event.position);
         } else if (event.type === Event.RemoteDuck) {
           // Handle audio ducking for interruptions (incoming calls, notifications, etc.)
           if (event.paused) {
