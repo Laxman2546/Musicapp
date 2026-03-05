@@ -14,6 +14,7 @@ import "@/global.css";
 import he from "he";
 import { getColorsForImage } from "@/services/Colors";
 import TextTicker from "react-native-text-ticker";
+import GestureRecognizer from "react-native-swipe-gestures";
 const RootLayout = () => {
   const router = useRouter();
   const pathname = usePathname();
@@ -200,74 +201,80 @@ const RootLayout = () => {
         </Tabs>
 
         {!isPlayerScreen && currentSong && (
-          <View
-            style={[
-              styles.miniPlayerContainer,
-              {
-                backgroundColor: colors?.darkVibrant || "rgba(0,0,0,0.8)",
-              },
-            ]}
+          <GestureRecognizer
+            onSwipeUp={navigatePlayer}
+            config={{ velocityThreshold: 0.2, directionalOffsetThreshold: 40 }}
+            style={styles.miniPlayerWrapper}
           >
-            <Pressable
-              onPress={navigatePlayer}
-              style={styles.songInfo}
-              hitSlop={10}
-              android_ripple={{ color: "#444" }}
+            <View
+              style={[
+                styles.miniPlayerContainer,
+                {
+                  backgroundColor: colors?.darkVibrant || "rgba(0,0,0,0.8)",
+                },
+              ]}
             >
-              <Image
-                source={getImageSource(currentSong.image)}
-                style={styles.songImage}
-              />
-              {isPlaying && (
-                <Image source={musicPlay} style={styles.gifAnimation} />
-              )}
+              <Pressable
+                onPress={navigatePlayer}
+                style={styles.songInfo}
+                hitSlop={10}
+                android_ripple={{ color: "#444" }}
+              >
+                <Image
+                  source={getImageSource(currentSong.image)}
+                  style={styles.songImage}
+                />
+                {isPlaying && (
+                  <Image source={musicPlay} style={styles.gifAnimation} />
+                )}
 
-              <View style={styles.songTextContainer}>
-                <TextTicker
-                  duration={15000}
-                  bounce
-                  repeatSpacer={30}
-                  marqueeDelay={3000}
-                  numberOfLines={1}
-                  style={styles.songTitle}
-                >
-                  {cleanSongName(currentSong.song || currentSong.title) ||
-                    "Unkown Name"}
-                </TextTicker>
-                <TextTicker
-                  duration={20000}
-                  bounce
-                  repeatSpacer={30}
-                  marqueeDelay={4000}
-                  numberOfLines={1}
-                  style={styles.songTitle}
-                >
-                  <Text numberOfLines={1} style={styles.songArtist}>
-                    {currentSong.primary_artists ||
-                      currentSong.music ||
-                      currentSong.artists.primary.map((a) => a.name)}
-                  </Text>
-                </TextTicker>
-              </View>
-            </Pressable>
-            <View style={styles.controlsContainer}>
-              <Pressable onPress={playPrevious} hitSlop={10} className="mr-1">
-                <Ionicons name="play-back" size={20} color="white" />
-              </Pressable>
-              <Pressable onPress={handlePlayPause} hitSlop={10}>
-                <View>
-                  {isPlaying ? (
-                    <Ionicons name="pause" size={24} color="white" />
-                  ) : (
-                    <Ionicons name="play" size={24} color="white" />
-                  )}
+                <View style={styles.songTextContainer}>
+                  <TextTicker
+                    duration={15000}
+                    bounce
+                    repeatSpacer={30}
+                    marqueeDelay={3000}
+                    numberOfLines={1}
+                    style={styles.songTitle}
+                  >
+                    {cleanSongName(currentSong.song || currentSong.title) ||
+                      "Unkown Name"}
+                  </TextTicker>
+                  <TextTicker
+                    duration={20000}
+                    bounce
+                    repeatSpacer={30}
+                    marqueeDelay={4000}
+                    numberOfLines={1}
+                    style={styles.songTitle}
+                  >
+                    <Text numberOfLines={1} style={styles.songArtist}>
+                      {currentSong.primary_artists ||
+                        currentSong.music ||
+                        currentSong.artists.primary.map((a) => a.name)}
+                    </Text>
+                  </TextTicker>
                 </View>
               </Pressable>
-              <Pressable onPress={playNext} hitSlop={10} className="ml-1">
-                <Ionicons name="play-forward" size={20} color="white" />
-              </Pressable>
+              <View style={styles.controlsContainer}>
+                <Pressable onPress={playPrevious} hitSlop={10} className="mr-1">
+                  <Ionicons name="play-back" size={20} color="white" />
+                </Pressable>
+                <Pressable onPress={handlePlayPause} hitSlop={10}>
+                  <View>
+                    {isPlaying ? (
+                      <Ionicons name="pause" size={24} color="white" />
+                    ) : (
+                      <Ionicons name="play" size={24} color="white" />
+                    )}
+                  </View>
+                </Pressable>
+                <Pressable onPress={playNext} hitSlop={10} className="ml-1">
+                  <Ionicons name="play-forward" size={20} color="white" />
+                </Pressable>
+              </View>
             </View>
-          </View>
+          </GestureRecognizer>
         )}
       </View>
     </>
@@ -283,10 +290,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   miniPlayerContainer: {
-    position: "absolute",
-    bottom: 70,
-    left: 10,
-    right: 10,
     padding: 15,
     borderRadius: 15,
     flexDirection: "row",
@@ -296,6 +299,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 5,
+  },
+  miniPlayerWrapper: {
+    position: "absolute",
+    bottom: 70,
+    left: 10,
+    right: 10,
   },
   songInfo: {
     flexDirection: "row",

@@ -62,7 +62,16 @@ export default function RootLayout() {
     <PlayerProvider>
       <SettingsProvider>
         <View style={{ flex: 1 }}>
-          <Stack screenOptions={{ headerShown: false }} />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen
+              name="player"
+              options={{
+                animation: "slide_from_bottom",
+                gestureEnabled: true,
+                fullScreenGestureEnabled: true,
+              }}
+            />
+          </Stack>
         </View>
       </SettingsProvider>
     </PlayerProvider>

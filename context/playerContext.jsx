@@ -6,6 +6,7 @@ import React, {
   useEffect,
   useCallback,
   useMemo,
+  useRef,
 } from "react";
 import TrackPlayer, {
   Capability,
@@ -56,7 +57,6 @@ const cleanSongName = (name) => {
 
   const decodedName = he.decode(name);
   const songName = decodedName.replace(/_/g, " ").replace(/\s+/g, " ").trim();
-  console.log(songName);
   return songName;
 };
 
@@ -171,8 +171,8 @@ export const PlayerProvider = ({ children }) => {
   const [trackIndexMap, setTrackIndexMap] = useState({}); // Map track IDs to their queue index
   const [isDucked, setIsDucked] = useState(false); // Track interruption state
   const [allSongsData, setAllSongsData] = useState([]); // Store transformed tracks
-  const [queueSize, setQueueSize] = useState(20); // Number of songs to load at a time
   const [shuffledPlaylist, setShuffledPlaylist] = useState([]); // Store shuffled order to prevent repeats
+  const lastPlayTapRef = useRef(0);
 
   const ensureTrackPlayerInitialized = useCallback(async () => {
     if (!playerInitPromise) {
@@ -324,15 +324,57 @@ export const PlayerProvider = ({ children }) => {
   const playSong = useCallback(
     async (song, allSongs, index) => {
       try {
-        // Set loading ONLY when starting to play a new song
-        setLoading(true);
+        const now = Date.now();
+        if (now - lastPlayTapRef.current < 250) {
+          return;
+        }
+        lastPlayTapRef.current = now;
+
         await ensureTrackPlayerInitialized();
 
-        // Store all songs for later pagination
-        setAllSongsData(allSongs);
+        const safeSongs = Array.isArray(allSongs) && allSongs.length > 0 ? allSongs : [song];
+        const safeIndex =
+          typeof index === "number" && index >= 0 && index < safeSongs.length ? index : 0;
+        const targetTrack = transformSongToTrack(safeSongs[safeIndex]);
+
+        // Fast path: if the selected track already exists in current queue/playlist, just skip to it.
+        if (playlist.length > 0 && targetTrack?.id) {
+          const existingIndex = playlist.findIndex((t) => t.id === targetTrack.id);
+          if (existingIndex !== -1) {
+            if (existingIndex === 0) {
+              setCurrentSong(playlist[0]);
+              setCurrentIndex(0);
+              await TrackPlayer.skip(0);
+              await TrackPlayer.play();
+              setIsPlaying(true);
+              navigateToPlayer();
+              return;
+            }
+
+            const reorderedPlaylist = [
+              ...playlist.slice(existingIndex),
+              ...playlist.slice(0, existingIndex),
+            ];
+
+            updateTrackIndexMap(reorderedPlaylist);
+            setPlaylist(reorderedPlaylist);
+            setCurrentSong(reorderedPlaylist[0]);
+            setCurrentIndex(0);
+            await TrackPlayer.reset();
+            await TrackPlayer.add(reorderedPlaylist);
+            await TrackPlayer.skip(0);
+            await TrackPlayer.play();
+            setIsPlaying(true);
+            navigateToPlayer();
+            return;
+          }
+        }
+
+        // Only show loading when we actually need to rebuild the queue.
+        setLoading(true);
 
         // Transform songs in batches for better performance
-        const allTracksTransformed = transformSongsInBatches(allSongs);
+        const allTracksTransformed = transformSongsInBatches(safeSongs);
 
         if (allTracksTransformed.length === 0) {
           console.error("No valid tracks to play");
@@ -346,8 +388,8 @@ export const PlayerProvider = ({ children }) => {
         if (
           currentSong &&
           currentSong.id &&
-          song.id &&
-          currentSong.id === song.id
+          targetTrack.id &&
+          currentSong.id === targetTrack.id
         ) {
           setLoading(false);
           navigateToPlayer();
@@ -365,24 +407,25 @@ export const PlayerProvider = ({ children }) => {
           return;
         }
 
-        // Apply shuffle if enabled
+        // Rotate playlist so clicked song is first while preserving circular order.
+        // This keeps Previous/Next behavior intuitive.
+        const orderedTracks =
+          safeIndex > 0
+            ? [...tracks.slice(safeIndex), ...tracks.slice(0, safeIndex)]
+            : tracks;
+        tracks = orderedTracks;
+
+        // Apply shuffle only to the remaining tracks, keeping selected track at index 0.
         if (shuffleToggle && tracks.length > 1) {
-          const currentTrack = tracks[index];
-          let shuffledTracks = [...tracks];
-          shuffledTracks.splice(index, 1);
-          for (let i = shuffledTracks.length - 1; i > 0; i--) {
+          const currentTrack = tracks[0];
+          const rest = [...tracks.slice(1)];
+          for (let i = rest.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            [shuffledTracks[i], shuffledTracks[j]] = [
-              shuffledTracks[j],
-              shuffledTracks[i],
-            ];
+            [rest[i], rest[j]] = [rest[j], rest[i]];
           }
-          shuffledTracks.splice(index, 0, currentTrack);
-          tracks = shuffledTracks;
-          // Store the shuffled order to prevent repeats during skip
-          setShuffledPlaylist(shuffledTracks);
+          tracks = [currentTrack, ...rest];
+          setShuffledPlaylist(tracks);
         } else {
-          // Clear shuffled playlist if not shuffling
           setShuffledPlaylist([]);
         }
 
@@ -390,10 +433,10 @@ export const PlayerProvider = ({ children }) => {
         updateTrackIndexMap(tracks);
 
         // Update local state BEFORE TrackPlayer operations
-        const selectedTrack = tracks[index];
+        const selectedTrack = tracks[0];
         setCurrentSong(selectedTrack);
         setPlaylist(tracks);
-        setCurrentIndex(index);
+        setCurrentIndex(0);
         // Store transformed tracks for dynamic loading
         setAllSongsData(tracks);
 
@@ -405,7 +448,7 @@ export const PlayerProvider = ({ children }) => {
         await TrackPlayer.add(tracks);
 
         // Skip to the correct track
-        await TrackPlayer.skip(index);
+        await TrackPlayer.skip(0);
         await TrackPlayer.play();
 
         setIsPlaying(true);
@@ -417,7 +460,13 @@ export const PlayerProvider = ({ children }) => {
         setLoading(false); // Always clear loading on error
       }
     },
-    [currentSong, ensureTrackPlayerInitialized, updateTrackIndexMap, shuffleToggle],
+    [
+      currentSong,
+      ensureTrackPlayerInitialized,
+      updateTrackIndexMap,
+      shuffleToggle,
+      playlist,
+    ],
   );
 
   const wasPlayingBeforeInterruptionRef = React.useRef(false);
