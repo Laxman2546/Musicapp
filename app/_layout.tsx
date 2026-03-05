@@ -2,12 +2,13 @@ import { PlayerProvider } from "@/context/playerContext";
 import { SettingsProvider } from "@/context/SettingsContext";
 import { Stack } from "expo-router";
 import { useEffect } from "react";
-import { View, AppState, Platform } from "react-native";
+import { View, Platform } from "react-native";
 
 import TrackPlayer from "react-native-track-player";
 import * as SplashScreen from "expo-splash-screen";
-import * as Notifications from "expo-notifications";
 import { Audio } from "expo-av";
+
+TrackPlayer.registerPlaybackService(() => require("@/context/service.js"));
 
 export default function RootLayout() {
   useEffect(() => {
@@ -33,8 +34,13 @@ export default function RootLayout() {
         // Audio session
         if (Platform.OS === "ios") {
           await Audio.setAudioModeAsync({
+            allowsRecordingIOS: false,
             playsInSilentModeIOS: true,
             staysActiveInBackground: true,
+            interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DUCK_OTHERS,
+            shouldDuckAndroid: true,
+            interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DUCK_OTHERS,
+            playThroughEarpieceAndroid: false,
           });
         }
       } catch (e) {
@@ -50,22 +56,6 @@ export default function RootLayout() {
 
     return () => {
       mounted = false;
-    };
-  }, []);
-  useEffect(() => {
-    return () => {
-      const finalCleanup = async () => {
-        try {
-          await TrackPlayer.stop();
-          await TrackPlayer.reset();
-          await Notifications.dismissAllNotificationsAsync();
-          await Notifications.cancelAllScheduledNotificationsAsync();
-        } catch (error) {
-          console.error("Final cleanup error:", error);
-        }
-      };
-
-      finalCleanup();
     };
   }, []);
   return (

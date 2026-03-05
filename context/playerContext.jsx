@@ -19,6 +19,7 @@ import TrackPlayer, {
 import he from "he";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 const PlayerContext = createContext();
+let playerInitPromise = null;
 
 // Navigation lock to prevent multiple rapid navigations
 let isNavigating = false;
@@ -168,19 +169,20 @@ export const PlayerProvider = ({ children }) => {
   const playbackState = usePlaybackState();
   const progress = useProgress();
   const [trackIndexMap, setTrackIndexMap] = useState({}); // Map track IDs to their queue index
-  const [isDucked, setIsDucked] = useState(false); // Track ducking state
-  const [previousVolume, setPreviousVolume] = useState(1); // Store volume before ducking
+  const [isDucked, setIsDucked] = useState(false); // Track interruption state
   const [allSongsData, setAllSongsData] = useState([]); // Store transformed tracks
   const [queueSize, setQueueSize] = useState(20); // Number of songs to load at a time
   const [shuffledPlaylist, setShuffledPlaylist] = useState([]); // Store shuffled order to prevent repeats
 
-  // Initialize TrackPlayer
-  useEffect(() => {
-    const setupTrackPlayer = async () => {
-      try {
-        const isSetup = await TrackPlayer.isServiceRunning();
-        if (!isSetup) {
-          await TrackPlayer.setupPlayer();
+  const ensureTrackPlayerInitialized = useCallback(async () => {
+    if (!playerInitPromise) {
+      playerInitPromise = (async () => {
+        try {
+          const isRunning = await TrackPlayer.isServiceRunning();
+          if (!isRunning) {
+            await TrackPlayer.setupPlayer();
+          }
+
           await TrackPlayer.updateOptions({
             stopWithApp: false,
             capabilities: [
@@ -190,18 +192,31 @@ export const PlayerProvider = ({ children }) => {
               Capability.SkipToPrevious,
               Capability.SeekTo,
             ],
-            android: {
-              alwaysPauseOnInterruption: false, // Changed to false to handle ducking manually
-            },
             compactCapabilities: [
               Capability.Play,
               Capability.Pause,
               Capability.SkipToNext,
               Capability.SkipToPrevious,
-              Capability.SeekTo,
             ],
+            android: {
+              alwaysPauseOnInterruption: false,
+            },
           });
+        } catch (error) {
+          playerInitPromise = null;
+          throw error;
         }
+      })();
+    }
+
+    return playerInitPromise;
+  }, []);
+
+  // Initialize TrackPlayer
+  useEffect(() => {
+    const setupTrackPlayer = async () => {
+      try {
+        await ensureTrackPlayerInitialized();
       } catch (error) {
         console.error("Error setting up TrackPlayer:", error);
       }
@@ -210,7 +225,7 @@ export const PlayerProvider = ({ children }) => {
     setupTrackPlayer();
 
     return () => {};
-  }, []);
+  }, [ensureTrackPlayerInitialized]);
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -311,6 +326,7 @@ export const PlayerProvider = ({ children }) => {
       try {
         // Set loading ONLY when starting to play a new song
         setLoading(true);
+        await ensureTrackPlayerInitialized();
 
         // Store all songs for later pagination
         setAllSongsData(allSongs);
@@ -401,8 +417,10 @@ export const PlayerProvider = ({ children }) => {
         setLoading(false); // Always clear loading on error
       }
     },
-    [currentSong, updateTrackIndexMap, shuffleToggle],
+    [currentSong, ensureTrackPlayerInitialized, updateTrackIndexMap, shuffleToggle],
   );
+
+  const wasPlayingBeforeInterruptionRef = React.useRef(false);
 
   // Handle TrackPlayer events
   useTrackPlayerEvents(
@@ -462,41 +480,24 @@ export const PlayerProvider = ({ children }) => {
           await TrackPlayer.seekTo(event.position);
           setPosition(event.position);
         } else if (event.type === Event.RemoteDuck) {
-          // Handle audio ducking for interruptions (incoming calls, notifications, etc.)
-          if (event.paused) {
-            // Ducking is being removed (interruption ended)
-            // Resume to previous volume and resume playing if it was playing
+          // Interruption started (call/assistant/audio focus loss)
+          if (event.paused === true) {
             const currentState = await TrackPlayer.getState();
-            const currentVolume = await TrackPlayer.getVolume();
-
-            // Restore previous volume
-            await TrackPlayer.setVolume(previousVolume);
+            wasPlayingBeforeInterruptionRef.current = currentState === State.Playing;
+            setIsDucked(true);
+            if (wasPlayingBeforeInterruptionRef.current) {
+              await TrackPlayer.pause();
+              setIsPlaying(false);
+            }
+          } else {
+            // Interruption ended: only resume if user was previously listening
+            const shouldResume = wasPlayingBeforeInterruptionRef.current;
             setIsDucked(false);
-
-            // If music was playing before ducking, resume it
-            if (currentState !== State.Playing) {
+            wasPlayingBeforeInterruptionRef.current = false;
+            if (shouldResume) {
               await TrackPlayer.play();
               setIsPlaying(true);
             }
-            console.log(
-              "Audio ducking ended, resuming music at volume:",
-              previousVolume,
-            );
-          } else {
-            // Ducking is active (interruption started)
-            // Reduce volume but keep playing
-            const currentVolume = await TrackPlayer.getVolume();
-            setPreviousVolume(currentVolume);
-
-            // Reduce volume to 30% for ducking
-            const duckVolume = 0.3;
-            await TrackPlayer.setVolume(duckVolume);
-            setIsDucked(true);
-
-            console.log(
-              "Audio ducking started, volume reduced to:",
-              duckVolume,
-            );
           }
         }
       } catch (error) {
@@ -526,6 +527,7 @@ export const PlayerProvider = ({ children }) => {
   // Play next song
   const playNext = useCallback(async () => {
     try {
+      await ensureTrackPlayerInitialized();
       if (shuffleActive && playlist.length > 1) {
         // Use the pre-shuffled playlist to avoid repeats
         // Simply go to next track in the shuffled order
@@ -542,11 +544,12 @@ export const PlayerProvider = ({ children }) => {
     } catch (error) {
       console.error("Error playing next song:", error);
     }
-  }, [playlist, currentIndex, shuffleActive]);
+  }, [ensureTrackPlayerInitialized, playlist, currentIndex, shuffleActive]);
 
   // Play previous song
   const playPrevious = useCallback(async () => {
     try {
+      await ensureTrackPlayerInitialized();
       // Always play the previous song
       // If user wants to restart current song, they can use seek/replay button
       const previousIndex =
@@ -562,11 +565,12 @@ export const PlayerProvider = ({ children }) => {
     } catch (error) {
       console.error("Error playing previous song:", error);
     }
-  }, [currentIndex]);
+  }, [currentIndex, ensureTrackPlayerInitialized]);
 
   // Toggle play/pause
   const togglePlayPause = useCallback(async () => {
     try {
+      await ensureTrackPlayerInitialized();
       const state = await TrackPlayer.getState();
       if (state === State.Playing) {
         await TrackPlayer.pause();
@@ -578,20 +582,22 @@ export const PlayerProvider = ({ children }) => {
     } catch (error) {
       console.error("Error toggling play/pause:", error);
     }
-  }, []);
+  }, [ensureTrackPlayerInitialized]);
 
   // Seek to a specific position
   const seekTo = useCallback(async (value) => {
     try {
+      await ensureTrackPlayerInitialized();
       await TrackPlayer.seekTo(value);
     } catch (error) {
       console.error("Error seeking:", error);
     }
-  }, []);
+  }, [ensureTrackPlayerInitialized]);
 
   const toggleShuffle = useCallback(async () => {
     setLoading(true);
     try {
+      await ensureTrackPlayerInitialized();
       const newShuffleState = !shuffleActive;
       setShuffleActive(newShuffleState);
       setShuffleToggle(newShuffleState);
@@ -686,7 +692,7 @@ export const PlayerProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [playlist, shuffleActive, updateTrackIndexMap]);
+  }, [ensureTrackPlayerInitialized, playlist, shuffleActive, updateTrackIndexMap]);
 
   const toggleLoopMode = useCallback(() => {
     setLoopMode((prev) => {

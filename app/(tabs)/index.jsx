@@ -28,7 +28,6 @@ import { SvgUri } from "react-native-svg";
 import { useSettings } from "@/context/SettingsContext";
 const Home = () => {
   const [active, setActive] = useState("All");
-  const [bhakthiActive, setbhakthiActive] = useState("VenkateshwaraSwamy");
   const [greetings, setGreetings] = useState("Good Morning");
   const [filteredSongs, setFilteredSongs] = useState([]);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -75,12 +74,10 @@ const Home = () => {
 
     try {
       setLoadingMore(true);
-      const result = await loadMore(
-        active === "Bhakthi" ? bhakthiActive : active,
-      );
+      const result = await loadMore(active);
 
       if (result.success) {
-        const nextPlaylistData = await getNextPlaylist(active, bhakthiActive);
+        const nextPlaylistData = await getNextPlaylist(active);
 
         if (nextPlaylistData?.songs?.length > 0) {
           await refetch(true);

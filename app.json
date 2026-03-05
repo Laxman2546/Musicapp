@@ -24,7 +24,7 @@
     "package": "com.lakshmannnani.nanimusic",
     "versionCode": 2,
     "adaptiveIcon": {
-      "foregroundImage": "./assets/images/appicon.png",
+      "foregroundImage": "./assets/images/adaptive.png",
       "backgroundColor": "#ffffff"
     },
     "permissions": [
