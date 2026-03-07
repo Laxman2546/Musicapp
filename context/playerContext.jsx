@@ -22,6 +22,15 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const PlayerContext = createContext();
 let playerInitPromise = null;
 
+const isAlreadyInitializedError = (error) => {
+  const message = String(error?.message || error || "").toLowerCase();
+  return (
+    message.includes("already been initialized") ||
+    message.includes("already initialized") ||
+    message.includes("player has already")
+  );
+};
+
 // Navigation lock to prevent multiple rapid navigations
 let isNavigating = false;
 const navigateToPlayer = () => {
@@ -180,7 +189,13 @@ export const PlayerProvider = ({ children }) => {
         try {
           const isRunning = await TrackPlayer.isServiceRunning();
           if (!isRunning) {
-            await TrackPlayer.setupPlayer();
+            try {
+              await TrackPlayer.setupPlayer();
+            } catch (setupError) {
+              if (!isAlreadyInitializedError(setupError)) {
+                throw setupError;
+              }
+            }
           }
 
           await TrackPlayer.updateOptions({

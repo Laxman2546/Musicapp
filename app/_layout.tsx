@@ -18,19 +18,6 @@ export default function RootLayout() {
       try {
         await SplashScreen.preventAutoHideAsync();
 
-        // DO NOT block splash on TrackPlayer
-        setTimeout(async () => {
-          try {
-            const running = await TrackPlayer.isServiceRunning();
-
-            if (!running) {
-              await TrackPlayer.setupPlayer();
-            }
-          } catch (e) {
-            console.log("TrackPlayer init skipped:", e);
-          }
-        }, 0);
-
         // Audio session
         if (Platform.OS === "ios") {
           await Audio.setAudioModeAsync({
